@@ -11,7 +11,7 @@
   :root{
     --ink:#1B1A17; --ink-soft:#6A6459; --paper:#F7F3E8; --card:#FFFFFF; --line:#E7E1D2;
     --yellow:#F5C70F; --orange:#D96A32; --red:#CC3333; --cyan:#18AACD; --green:#189B83; --olive:#CABB17;
-    --green-bg:#E1F1ED; --red-bg:#F8E3E3; --yellow-bg:#FDF3CE;
+    --green-bg:#E1F1ED; --red-bg:#F8E3E3; --yellow-bg:#FDF3CE; --cyan-bg:#E4F0F5;
     --shadow:0 1px 2px rgba(27,26,23,.04), 0 10px 30px rgba(27,26,23,.07);
   }
   *{box-sizing:border-box}
@@ -22,7 +22,6 @@
   .hl{background:linear-gradient(transparent 58%, var(--yellow) 58%); padding:0 .06em}
   button{font-family:inherit; cursor:pointer; border:none; border-radius:10px; font-weight:600; font-size:14px}
   .btn-primary{background:var(--yellow); color:var(--ink); padding:11px 18px} .btn-primary:hover{filter:brightness(.96)}
-  .btn-ink{background:var(--ink); color:#fff; padding:11px 18px} .btn-ink:hover{background:#000}
   .btn-ghost{background:transparent; color:var(--ink); padding:10px 15px; border:1px solid var(--line)} .btn-ghost:hover{border-color:var(--ink)}
   .btn-sm{padding:7px 12px; font-size:13px}
   input, select{font-family:inherit; font-size:15px; padding:11px 13px; border:1px solid var(--line); border-radius:10px; width:100%; background:#fff; color:var(--ink)}
@@ -57,6 +56,15 @@
   .selector{display:flex; align-items:center; gap:10px; margin-bottom:18px; flex-wrap:wrap}
   .selector select{min-width:240px; font-size:15px; padding:10px 12px}
 
+  /* HOME */
+  .home-hero{background:var(--ink); border-radius:20px; padding:34px 30px; margin-bottom:18px; box-shadow:var(--shadow)}
+  .home-hero .brandmark{font-size:40px}
+  .home-hero .tagline{color:#CFC9BC; font-size:14px; margin-top:8px}
+  .stat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px}
+  .stat{background:var(--card); border-radius:16px; box-shadow:var(--shadow); padding:18px}
+  .stat .n{font-family:"Bricolage Grotesque"; font-weight:700; font-size:34px; line-height:1}
+  .stat .l{font-size:12.5px; color:var(--ink-soft); margin-top:5px}
+
   .hero{background:var(--card); border-radius:20px; box-shadow:var(--shadow); overflow:hidden; margin-bottom:18px}
   .hero-band{height:10px; background:var(--yellow)}
   .hero-body{padding:24px 26px}
@@ -78,7 +86,7 @@
   .bars{display:flex; align-items:flex-end; gap:8px; height:150px; margin-top:16px; padding-top:10px}
   .bar-col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:0}
   .bar-fill{width:100%; max-width:44px; background:var(--green); border-radius:5px 5px 2px 2px; min-height:3px}
-  .bar-fill.low{background:var(--orange)}
+  .bar-fill.low{background:var(--orange)} .bar-fill.abs{background:var(--red)}
   .bar-val{font-size:10px; color:var(--ink); margin-bottom:4px; font-weight:600}
   .bar-lab{font-size:10px; color:var(--ink-soft); margin-top:6px; text-align:center; white-space:nowrap}
 
@@ -87,13 +95,14 @@
   .section .sub{font-size:12.5px; color:var(--ink-soft); margin-bottom:16px}
   .chips{display:flex; flex-wrap:wrap; gap:8px}
   .chip{font-size:13.5px; background:var(--yellow-bg); border-radius:8px; padding:7px 12px; color:var(--ink)}
+  .cause-chip{font-size:13px; background:var(--red-bg); color:var(--red); border-radius:8px; padding:6px 11px; font-weight:600}
 
   .obs{padding:12px 0; border-bottom:1px solid var(--line)} .obs:last-child{border-bottom:none}
   .obs-head{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:5px}
   .obs-date{font-size:12px; color:var(--ink-soft); font-weight:600}
   .tag{font-size:10px; letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:6px; font-weight:600}
   .tag.general{background:#EFEADD; color:var(--ink-soft)} .tag.examen{background:var(--yellow-bg); color:var(--orange)} .tag.cambio{background:var(--green-bg); color:var(--green)}
-  .tag.tri{background:#E4F0F5; color:var(--cyan)} .tag.interna{background:var(--red-bg); color:var(--red)}
+  .tag.tri{background:var(--cyan-bg); color:var(--cyan)} .tag.interna{background:var(--red-bg); color:var(--red)}
   .obs-body{font-size:14px}
   .empty{font-size:13px; color:var(--ink-soft); padding:8px 0}
 
@@ -102,25 +111,31 @@
   .seg button.active{background:var(--ink); color:#fff}
   .ana-controls{display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:8px}
   .ana-overall{font-family:"Bricolage Grotesque"; font-weight:700; font-size:28px; margin:6px 0 0}
+  .bajas-line{font-size:13px; color:var(--ink-soft); margin-top:4px}
+  .bajas-line b{color:var(--red)}
 
-  /* alumnos mgmt */
   .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px}
-  .toolbar input{max-width:240px}
+  .toolbar input{max-width:230px}
   .switch{display:inline-flex; align-items:center; gap:7px; font-size:13px; color:var(--ink-soft); cursor:pointer; user-select:none}
   .switch input{width:auto}
   .alist{background:var(--card); border-radius:16px; box-shadow:var(--shadow); overflow:hidden}
-  .arow{display:flex; align-items:center; gap:12px; padding:13px 18px; border-bottom:1px solid var(--line); cursor:pointer}
-  .arow:last-child{border-bottom:none} .arow:hover{background:#FBF9F2}
-  .arow .an{font-weight:600; flex:1; min-width:120px}
-  .arow .ag{font-size:13px; color:var(--ink-soft); width:90px}
-  .arow .anv{font-size:12px; color:var(--ink-soft); flex:1; min-width:80px}
-  .state{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:3px 9px; border-radius:20px}
+  .grow{display:grid; grid-template-columns:1fr 56px 1.1fr auto; align-items:center; gap:12px; padding:13px 18px; border-bottom:1px solid var(--line); cursor:pointer}
+  .grow:last-child{border-bottom:none} .grow:hover{background:#FBF9F2}
+  .grow .an{font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .grow .ag{font-size:13px; color:var(--ink-soft); text-align:center}
+  .grow .anv{font-size:12px; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .state{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:3px 9px; border-radius:20px; justify-self:end; white-space:nowrap}
   .state.on{background:var(--green-bg); color:var(--green)} .state.off{background:var(--red-bg); color:var(--red)}
+  .gh{padding:14px 18px; background:var(--ink); color:#fff; display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap}
+  .gh .gn{font-family:"Bricolage Grotesque"; font-weight:700; font-size:16px}
+  .gh .gp{font-size:12px; color:#CFC9BC}
+  .lrow{display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid var(--line)}
+  .lrow:last-child{border-bottom:none} .lrow .an{font-weight:600}
   .grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
-  .form-actions{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap}
+  .form-actions{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; align-items:center}
   .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 20px; border-radius:12px; font-size:14px; box-shadow:var(--shadow); opacity:0; transition:opacity .2s; z-index:50}
   .toast.show{opacity:1}
-  @media (max-width:620px){ .grid2{grid-template-columns:1fr} .arow .anv{display:none} }
+  @media (max-width:620px){ .grid2{grid-template-columns:1fr} .stat-grid{grid-template-columns:1fr} .grow{grid-template-columns:1fr 46px auto} .grow .anv{display:none} }
 </style>
 </head>
 <body>
@@ -129,17 +144,30 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPABASE_URL      = "https://ornlicmealhanmldnpwo.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ybmxpY21lYWxoYW5tbGRucHdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4NDAxNTcsImV4cCI6MjEwMzQxNjE1N30.eGT7e0RVlqf4hQiv4pJ8WEqokDw22S5mWFlfObDku5g";
+const SUPABASE_URL="https://ornlicmealhanmldnpwo.supabase.co";
+const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ybmxpY21lYWxoYW5tbGRucHdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4NDAxNTcsImV4cCI6MjEwMzQxNjE1N30.eGT7e0RVlqf4hQiv4pJ8WEqokDw22S5mWFlfObDku5g";
 
 const MESES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 const MESES_L=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 const NIVELES=["B1 Intermediate Medium","B1 Intermediate High","B2 Upper-intermediate Low","B2 Upper-intermediate Medium","B2 Upper-intermediate High","C1 Advanced"];
+const CAUSAS=["Trabajo","Vacaciones","Enfermedad","Personal","Reunión","Viaje","Feriado","Otro"];
 const root=document.getElementById("root");
 let db=null, ctx={};
 
 function fmtFecha(s){ const d=new Date(s+"T00:00:00"); return d.getDate()+" "+MESES[d.getMonth()]+" "+d.getFullYear(); }
 function toast(t){ const el=document.getElementById("toast"); el.textContent=t; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),2200); }
+function causaDe(nota){
+  if(!nota) return "Sin motivo";
+  const s=(""+nota).toLowerCase();
+  if(s.includes("vacacion")) return "Vacaciones";
+  if(s.includes("trabaj")||s.includes("labor")||s.includes("ofic")||s.includes("office")) return "Trabajo";
+  if(s.includes("enferm")||s.includes("salud")||s.includes("medic")||s.includes("médic")||s.includes("reposo")) return "Enfermedad";
+  if(s.includes("reuni")||s.includes("meeting")) return "Reunión";
+  if(s.includes("viaje")) return "Viaje";
+  if(s.includes("feriad")) return "Feriado";
+  if(s.includes("personal")||s.includes("familiar")||s.includes("asunto")) return "Personal";
+  return "Otro";
+}
 
 db=supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 init();
@@ -210,35 +238,56 @@ function renderShell(){
   const {rol,user}=ctx;
   const pill=rol==="profesora"?'<span class="rol-pill prof">Profesora</span>':rol==="rrhh"?'<span class="rol-pill rrhh">RRHH</span>':'<span class="rol-pill">Alumno</span>';
   const esProf=rol==="profesora", verGraf=(rol==="profesora"||rol==="rrhh");
+  let tabs;
+  if(rol==="alumno"){ tabs=[["fichas","Mi ficha"]]; }
+  else { tabs=[["home","Home"],["fichas","Fichas de alumnos"]];
+    if(esProf){ tabs.push(["gestion","Gestión de alumnos"]); tabs.push(["lista","Gestionar asistencia"]); tabs.push(["obs","Observaciones"]); }
+    if(verGraf) tabs.push(["reportes","Reportes"]);
+  }
+  const first=tabs[0][0];
   root.innerHTML=`
     <div class="topnav"><div class="brandmark">innit<span class="ec">English Center</span></div>
       <div class="who">${pill}<span>${user.email}</span><button class="btn-out" id="out">Salir</button></div></div>
-    <div class="wrap">
-      <div class="tabs">
-        <button class="tab active" data-v="fichas">Fichas de alumnos</button>
-        ${esProf?'<button class="tab" data-v="alumnos">Alumnos</button>':''}
-        ${esProf?'<button class="tab" data-v="lista">Pasar lista</button>':''}
-        ${esProf?'<button class="tab" data-v="obs">Observaciones</button>':''}
-        ${verGraf?'<button class="tab" data-v="asis">Asistencia (gráficos)</button>':''}
-      </div>
-      <div id="view"></div>
-    </div>`;
+    <div class="wrap"><div class="tabs">${tabs.map((t,i)=>`<button class="tab ${i===0?'active':''}" data-v="${t[0]}">${t[1]}</button>`).join("")}</div><div id="view"></div></div>`;
   document.getElementById("out").onclick=async()=>{ await db.auth.signOut(); renderLogin(); };
+  const go={home:viewHome, fichas:viewFichas, gestion:viewGestion, lista:viewListaAsis, obs:viewObs, reportes:viewReportes};
   document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active")); t.classList.add("active");
-    const v=t.dataset.v; v==="fichas"?viewFichas():v==="alumnos"?viewAlumnos():v==="lista"?viewLista():v==="obs"?viewObs():viewAsistencia();
+    (go[t.dataset.v]||viewFichas)();
   });
-  viewFichas();
+  (go[first]||viewFichas)();
 }
 
-/* ---------- VISTA FICHAS ---------- */
+/* ---------- HOME ---------- */
+async function viewHome(){
+  const {alumnos,grupos}=ctx, view=document.getElementById("view");
+  const activos=alumnos.filter(a=>a.activo).length, bajas=alumnos.length-activos;
+  view.innerHTML=`
+    <div class="home-hero"><div class="brandmark">innit<span class="ec">English Center</span></div>
+      <div class="tagline">Plataforma de seguimiento · alumnos, asistencia y observaciones</div></div>
+    <div class="stat-grid">
+      <div class="stat"><div class="n">${activos}</div><div class="l">Alumnos activos</div></div>
+      <div class="stat"><div class="n" style="color:var(--red)">${bajas}</div><div class="l">Bajas</div></div>
+      <div class="stat"><div class="n">${grupos.length}</div><div class="l">Grupos</div></div>
+    </div>
+    <div class="section"><h2>Cambios de grupo recientes</h2><div class="sub">Últimos movimientos registrados.</div><div id="h-cambios"><div class="empty">Cargando…</div></div></div>
+    <div class="section"><h2>Alumnos dados de baja</h2><div class="sub">Los que ya no están cursando.</div>${
+      bajas? '<div>'+alumnos.filter(a=>!a.activo).map(a=>{const g=a.grupo_id?ctx.grupoById[a.grupo_id]:null; return `<div class="obs" style="display:flex;justify-content:space-between;gap:10px"><span>${a.nombre}</span><span style="color:var(--ink-soft);font-size:13px">${g?g.nombre.replace('Avenga ',''):'—'}</span></div>`;}).join('')+'</div>' : '<div class="empty">No hay bajas registradas.</div>'
+    }</div>`;
+  const {data:cam}=await db.from("observaciones").select("alumno_id, fecha, texto").eq("tipo","cambio de grupo").order("fecha",{ascending:false}).limit(15);
+  const cont=document.getElementById("h-cambios");
+  cont.innerHTML=(cam&&cam.length)?cam.map(c=>{
+    const al=ctx.alumnoById[c.alumno_id];
+    return `<div class="obs"><div class="obs-head"><span class="obs-date">${fmtFecha(c.fecha)}</span><span class="tag cambio">cambio de grupo</span><b style="font-size:13.5px">${al?al.nombre:'—'}</b></div><div class="obs-body" style="font-size:13.5px;color:var(--ink-soft)">${c.texto}</div></div>`;
+  }).join(''):'<div class="empty">Sin cambios de grupo registrados.</div>';
+}
+
+/* ---------- FICHAS ---------- */
 function viewFichas(){
   const {alumnos}=ctx, view=document.getElementById("view");
   if(!alumnos.length){ view.innerHTML='<div class="empty">No hay alumnos para mostrar con tu acceso.</div>'; return; }
   let sel="";
-  if(alumnos.length>1){
-    sel=`<div class="selector"><span class="eyebrow">Alumno</span><select id="pick">${alumnos.map(a=>`<option value="${a.id}">${a.nombre}${a.activo?'':' · baja'}</option>`).join("")}</select></div>`;
-  }
+  if(alumnos.length>1) sel=`<div class="selector"><span class="eyebrow">Alumno</span><select id="pick">${alumnos.map(a=>`<option value="${a.id}">${a.nombre}${a.activo?'':' · baja'}</option>`).join("")}</select></div>`;
   view.innerHTML=sel+'<div id="ficha"></div>';
   if(alumnos.length>1) document.getElementById("pick").onchange=e=>renderFicha(e.target.value);
   renderFicha(alumnos[0].id);
@@ -250,22 +299,16 @@ async function renderFicha(alumnoId){
   const empresa=(ctx.empresas.find(e=>e.id===al.empresa_id)||{}).nombre||"—";
   const rows=asis.filter(a=>a.alumno_id===al.id);
   const total=rows.length, pres=rows.filter(a=>a.presente).length, pct=total?Math.round(pres/total*100):0;
-  const buckets=aggregate(rows,"mensual");
-  const bars=buckets.length?barsHTML(buckets):'<div class="empty">Sin asistencia cargada.</div>';
+  const buckets=aggPct(rows);
+  const bars=buckets.length?barsPct(buckets):'<div class="empty">Sin asistencia cargada.</div>';
   const aus=rows.filter(a=>!a.presente).sort((x,y)=>y.fecha.localeCompare(x.fecha));
-  const ausHTML = total===0 ? '<div class="empty">Sin asistencia cargada.</div>'
-    : aus.length===0 ? '<div class="empty">Asistencia perfecta en el período. 🎉</div>'
-    : aus.map(a=>`<div class="obs" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span class="obs-date">${fmtFecha(a.fecha)}</span><span class="tag ${a.nota?'examen':'general'}">${a.nota?a.nota:'sin motivo'}</span></div>`).join("");
+  const ausHTML=total===0?'<div class="empty">Sin asistencia cargada.</div>':aus.length===0?'<div class="empty">Asistencia perfecta en el período. 🎉</div>':
+    aus.map(a=>`<div class="obs" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span class="obs-date">${fmtFecha(a.fecha)}</span><span class="tag ${a.nota?'examen':'general'}">${a.nota?a.nota:'sin motivo'}</span></div>`).join("");
   const misTemas=g?temas.filter(t=>t.grupo_id===g.id):[];
   const temasHTML=misTemas.length?`<div class="chips">${misTemas.map(t=>`<span class="chip">${t.tema}</span>`).join("")}</div>`:'<div class="empty">Todavía no hay temas cargados para este grupo.</div>';
   const {data:obs}=await db.from("observaciones").select("fecha, tipo, texto, compartida, trimestre").eq("alumno_id",al.id).order("fecha",{ascending:false});
   const tagCls=t=>t==="examen"?"examen":t==="cambio de grupo"?"cambio":"general";
-  const obsHTML=(obs&&obs.length)?obs.map(o=>`<div class="obs"><div class="obs-head">
-      <span class="obs-date">${fmtFecha(o.fecha)}</span>
-      ${o.trimestre?`<span class="tag tri">${o.trimestre}</span>`:''}
-      <span class="tag ${tagCls(o.tipo)}">${o.tipo}</span>
-      ${(rol==="profesora"&&!o.compartida)?'<span class="tag interna">interna</span>':''}
-    </div><div class="obs-body">${o.texto}</div></div>`).join(""):'<div class="empty">Sin observaciones visibles.</div>';
+  const obsHTML=(obs&&obs.length)?obs.map(o=>`<div class="obs"><div class="obs-head"><span class="obs-date">${fmtFecha(o.fecha)}</span>${o.trimestre?`<span class="tag tri">${o.trimestre}</span>`:''}<span class="tag ${tagCls(o.tipo)}">${o.tipo}</span>${(rol==="profesora"&&!o.compartida)?'<span class="tag interna">interna</span>':''}</div><div class="obs-body">${o.texto}</div></div>`).join(""):'<div class="empty">Sin observaciones visibles.</div>';
   const horario=g?[g.dias,g.horario].filter(Boolean).join(" · "):"—";
   cont.innerHTML=`
     <div class="hero"><div class="hero-band"></div><div class="hero-body">
@@ -278,41 +321,49 @@ async function renderFicha(alumnoId){
         <div><div class="k">Horario</div><div class="v">${horario}</div></div>
       </div></div></div>
     <div class="tile"><div class="big">${pct}<small>%</small></div><div class="lab">Asistencia · ${pres} de ${total} clases</div>${bars}</div>
-    <div class="section"><h2>Ausencias${aus.length?` <span style="font-family:Inter;font-weight:600;font-size:13px;color:var(--ink-soft)">(${aus.length})</span>`:''}</h2><div class="sub">Días que faltó en el período, con el motivo si quedó registrado.</div>${ausHTML}</div>
-    <div class="section"><h2>Temas dictados en el grupo</h2><div class="sub">${g?`Contenidos cubiertos con ${g.nombre}. Se ven en todos los alumnos del grupo.`:'Sin grupo asignado.'}</div>${temasHTML}</div>
+    <div class="section"><h2>Ausencias${aus.length?` <span style="font-family:Inter;font-weight:600;font-size:13px;color:var(--ink-soft)">(${aus.length})</span>`:''}</h2><div class="sub">Días que faltó, con el motivo si quedó registrado.</div>${ausHTML}</div>
+    <div class="section"><h2>Temas dictados en el grupo</h2><div class="sub">${g?`Contenidos cubiertos con ${g.nombre}.`:'Sin grupo asignado.'}</div>${temasHTML}</div>
     <div class="section"><h2>Observaciones</h2><div class="sub">${rol==="profesora"?'Trimestrales. Ves todas, incluidas las internas.':'Observaciones compartidas.'}</div>${obsHTML}</div>`;
 }
 
-/* ---------- VISTA ALUMNOS (gestión) ---------- */
-function viewAlumnos(){
+/* ---------- GESTIÓN DE ALUMNOS ---------- */
+function viewGestion(){
   const view=document.getElementById("view");
-  let q="", hideBajas=false;
+  let q="", hideBajas=false, modo="alumno";
   function render(){
-    const list=ctx.alumnos.filter(a=>{
-      if(hideBajas && !a.activo) return false;
-      if(q && !a.nombre.toLowerCase().includes(q.toLowerCase()) && !(a.email||"").toLowerCase().includes(q.toLowerCase())) return false;
-      return true;
-    });
+    let inner;
+    if(modo==="grupo"){
+      inner='';
+      ctx.grupos.forEach(g=>{
+        const mem=ctx.alumnos.filter(a=>a.grupo_id===g.id && (!hideBajas||a.activo) && matchQ(a));
+        if(!mem.length) return;
+        inner+=`<div class="alist" style="margin-bottom:14px"><div class="gh"><span class="gn">${g.nombre}</span><span class="gp">${g.profesora||'—'} · ${g.horario||''}</span></div>`+
+          mem.map(rowHTML).join("")+`</div>`;
+      });
+      if(!inner) inner='<div class="empty" style="padding:18px">Nada que mostrar.</div>';
+    } else {
+      const list=ctx.alumnos.filter(a=>(!hideBajas||a.activo)&&matchQ(a));
+      inner=`<div class="alist">${list.map(rowHTML).join("")||'<div class="empty" style="padding:18px">Nada que mostrar.</div>'}</div>`;
+    }
     view.innerHTML=`
       <div class="toolbar">
         <input id="q" placeholder="Buscar por nombre o email…" value="${q}">
+        <div class="seg" id="modo"><button data-m="alumno" class="${modo==='alumno'?'active':''}">Por alumno</button><button data-m="grupo" class="${modo==='grupo'?'active':''}">Por grupo</button></div>
         <label class="switch"><input type="checkbox" id="hb" ${hideBajas?'checked':''}> Ocultar bajas</label>
         <div style="flex:1"></div>
         <button class="btn-primary btn-sm" id="nuevo">＋ Nuevo alumno</button>
-      </div>
-      <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px">${list.length} alumno(s)${hideBajas?' activos':''}. Tocá uno para editarlo.</div>
-      <div class="alist">${list.map(a=>{
-        const g=a.grupo_id?ctx.grupoById[a.grupo_id]:null;
-        return `<div class="arow" data-id="${a.id}">
-          <span class="an">${a.nombre}</span>
-          <span class="ag">${g?g.nombre.replace('Avenga ',''):'—'}</span>
-          <span class="anv">${a.nivel_sel||'—'}</span>
-          <span class="state ${a.activo?'on':'off'}">${a.activo?'activo':'baja'}</span>
-        </div>`;}).join("")||'<div class="empty" style="padding:18px">Nada que mostrar.</div>'}</div>`;
-    document.getElementById("q").oninput=e=>{ q=e.target.value; const p=e.target.selectionStart; render(); const el=document.getElementById("q"); el.focus(); el.setSelectionRange(p,p); };
+      </div>${inner}`;
+    const qi=document.getElementById("q");
+    qi.oninput=e=>{ q=e.target.value; const p=e.target.selectionStart; render(); const el=document.getElementById("q"); el.focus(); el.setSelectionRange(p,p); };
     document.getElementById("hb").onchange=e=>{ hideBajas=e.target.checked; render(); };
+    document.querySelectorAll("#modo button").forEach(b=>b.onclick=()=>{ modo=b.dataset.m; render(); });
     document.getElementById("nuevo").onclick=()=>form(null);
-    view.querySelectorAll(".arow").forEach(r=>r.onclick=()=>form(r.dataset.id));
+    view.querySelectorAll(".grow").forEach(r=>r.onclick=()=>form(r.dataset.id));
+  }
+  function matchQ(a){ return !q || a.nombre.toLowerCase().includes(q.toLowerCase()) || (a.email||"").toLowerCase().includes(q.toLowerCase()); }
+  function rowHTML(a){
+    const g=a.grupo_id?ctx.grupoById[a.grupo_id]:null;
+    return `<div class="grow" data-id="${a.id}"><span class="an">${a.nombre}</span><span class="ag">${g?g.nombre.replace('Avenga ',''):'—'}</span><span class="anv">${a.nivel_sel||'—'}</span><span class="state ${a.activo?'on':'off'}">${a.activo?'activo':'baja'}</span></div>`;
   }
   function form(id){
     const a=id?ctx.alumnoById[id]:{nombre:"",email:"",nivel_sel:"",grupo_id:"",activo:true};
@@ -329,12 +380,7 @@ function viewAlumnos(){
           <div class="field"><label class="lab">Nivel</label><select id="f-nivel">${nopts}</select></div>
         </div>
         <label class="switch" style="margin-top:4px"><input type="checkbox" id="f-activo" ${a.activo?'checked':''}> Alumno activo (destildá para dar de baja)</label>
-        <div class="form-actions">
-          <button class="btn-primary" id="save">Guardar</button>
-          <button class="btn-ghost" id="cancel">Cancelar</button>
-          <div style="flex:1"></div>
-          <span class="msg" id="fmsg" style="margin:0"></span>
-        </div>
+        <div class="form-actions"><button class="btn-primary" id="save">Guardar</button><button class="btn-ghost" id="cancel">Cancelar</button><div style="flex:1"></div><span class="msg" id="fmsg" style="margin:0"></span></div>
       </div>`;
     document.getElementById("cancel").onclick=render;
     document.getElementById("save").onclick=async()=>{
@@ -349,18 +395,14 @@ function viewAlumnos(){
       const payload={nombre,email,grupo_id,nivel_sel,activo,empresa_id};
       let error;
       if(id){
-        const prevGrupo=a.grupo_id;
+        const prev=a.grupo_id;
         ({error}=await db.from("alumnos").update(payload).eq("id",id));
-        if(!error && grupo_id && prevGrupo && grupo_id!==prevGrupo){
-          const de=(ctx.grupoById[prevGrupo].nombre||'').replace('Avenga ','');
-          const aa=(ctx.grupoById[grupo_id].nombre||'').replace('Avenga ','');
+        if(!error&&grupo_id&&prev&&grupo_id!==prev){
+          const de=(ctx.grupoById[prev].nombre||'').replace('Avenga ',''), aa=(ctx.grupoById[grupo_id].nombre||'').replace('Avenga ','');
           const now=new Date();
-          await db.from("observaciones").insert({alumno_id:id, fecha:now.toISOString().slice(0,10), tipo:'cambio de grupo',
-            texto:`Antes en el grupo ${de}. Pasó a ${aa} en ${MESES_L[now.getMonth()]} ${now.getFullYear()}.`, compartida:true});
+          await db.from("observaciones").insert({alumno_id:id,fecha:now.toISOString().slice(0,10),tipo:'cambio de grupo',texto:`Antes en el grupo ${de}. Pasó a ${aa} en ${MESES_L[now.getMonth()]} ${now.getFullYear()}.`,compartida:true});
         }
-      } else {
-        ({error}=await db.from("alumnos").insert(payload));
-      }
+      } else { ({error}=await db.from("alumnos").insert(payload)); }
       if(error){ fmsg.className="msg err"; fmsg.textContent="No se pudo guardar: "+error.message; return; }
       await loadData(); toast(id?"Alumno actualizado":"Alumno creado"); render();
     };
@@ -368,19 +410,18 @@ function viewAlumnos(){
   render();
 }
 
-/* ---------- VISTA PASAR LISTA ---------- */
-function viewLista(){
+/* ---------- GESTIONAR ASISTENCIA ---------- */
+function viewListaAsis(){
   const {grupos}=ctx, view=document.getElementById("view");
   const hoy=new Date().toISOString().slice(0,10);
   view.innerHTML=`
-    <div class="section" style="max-width:660px">
-      <h2>Pasar lista</h2>
-      <div class="sub">Elegí grupo y fecha, marcá quién vino y guardá. Todos arrancan en "presente".</div>
+    <div class="section" style="max-width:680px">
+      <h2>Gestionar asistencia</h2>
+      <div class="sub">Elegí grupo y fecha, marcá quién vino y guardá. A cada ausente podés ponerle la causa.</div>
       <div class="grid2">
         <div class="field"><label class="lab">Grupo</label><select id="l-grupo"><option value="">— elegí un grupo —</option>${grupos.map(g=>`<option value="${g.id}">${g.nombre}</option>`).join("")}</select></div>
         <div class="field"><label class="lab">Fecha</label><input id="l-fecha" type="date" value="${hoy}"></div>
-      </div>
-      <div id="l-list"></div>
+      </div><div id="l-list"></div>
     </div>`;
   const gsel=document.getElementById("l-grupo"), fsel=document.getElementById("l-fecha"), listEl=document.getElementById("l-list");
   let marks={};
@@ -388,37 +429,36 @@ function viewLista(){
     const gid=gsel.value, fecha=fsel.value;
     if(!gid||!fecha){ listEl.innerHTML=''; return; }
     listEl.innerHTML='<div class="empty">Cargando…</div>';
-    const roster=ctx.alumnos.filter(a=>a.grupo_id===gid && a.activo);
+    const roster=ctx.alumnos.filter(a=>a.grupo_id===gid&&a.activo);
     const {data:ex}=await db.from("asistencia").select("alumno_id, presente, nota").eq("grupo_id",gid).eq("fecha",fecha);
     const exMap=Object.fromEntries((ex||[]).map(r=>[r.alumno_id,r]));
-    marks={}; roster.forEach(a=>{ const e=exMap[a.id]; marks[a.id]={presente:e?e.presente:true, nota:e?(e.nota||""):""}; });
+    marks={}; roster.forEach(a=>{const e=exMap[a.id]; marks[a.id]={presente:e?e.presente:true, nota:e?(e.nota||""):""};});
     if(!roster.length){ listEl.innerHTML='<div class="empty">Ese grupo no tiene alumnos activos.</div>'; return; }
-    const yaHabia=(ex&&ex.length)?'<div style="font-size:12.5px;color:var(--green);margin-bottom:10px">Ya había lista para esta fecha — la cargué para que la edites.</div>':'';
-    listEl.innerHTML=yaHabia+'<div class="alist" style="margin-bottom:16px">'+roster.map(rowHTML).join("")+'</div>'+
+    const ya=(ex&&ex.length)?'<div style="font-size:12.5px;color:var(--green);margin-bottom:10px">Ya había lista para esta fecha — la cargué para que la edites.</div>':'';
+    listEl.innerHTML=ya+'<div class="alist" style="margin-bottom:16px">'+roster.map(rowHTML).join("")+'</div>'+
       `<div class="form-actions"><button class="btn-primary" id="l-save">Guardar lista</button><span class="msg" id="l-msg" style="margin:0"></span></div>`;
     roster.forEach(a=>bindRow(a.id));
     document.getElementById("l-save").onclick=()=>save(gid,fecha,roster);
   }
   function rowHTML(a){
     const m=marks[a.id];
-    return `<div class="arow" style="cursor:default">
-      <span class="an">${a.nombre}</span>
+    const copts=['<option value="">causa…</option>'].concat(CAUSAS.map(c=>`<option ${m.nota===c?'selected':''}>${c}</option>`)).join("");
+    return `<div class="lrow"><span class="an">${a.nombre}</span>
       <div class="seg" data-al="${a.id}"><button data-p="1" class="${m.presente?'active':''}">Presente</button><button data-p="0" class="${m.presente?'':'active'}">Ausente</button></div>
-      <input class="l-nota" data-al="${a.id}" placeholder="motivo (opcional)" value="${(m.nota||'').replace(/"/g,'&quot;')}" style="max-width:150px;${m.presente?'visibility:hidden':''}">
-    </div>`;
+      <select class="l-causa" data-al="${a.id}" style="max-width:150px;${m.presente?'visibility:hidden':''}">${copts}</select></div>`;
   }
   function bindRow(id){
-    const seg=listEl.querySelector(`.seg[data-al="${id}"]`), nota=listEl.querySelector(`.l-nota[data-al="${id}"]`);
+    const seg=listEl.querySelector(`.seg[data-al="${id}"]`), causa=listEl.querySelector(`.l-causa[data-al="${id}"]`);
     seg.querySelectorAll("button").forEach(b=>b.onclick=()=>{
       seg.querySelectorAll("button").forEach(x=>x.classList.remove("active")); b.classList.add("active");
-      marks[id].presente=b.dataset.p==="1"; nota.style.visibility=marks[id].presente?'hidden':'visible';
+      marks[id].presente=b.dataset.p==="1"; causa.style.visibility=marks[id].presente?'hidden':'visible';
     });
-    nota.oninput=e=>{ marks[id].nota=e.target.value; };
+    causa.onchange=e=>{ marks[id].nota=e.target.value; };
   }
   async function save(gid,fecha,roster){
     const msg=document.getElementById("l-msg"); msg.className="msg info"; msg.textContent="Guardando…";
     await db.from("asistencia").delete().eq("grupo_id",gid).eq("fecha",fecha);
-    const rows=roster.map(a=>({alumno_id:a.id, grupo_id:gid, fecha, presente:marks[a.id].presente, nota:marks[a.id].presente?null:(marks[a.id].nota||null)}));
+    const rows=roster.map(a=>({alumno_id:a.id,grupo_id:gid,fecha,presente:marks[a.id].presente,nota:marks[a.id].presente?null:(marks[a.id].nota||null)}));
     const {error}=await db.from("asistencia").insert(rows);
     if(error){ msg.className="msg err"; msg.textContent="No se pudo guardar: "+error.message; return; }
     await loadData(); msg.className="msg ok"; msg.textContent="Lista guardada ✓"; toast("Lista guardada");
@@ -426,29 +466,19 @@ function viewLista(){
   gsel.onchange=loadList; fsel.onchange=loadList;
 }
 
-/* ---------- VISTA OBSERVACIONES ---------- */
+/* ---------- OBSERVACIONES ---------- */
 function viewObs(){
   const {alumnos}=ctx, view=document.getElementById("view");
   const opts=alumnos.map(a=>`<option value="${a.id}">${a.nombre}${a.activo?'':' · baja'}</option>`).join("");
   view.innerHTML=`<div class="selector"><span class="eyebrow">Alumno</span><select id="o-al">${opts}</select></div><div id="o-body"></div>`;
-  const alSel=document.getElementById("o-al");
-  alSel.onchange=()=>load(alSel.value); load(alSel.value);
+  const alSel=document.getElementById("o-al"); alSel.onchange=()=>load(alSel.value); load(alSel.value);
   function obsItem(o){
-    return `<div class="obs"><div class="obs-head">
-      <span class="obs-date">${fmtFecha(o.fecha)}</span>
-      ${o.trimestre?`<span class="tag tri">${o.trimestre}</span>`:''}
-      <span class="tag ${o.tipo==='examen'?'examen':o.tipo==='cambio de grupo'?'cambio':'general'}">${o.tipo}</span>
-      <span class="tag ${o.compartida?'cambio':'interna'}">${o.compartida?'compartida':'interna'}</span>
-      <div style="flex:1"></div>
-      <button class="btn-ghost btn-sm" data-del="${o.id}">Borrar</button>
-    </div><div class="obs-body">${o.texto}</div></div>`;
+    return `<div class="obs"><div class="obs-head"><span class="obs-date">${fmtFecha(o.fecha)}</span>${o.trimestre?`<span class="tag tri">${o.trimestre}</span>`:''}<span class="tag ${o.tipo==='examen'?'examen':o.tipo==='cambio de grupo'?'cambio':'general'}">${o.tipo}</span><span class="tag ${o.compartida?'cambio':'interna'}">${o.compartida?'compartida':'interna'}</span><div style="flex:1"></div><button class="btn-ghost btn-sm" data-del="${o.id}">Borrar</button></div><div class="obs-body">${o.texto}</div></div>`;
   }
   async function load(alId){
-    const body=document.getElementById("o-body");
-    body.innerHTML='<div class="empty">Cargando…</div>';
+    const body=document.getElementById("o-body"); body.innerHTML='<div class="empty">Cargando…</div>';
     const {data:obs}=await db.from("observaciones").select("id, fecha, tipo, texto, compartida, trimestre").eq("alumno_id",alId).order("fecha",{ascending:false});
-    const y=new Date().getFullYear();
-    const tri=['','1er trimestre '+y,'2do trimestre '+y,'3er trimestre '+y,'4to trimestre '+y];
+    const y=new Date().getFullYear(); const tri=['','1er trimestre '+y,'2do trimestre '+y,'3er trimestre '+y,'4to trimestre '+y];
     body.innerHTML=`
       <div class="section" style="max-width:640px">
         <h2>Nueva observación</h2>
@@ -457,68 +487,93 @@ function viewObs(){
           <div class="field"><label class="lab">Trimestre</label><select id="o-tri">${tri.map(t=>`<option value="${t}">${t||'— sin trimestre —'}</option>`).join('')}</select></div>
         </div>
         <div class="field"><label class="lab">Texto</label><textarea id="o-texto" placeholder="Escribí la observación…"></textarea></div>
-        <label class="switch"><input type="checkbox" id="o-comp"> Compartida — la ven el alumno y RRHH. Si la dejás sin tildar, queda interna (solo profesoras).</label>
+        <label class="switch"><input type="checkbox" id="o-comp"> Compartida — la ven el alumno y RRHH. Sin tildar queda interna (solo profesoras).</label>
         <div class="form-actions"><button class="btn-primary" id="o-save">Guardar observación</button><span class="msg" id="o-msg" style="margin:0"></span></div>
       </div>
-      <div class="section">
-        <h2>Observaciones cargadas</h2>
-        ${(obs&&obs.length)?obs.map(obsItem).join(''):'<div class="empty">Todavía no hay observaciones para este alumno.</div>'}
-      </div>`;
+      <div class="section"><h2>Observaciones cargadas</h2>${(obs&&obs.length)?obs.map(obsItem).join(''):'<div class="empty">Todavía no hay observaciones para este alumno.</div>'}</div>`;
     document.getElementById("o-save").onclick=async()=>{
       const texto=document.getElementById("o-texto").value.trim(), msg=document.getElementById("o-msg");
       if(!texto){ msg.className="msg err"; msg.textContent="Escribí algo antes de guardar."; return; }
-      const payload={alumno_id:alId, tipo:document.getElementById("o-tipo").value, trimestre:document.getElementById("o-tri").value||null, texto, compartida:document.getElementById("o-comp").checked, fecha:new Date().toISOString().slice(0,10)};
+      const payload={alumno_id:alId,tipo:document.getElementById("o-tipo").value,trimestre:document.getElementById("o-tri").value||null,texto,compartida:document.getElementById("o-comp").checked,fecha:new Date().toISOString().slice(0,10)};
       const {error}=await db.from("observaciones").insert(payload);
       if(error){ msg.className="msg err"; msg.textContent="No se pudo guardar: "+error.message; return; }
       toast("Observación guardada"); load(alId);
     };
-    body.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
-      if(!confirm("¿Borrar esta observación?")) return;
-      await db.from("observaciones").delete().eq("id",b.dataset.del); toast("Observación borrada"); load(alId);
-    });
+    body.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{ if(!confirm("¿Borrar esta observación?"))return; await db.from("observaciones").delete().eq("id",b.dataset.del); toast("Observación borrada"); load(alId); });
   }
 }
 
-/* ---------- VISTA ASISTENCIA ---------- */
-function viewAsistencia(){
+/* ---------- REPORTES ---------- */
+function viewReportes(){
   const {alumnos,grupos,empresas}=ctx, view=document.getElementById("view");
   view.innerHTML=`
     <div class="section">
-      <h2>Asistencia — vistas</h2>
-      <div class="sub">Por alumno, por grupo o por toda la empresa; mensual o anual.</div>
+      <h2>Reportes</h2>
+      <div class="sub">Asistencia e inasistencias por alumno, grupo o empresa.</div>
+      <div class="ana-controls">
+        <div class="seg" id="mode"><button data-m="asis" class="active">Asistencia</button><button data-m="causa">Inasistencias por causa</button></div>
+      </div>
       <div class="ana-controls">
         <div class="seg" id="scope"><button data-s="alumno" class="active">Alumno</button><button data-s="grupo">Grupo</button><button data-s="empresa">Empresa</button></div>
-        <select id="target"></select>
-        <div class="seg" id="periodo"><button data-p="mensual" class="active">Mensual</button><button data-p="anual">Anual</button></div>
+        <select id="target" style="max-width:280px"></select>
+        <select id="causa" style="max-width:170px;display:none"></select>
       </div>
-      <div class="ana-overall" id="overall"></div><div id="chart"></div>
+      <div class="ana-overall" id="overall"></div>
+      <div class="bajas-line" id="bajas"></div>
+      <div id="chart"></div>
+      <div id="extra"></div>
     </div>`;
-  let scope="alumno", periodo="mensual"; const targetSel=document.getElementById("target");
+  let mode="asis", scope="alumno";
+  const targetSel=document.getElementById("target"), causaSel=document.getElementById("causa");
+  causaSel.innerHTML=['<option value="">Todas las causas</option>'].concat(CAUSAS.concat(["Sin motivo"]).map(c=>`<option>${c}</option>`)).join("");
   function fillTargets(){
     let opts= scope==="alumno"?alumnos.map(a=>[a.id,a.nombre]) : scope==="grupo"?grupos.map(g=>[g.id,g.nombre]) : empresas.map(e=>[e.id,e.nombre]);
     targetSel.innerHTML=opts.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("");
   }
-  function redraw(){
-    const rows=filterAsis(scope,targetSel.value);
-    const total=rows.length, pres=rows.filter(a=>a.presente).length, pct=total?Math.round(pres/total*100):0;
-    document.getElementById("overall").innerHTML=total?`${pct}% <span style="font-size:13px;color:var(--ink-soft);font-weight:400">· ${pres} de ${total} asistencias</span>`:'<span style="font-size:14px;color:var(--ink-soft);font-weight:400">Sin datos para esta selección.</span>';
-    const buckets=aggregate(rows,periodo);
-    let extra='';
-    if(scope==="grupo"){
-      const gid=targetSel.value;
-      const members=ctx.alumnos.filter(a=>a.grupo_id===gid).sort((a,b)=>a.nombre.localeCompare(b.nombre));
-      extra = `<div style="margin-top:24px"><div class="eyebrow" style="margin-bottom:10px">Asistencia por alumno del grupo (${members.length})</div>`+
-        (members.length? '<div class="alist">'+members.map(a=>{
-          const rr=ctx.asis.filter(x=>x.alumno_id===a.id);
-          const t=rr.length, p=rr.filter(x=>x.presente).length, pc=t?Math.round(p/t*100):0;
-          return `<div class="arow" style="cursor:default"><span class="an">${a.nombre}${a.activo?'':' · baja'}</span><span class="anv">${p}/${t} clases</span><span class="state ${pc>=85?'on':'off'}">${t?pc+'%':'sin datos'}</span></div>`;
-        }).join('')+'</div>' : '<div class="empty">Este grupo no tiene alumnos asignados actualmente.</div>')+'</div>';
-    }
-    document.getElementById("chart").innerHTML=(buckets.length?barsHTML(buckets):'')+extra;
+  function membersOf(scope,id){
+    if(scope==="grupo") return ctx.alumnos.filter(a=>a.grupo_id===id);
+    if(scope==="empresa") return ctx.alumnos.filter(a=>a.empresa_id===id);
+    return [];
   }
+  function redraw(){
+    const id=targetSel.value;
+    const rows=filterAsis(scope,id);
+    causaSel.style.display = mode==="causa" ? "" : "none";
+    // bajas %
+    const bl=document.getElementById("bajas");
+    if(scope!=="alumno"){ const mem=membersOf(scope,id); const b=mem.filter(a=>!a.activo).length;
+      bl.innerHTML=mem.length?`Bajas: <b>${b} de ${mem.length} (${Math.round(b/mem.length*100)}%)</b>`:''; }
+    else bl.innerHTML='';
+
+    if(mode==="asis"){
+      const total=rows.length, pres=rows.filter(a=>a.presente).length, pct=total?Math.round(pres/total*100):0;
+      document.getElementById("overall").innerHTML=total?`${pct}% <span style="font-size:13px;color:var(--ink-soft);font-weight:400">promedio anual · ${pres} de ${total} asistencias</span>`:'<span style="font-size:14px;color:var(--ink-soft);font-weight:400">Sin datos para esta selección.</span>';
+      const buckets=aggPct(rows);
+      document.getElementById("chart").innerHTML=buckets.length?barsPct(buckets):'';
+      let extra='';
+      if(scope==="grupo"){
+        const mem=ctx.alumnos.filter(a=>a.grupo_id===id).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+        extra=`<div style="margin-top:24px"><div class="eyebrow" style="margin-bottom:10px">Asistencia por alumno del grupo (${mem.length})</div>`+
+          (mem.length?'<div class="alist">'+mem.map(a=>{const rr=ctx.asis.filter(x=>x.alumno_id===a.id);const t=rr.length,p=rr.filter(x=>x.presente).length,pc=t?Math.round(p/t*100):0;return `<div class="lrow"><span class="an">${a.nombre}${a.activo?'':' · baja'}</span><span class="anv" style="font-size:12px;color:var(--ink-soft)">${p}/${t} clases</span><span class="state ${pc>=85?'on':'off'}">${t?pc+'%':'sin datos'}</span></div>`;}).join('')+'</div>':'<div class="empty">Este grupo no tiene alumnos.</div>')+'</div>';
+      }
+      document.getElementById("extra").innerHTML=extra;
+    } else {
+      let abs=rows.filter(a=>!a.presente);
+      const causa=causaSel.value;
+      if(causa) abs=abs.filter(a=>causaDe(a.nota)===causa);
+      document.getElementById("overall").innerHTML=`${abs.length} <span style="font-size:13px;color:var(--ink-soft);font-weight:400">inasistencias${causa?` por ${causa.toLowerCase()}`:''}</span>`;
+      const buckets=aggCount(abs);
+      document.getElementById("chart").innerHTML=buckets.length?barsCount(buckets):'<div class="empty">Sin inasistencias para esta selección.</div>';
+      // breakdown by cause
+      const by={}; rows.filter(a=>!a.presente).forEach(a=>{const c=causaDe(a.nota); by[c]=(by[c]||0)+1;});
+      const items=Object.entries(by).sort((a,b)=>b[1]-a[1]);
+      document.getElementById("extra").innerHTML= items.length?`<div style="margin-top:22px"><div class="eyebrow" style="margin-bottom:10px">Inasistencias por causa</div><div class="chips">${items.map(([c,n])=>`<span class="cause-chip">${c}: ${n}</span>`).join('')}</div></div>`:'';
+    }
+  }
+  document.querySelectorAll("#mode button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#mode button").forEach(x=>x.classList.remove("active"));b.classList.add("active");mode=b.dataset.m;redraw();});
   document.querySelectorAll("#scope button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#scope button").forEach(x=>x.classList.remove("active"));b.classList.add("active");scope=b.dataset.s;fillTargets();redraw();});
-  document.querySelectorAll("#periodo button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#periodo button").forEach(x=>x.classList.remove("active"));b.classList.add("active");periodo=b.dataset.p;redraw();});
-  targetSel.onchange=redraw; fillTargets(); redraw();
+  targetSel.onchange=redraw; causaSel.onchange=redraw;
+  fillTargets(); redraw();
 }
 function filterAsis(scope,targetId){
   const {asis,alumnoById,grupoById}=ctx;
@@ -531,16 +586,24 @@ function filterAsis(scope,targetId){
     return empresaId===targetId;
   });
 }
-function aggregate(rows,periodo){
-  const map={};
-  rows.forEach(a=>{ const key=periodo==="anual"?a.fecha.slice(0,4):a.fecha.slice(0,7); map[key]=map[key]||{p:0,t:0}; map[key].t++; if(a.presente)map[key].p++; });
+function aggPct(rows){
+  const map={}; rows.forEach(a=>{const k=a.fecha.slice(0,7); map[k]=map[k]||{p:0,t:0}; map[k].t++; if(a.presente)map[k].p++;});
   let keys=Object.keys(map).sort(); if(keys.length>12)keys=keys.slice(-12);
-  return keys.map(k=>{ const m=map[k], pct=Math.round(m.p/m.t*100); const lab=periodo==="anual"?k:(MESES[parseInt(k.slice(5,7))-1]+" "+k.slice(2,4)); return {lab,pct,p:m.p,t:m.t}; });
+  return keys.map(k=>{const m=map[k],pct=Math.round(m.p/m.t*100);return {lab:MESES[parseInt(k.slice(5,7))-1]+" "+k.slice(2,4),pct,p:m.p,t:m.t};});
 }
-function barsHTML(buckets){
-  return `<div class="bars">${buckets.map(b=>`<div class="bar-col" title="${b.p} de ${b.t}">
-    <div class="bar-val">${b.pct}%</div><div class="bar-fill ${b.pct<85?'low':''}" style="height:${Math.max(b.pct,3)}%"></div><div class="bar-lab">${b.lab}</div></div>`).join("")}</div>`;
+function aggCount(rows){
+  const map={}; rows.forEach(a=>{const k=a.fecha.slice(0,7); map[k]=(map[k]||0)+1;});
+  let keys=Object.keys(map).sort(); if(keys.length>12)keys=keys.slice(-12);
+  return keys.map(k=>({lab:MESES[parseInt(k.slice(5,7))-1]+" "+k.slice(2,4),n:map[k]}));
+}
+function barsPct(buckets){
+  return `<div class="bars">${buckets.map(b=>`<div class="bar-col" title="${b.p} de ${b.t}"><div class="bar-val">${b.pct}%</div><div class="bar-fill ${b.pct<85?'low':''}" style="height:${Math.max(b.pct,3)}%"></div><div class="bar-lab">${b.lab}</div></div>`).join("")}</div>`;
+}
+function barsCount(buckets){
+  const max=Math.max(1,...buckets.map(b=>b.n));
+  return `<div class="bars">${buckets.map(b=>`<div class="bar-col" title="${b.n} inasistencias"><div class="bar-val">${b.n}</div><div class="bar-fill abs" style="height:${Math.max(b.n/max*100,3)}%"></div><div class="bar-lab">${b.lab}</div></div>`).join("")}</div>`;
 }
 </script>
 </body>
 </html>
+

@@ -246,7 +246,7 @@ function renderShell(){
   let tabs;
   if(rol==="alumno"){ tabs=[["fichas","Mi ficha"]]; }
   else { tabs=[["home","Home"],["fichas","Fichas de alumnos"]];
-    if(esProf){ tabs.push(["gestion","Gestión de alumnos"]); tabs.push(["lista","Gestionar asistencia"]); tabs.push(["obs","Observaciones"]); }
+    if(esProf){ tabs.push(["gestion","Gestión de alumnos"]); tabs.push(["lista","Gestionar asistencia"]); tabs.push(["temas","Temas"]); tabs.push(["obs","Observaciones"]); }
     if(verGraf) tabs.push(["reportes","Reportes"]);
   }
   const first=tabs[0][0];
@@ -255,7 +255,7 @@ function renderShell(){
       <div class="who">${pill}<span>${user.email}</span><button class="btn-out" id="out">Salir</button></div></div>
     <div class="wrap"><div class="tabs">${tabs.map((t,i)=>`<button class="tab ${i===0?'active':''}" data-v="${t[0]}">${t[1]}</button>`).join("")}</div><div id="view"></div></div>`;
   document.getElementById("out").onclick=async()=>{ await db.auth.signOut(); renderLogin(); };
-  const go={home:viewHome, fichas:viewFichas, gestion:viewGestion, lista:viewListaAsis, obs:viewObs, reportes:viewReportes};
+  const go={home:viewHome, fichas:viewFichas, gestion:viewGestion, lista:viewListaAsis, temas:viewTemas, obs:viewObs, reportes:viewReportes};
   document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active")); t.classList.add("active");
     (go[t.dataset.v]||viewFichas)();
@@ -471,6 +471,47 @@ function viewListaAsis(){
   gsel.onchange=loadList; fsel.onchange=loadList;
 }
 
+/* ---------- TEMAS POR GRUPO ---------- */
+function viewTemas(){
+  const {grupos}=ctx, view=document.getElementById("view");
+  view.innerHTML=`
+    <div class="selector"><span class="eyebrow">Grupo</span><select id="tm-grupo"><option value="">— elegí un grupo —</option>${grupos.map(g=>`<option value="${g.id}">${g.nombre}${g.profesora?' · '+g.profesora:''}</option>`).join("")}</select></div>
+    <div id="tm-body"></div>`;
+  const gsel=document.getElementById("tm-grupo");
+  gsel.onchange=()=>load(gsel.value);
+  async function load(gid){
+    const body=document.getElementById("tm-body");
+    if(!gid){ body.innerHTML='<div class="empty">Elegí un grupo para ver y cargar sus temas.</div>'; return; }
+    body.innerHTML='<div class="empty">Cargando…</div>';
+    const {data:temas}=await db.from("temas").select("id, tema, creado_en").eq("grupo_id",gid).order("creado_en");
+    body.innerHTML=`
+      <div class="section" style="max-width:640px">
+        <h2>Agregar tema</h2>
+        <div class="sub">Los temas que cargues acá se ven en la ficha de todos los alumnos del grupo.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <input id="tm-nuevo" placeholder="Ej: Present perfect, Phrasal verbs…" style="flex:1;min-width:200px">
+          <button class="btn-primary" id="tm-add">Agregar</button>
+        </div>
+        <span class="msg" id="tm-msg" style="margin-top:12px"></span>
+      </div>
+      <div class="section">
+        <h2>Temas del grupo${temas&&temas.length?` <span style="font-family:Inter;font-weight:600;font-size:13px;color:var(--ink-soft)">(${temas.length})</span>`:''}</h2>
+        ${(temas&&temas.length)?'<div>'+temas.map(t=>`<div class="obs" style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span>${t.tema}</span><button class="btn-ghost btn-sm" data-del="${t.id}">Borrar</button></div>`).join('')+'</div>':'<div class="empty">Todavía no hay temas cargados para este grupo.</div>'}
+      </div>`;
+    const inp=document.getElementById("tm-nuevo"), msg=document.getElementById("tm-msg");
+    async function add(){
+      const tema=inp.value.trim();
+      if(!tema){ msg.className="msg err"; msg.textContent="Escribí un tema."; return; }
+      const {error}=await db.from("temas").insert({grupo_id:gid, tema});
+      if(error){ msg.className="msg err"; msg.textContent="No se pudo guardar: "+error.message; return; }
+      toast("Tema agregado"); load(gid);
+    }
+    document.getElementById("tm-add").onclick=add;
+    inp.onkeydown=e=>{ if(e.key==="Enter") add(); };
+    body.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{ await db.from("temas").delete().eq("id",b.dataset.del); toast("Tema borrado"); load(gid); });
+  }
+}
+
 /* ---------- OBSERVACIONES ---------- */
 function viewObs(){
   const {alumnos}=ctx, view=document.getElementById("view");
@@ -611,3 +652,4 @@ function barsCount(buckets){
 </script>
 </body>
 </html>
+

@@ -222,7 +222,7 @@ async function fetchAllAsis(){
 }
 async function loadData(){
   const [alumnos,grupos,empresas,asis,temas]=await Promise.all([
-    db.from("alumnos").select("id, nombre, email, nivel_sel, grupo_id, empresa_id, activo").order("nombre").then(r=>r.data||[]),
+    db.from("alumnos").select("id, nombre, email, nivel_sel, grupo_id, empresa_id, activo, motivo_baja").order("nombre").then(r=>r.data||[]),
     db.from("grupos").select("id, nombre, profesora, dias, horario, empresa_id").order("nombre").then(r=>r.data||[]),
     db.from("empresas").select("id, nombre").then(r=>r.data||[]),
     fetchAllAsis(),
@@ -277,7 +277,7 @@ async function viewHome(){
     </div>
     <div class="section"><h2>Cambios de grupo recientes</h2><div class="sub">Últimos movimientos registrados.</div><div id="h-cambios"><div class="empty">Cargando…</div></div></div>
     <div class="section"><h2>Alumnos dados de baja</h2><div class="sub">Los que ya no están cursando.</div>${
-      bajas? '<div>'+alumnos.filter(a=>!a.activo).map(a=>{const g=a.grupo_id?ctx.grupoById[a.grupo_id]:null; return `<div class="obs" style="display:flex;justify-content:space-between;gap:10px"><span>${a.nombre}</span><span style="color:var(--ink-soft);font-size:13px">${g?g.nombre.replace('Avenga ',''):'—'}</span></div>`;}).join('')+'</div>' : '<div class="empty">No hay bajas registradas.</div>'
+      bajas? '<div>'+alumnos.filter(a=>!a.activo).map(a=>{const g=a.grupo_id?ctx.grupoById[a.grupo_id]:null; return `<div class="obs"><div style="display:flex;justify-content:space-between;gap:10px"><span>${a.nombre}</span><span style="color:var(--ink-soft);font-size:13px">${g?g.nombre.replace('Avenga ',''):'—'}</span></div>${a.motivo_baja?`<div style="font-size:12.5px;color:var(--ink-soft);margin-top:3px">Motivo: ${a.motivo_baja}</div>`:''}</div>`;}).join('')+'</div>' : '<div class="empty">No hay bajas registradas.</div>'
     }</div>`;
   const {data:cam}=await db.from("observaciones").select("alumno_id, fecha, texto").eq("tipo","cambio de grupo").order("fecha",{ascending:false}).limit(15);
   const cont=document.getElementById("h-cambios");
@@ -324,6 +324,7 @@ async function renderFicha(alumnoId){
         <div><div class="k">Grupo</div><div class="v">${g?g.nombre:"—"}</div></div>
         <div><div class="k">Profesora</div><div class="v">${g&&g.profesora?g.profesora:"—"}</div></div>
         <div><div class="k">Horario</div><div class="v">${horario}</div></div>
+        ${(!al.activo&&al.motivo_baja)?`<div><div class="k">Motivo de baja</div><div class="v" style="color:var(--red)">${al.motivo_baja}</div></div>`:''}
       </div></div></div>
     <div class="tile"><div class="big">${pct}<small>%</small></div><div class="lab">Asistencia · ${pres} de ${total} clases</div>${bars}</div>
     <div class="section"><h2>Ausencias${aus.length?` <span style="font-family:Inter;font-weight:600;font-size:13px;color:var(--ink-soft)">(${aus.length})</span>`:''}</h2><div class="sub">Días que faltó, con el motivo si quedó registrado.</div>${ausHTML}</div>
@@ -385,19 +386,23 @@ function viewGestion(){
           <div class="field"><label class="lab">Nivel</label><select id="f-nivel">${nopts}</select></div>
         </div>
         <label class="switch" style="margin-top:4px"><input type="checkbox" id="f-activo" ${a.activo?'checked':''}> Alumno activo (destildá para dar de baja)</label>
+        <div class="field" id="f-motivo-wrap" style="margin-top:12px;${a.activo?'display:none':''}"><label class="lab">Motivo de la baja</label><input id="f-motivo" value="${(a.motivo_baja||'').replace(/"/g,'&quot;')}" placeholder="Ej: dejó la empresa, cambió de horario…"></div>
         <div class="form-actions"><button class="btn-primary" id="save">Guardar</button><button class="btn-ghost" id="cancel">Cancelar</button><div style="flex:1"></div><span class="msg" id="fmsg" style="margin:0"></span></div>
       </div>`;
     document.getElementById("cancel").onclick=render;
+    const actChk=document.getElementById("f-activo"), motWrap=document.getElementById("f-motivo-wrap");
+    actChk.onchange=()=>{ motWrap.style.display=actChk.checked?'none':''; };
     document.getElementById("save").onclick=async()=>{
       const nombre=document.getElementById("f-nombre").value.trim();
       const email=document.getElementById("f-email").value.trim().toLowerCase()||null;
       const grupo_id=document.getElementById("f-grupo").value||null;
       const nivel_sel=document.getElementById("f-nivel").value||null;
       const activo=document.getElementById("f-activo").checked;
+      const motivo_baja=activo?null:(document.getElementById("f-motivo").value.trim()||null);
       const fmsg=document.getElementById("fmsg");
       if(!nombre){ fmsg.className="msg err"; fmsg.textContent="Poné un nombre."; return; }
       const empresa_id=grupo_id?ctx.grupoById[grupo_id].empresa_id:(a.empresa_id||null);
-      const payload={nombre,email,grupo_id,nivel_sel,activo,empresa_id};
+      const payload={nombre,email,grupo_id,nivel_sel,activo,empresa_id,motivo_baja};
       let error;
       if(id){
         const prev=a.grupo_id;
@@ -652,4 +657,3 @@ function barsCount(buckets){
 </script>
 </body>
 </html>
-

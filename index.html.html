@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Innit · Plataforma</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B1A17; --ink-soft:#6A6459; --paper:#F7F3E8; --card:#FFFFFF; --line:#E7E1D2;
+    --yellow:#F5C70F; --orange:#D96A32; --red:#CC3333; --cyan:#18AACD; --green:#189B83; --olive:#CABB17;
+    --green-bg:#E1F1ED; --red-bg:#F8E3E3; --yellow-bg:#FDF3CE;
+    --shadow:0 1px 2px rgba(27,26,23,.04), 0 10px 30px rgba(27,26,23,.07);
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--paper); color:var(--ink); font-family:"Inter",system-ui,sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased}
+  .eyebrow{font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft); font-weight:600}
+  .brandmark{font-family:"Bricolage Grotesque"; font-weight:800; font-size:22px; letter-spacing:-.02em; color:var(--yellow); display:flex; align-items:baseline; gap:2px}
+  .brandmark .ec{font-size:10px; letter-spacing:.18em; color:#fff; opacity:.6; text-transform:uppercase; font-family:"Inter"; font-weight:600; margin-left:6px}
+  .hl{background:linear-gradient(transparent 58%, var(--yellow) 58%); padding:0 .06em}
+  button{font-family:inherit; cursor:pointer; border:none; border-radius:10px; font-weight:600; font-size:14px}
+  .btn-primary{background:var(--yellow); color:var(--ink); padding:11px 18px} .btn-primary:hover{filter:brightness(.96)}
+  .btn-ink{background:var(--ink); color:#fff; padding:11px 18px} .btn-ink:hover{background:#000}
+  .btn-ghost{background:transparent; color:var(--ink); padding:10px 15px; border:1px solid var(--line)} .btn-ghost:hover{border-color:var(--ink)}
+  .btn-sm{padding:7px 12px; font-size:13px}
+  input, select{font-family:inherit; font-size:15px; padding:11px 13px; border:1px solid var(--line); border-radius:10px; width:100%; background:#fff; color:var(--ink)}
+  input:focus, select:focus{outline:2px solid var(--yellow); outline-offset:1px; border-color:transparent}
+  label.lab{display:block; font-size:12px; color:var(--ink-soft); margin-bottom:5px; font-weight:600}
+
+  .login-wrap{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px}
+  .login-card{background:var(--card); border-radius:20px; box-shadow:var(--shadow); width:100%; max-width:400px; overflow:hidden}
+  .login-band{height:10px; background:var(--yellow)}
+  .login-body{padding:30px 28px}
+  .login-body .brandmark{color:var(--ink)} .login-body .brandmark .ec{color:var(--ink-soft); opacity:1}
+  .login-body h1{font-family:"Bricolage Grotesque"; font-weight:700; font-size:24px; margin:16px 0 4px}
+  .login-body p.hint{font-size:13px; color:var(--ink-soft); margin:0 0 20px}
+  .field{margin-bottom:12px}
+  .login-actions{display:flex; gap:10px; margin-top:6px} .login-actions button{flex:1}
+  .msg{margin-top:14px; font-size:13px; padding:10px 12px; border-radius:8px; display:none}
+  .msg.err{display:block; background:var(--red-bg); color:var(--red)}
+  .msg.ok{display:block; background:var(--green-bg); color:var(--green)}
+  .msg.info{display:block; background:var(--yellow-bg); color:var(--orange)}
+
+  .topnav{background:var(--ink); padding:12px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap}
+  .who{display:flex; align-items:center; gap:10px; font-size:13px; color:#CFC9BC}
+  .rol-pill{font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; padding:4px 10px; border-radius:20px; background:#333029; color:#fff; font-weight:600}
+  .rol-pill.prof{background:var(--yellow); color:var(--ink)} .rol-pill.rrhh{background:var(--cyan); color:#fff}
+  .btn-out{background:transparent; color:#CFC9BC; border:1px solid #3A362E; padding:7px 12px}
+  .wrap{max-width:940px; margin:0 auto; padding:20px 20px 70px}
+
+  .tabs{display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap}
+  .tab{background:transparent; color:var(--ink-soft); border:1px solid var(--line); padding:9px 16px; border-radius:20px}
+  .tab.active{background:var(--ink); color:#fff; border-color:var(--ink)}
+  .selector{display:flex; align-items:center; gap:10px; margin-bottom:18px; flex-wrap:wrap}
+  .selector select{min-width:240px; font-size:15px; padding:10px 12px}
+
+  .hero{background:var(--card); border-radius:20px; box-shadow:var(--shadow); overflow:hidden; margin-bottom:18px}
+  .hero-band{height:10px; background:var(--yellow)}
+  .hero-body{padding:24px 26px}
+  .hero-top{display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:12px}
+  .name{font-family:"Bricolage Grotesque"; font-weight:700; font-size:34px; line-height:1.05; letter-spacing:-.02em; margin:8px 0 0; display:inline-block}
+  .level-badge{display:inline-flex; align-items:center; background:var(--ink); color:#fff; border-radius:10px; padding:8px 13px; font-weight:600; font-size:13px}
+  .baja-badge{display:inline-flex; align-items:center; background:var(--red-bg); color:var(--red); border-radius:10px; padding:8px 13px; font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.05em}
+  .meta{display:flex; flex-wrap:wrap; gap:14px 0; margin-top:16px; border-top:1px solid var(--line); padding-top:16px}
+  .meta div{padding-right:22px; margin-right:22px; border-right:1px solid var(--line)}
+  .meta div:last-child{border-right:none; margin-right:0; padding-right:0}
+  .meta .k{font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:3px; font-weight:600}
+  .meta .v{font-weight:600; font-size:15px}
+
+  .tile{background:var(--card); border-radius:16px; box-shadow:var(--shadow); padding:18px; margin-bottom:18px}
+  .tile .big{font-family:"Bricolage Grotesque"; font-weight:700; font-size:34px; letter-spacing:-.02em; line-height:1}
+  .tile .big small{font-size:15px; color:var(--ink-soft); font-weight:600}
+  .tile .lab{margin-top:6px; font-size:12.5px; color:var(--ink-soft)}
+
+  .bars{display:flex; align-items:flex-end; gap:8px; height:150px; margin-top:16px; padding-top:10px}
+  .bar-col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:0}
+  .bar-fill{width:100%; max-width:44px; background:var(--green); border-radius:5px 5px 2px 2px; min-height:3px}
+  .bar-fill.low{background:var(--orange)}
+  .bar-val{font-size:10px; color:var(--ink); margin-bottom:4px; font-weight:600}
+  .bar-lab{font-size:10px; color:var(--ink-soft); margin-top:6px; text-align:center; white-space:nowrap}
+
+  .section{background:var(--card); border-radius:18px; box-shadow:var(--shadow); padding:22px 24px; margin-bottom:18px}
+  .section h2{font-family:"Bricolage Grotesque"; font-weight:700; font-size:19px; margin:0 0 4px}
+  .section .sub{font-size:12.5px; color:var(--ink-soft); margin-bottom:16px}
+  .chips{display:flex; flex-wrap:wrap; gap:8px}
+  .chip{font-size:13.5px; background:var(--yellow-bg); border-radius:8px; padding:7px 12px; color:var(--ink)}
+
+  .obs{padding:12px 0; border-bottom:1px solid var(--line)} .obs:last-child{border-bottom:none}
+  .obs-head{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:5px}
+  .obs-date{font-size:12px; color:var(--ink-soft); font-weight:600}
+  .tag{font-size:10px; letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:6px; font-weight:600}
+  .tag.general{background:#EFEADD; color:var(--ink-soft)} .tag.examen{background:var(--yellow-bg); color:var(--orange)} .tag.cambio{background:var(--green-bg); color:var(--green)}
+  .tag.tri{background:#E4F0F5; color:var(--cyan)} .tag.interna{background:var(--red-bg); color:var(--red)}
+  .obs-body{font-size:14px}
+  .empty{font-size:13px; color:var(--ink-soft); padding:8px 0}
+
+  .seg{display:inline-flex; border:1px solid var(--line); border-radius:10px; overflow:hidden}
+  .seg button{background:#fff; color:var(--ink-soft); border:none; padding:8px 14px; font-size:13px; border-radius:0}
+  .seg button.active{background:var(--ink); color:#fff}
+  .ana-controls{display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:8px}
+  .ana-overall{font-family:"Bricolage Grotesque"; font-weight:700; font-size:28px; margin:6px 0 0}
+
+  /* alumnos mgmt */
+  .toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px}
+  .toolbar input{max-width:240px}
+  .switch{display:inline-flex; align-items:center; gap:7px; font-size:13px; color:var(--ink-soft); cursor:pointer; user-select:none}
+  .switch input{width:auto}
+  .alist{background:var(--card); border-radius:16px; box-shadow:var(--shadow); overflow:hidden}
+  .arow{display:flex; align-items:center; gap:12px; padding:13px 18px; border-bottom:1px solid var(--line); cursor:pointer}
+  .arow:last-child{border-bottom:none} .arow:hover{background:#FBF9F2}
+  .arow .an{font-weight:600; flex:1; min-width:120px}
+  .arow .ag{font-size:13px; color:var(--ink-soft); width:90px}
+  .arow .anv{font-size:12px; color:var(--ink-soft); flex:1; min-width:80px}
+  .state{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:3px 9px; border-radius:20px}
+  .state.on{background:var(--green-bg); color:var(--green)} .state.off{background:var(--red-bg); color:var(--red)}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .form-actions{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap}
+  .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 20px; border-radius:12px; font-size:14px; box-shadow:var(--shadow); opacity:0; transition:opacity .2s; z-index:50}
+  .toast.show{opacity:1}
+  @media (max-width:620px){ .grid2{grid-template-columns:1fr} .arow .anv{display:none} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL      = "https://ornlicmealhanmldnpwo.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ybmxpY21lYWxoYW5tbGRucHdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4NDAxNTcsImV4cCI6MjEwMzQxNjE1N30.eGT7e0RVlqf4hQiv4pJ8WEqokDw22S5mWFlfObDku5g";
+
+const MESES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const MESES_L=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const NIVELES=["B1 Intermediate Medium","B1 Intermediate High","B2 Upper-intermediate Low","B2 Upper-intermediate Medium","B2 Upper-intermediate High","C1 Advanced"];
+const root=document.getElementById("root");
+let db=null, ctx={};
+
+function fmtFecha(s){ const d=new Date(s+"T00:00:00"); return d.getDate()+" "+MESES[d.getMonth()]+" "+d.getFullYear(); }
+function toast(t){ const el=document.getElementById("toast"); el.textContent=t; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),2200); }
+
+db=supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+init();
+async function init(){ const {data:{session}}=await db.auth.getSession(); session?enterApp(session.user):renderLogin(); }
+
+/* ---------- LOGIN ---------- */
+function renderLogin(){
+  root.innerHTML=`
+    <div class="login-wrap"><div class="login-card"><div class="login-band"></div><div class="login-body">
+      <div class="brandmark">innit<span class="ec">English Center</span></div>
+      <h1>Ingresá a la plataforma</h1>
+      <p class="hint">Con tu email. Si es tu primera vez, tocá "Crear cuenta".</p>
+      <div class="field"><label class="lab">Email</label><input id="email" type="email" placeholder="tu@email.com" autocomplete="username"></div>
+      <div class="field"><label class="lab">Contraseña</label><input id="pass" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+      <div class="login-actions"><button class="btn-primary" id="btn-in">Entrar</button><button class="btn-ghost" id="btn-up">Crear cuenta</button></div>
+      <div class="msg" id="msg"></div>
+    </div></div></div>`;
+  const email=document.getElementById("email"), pass=document.getElementById("pass"), msg=document.getElementById("msg");
+  const show=(t,c)=>{ msg.className="msg "+c; msg.textContent=t; };
+  document.getElementById("btn-in").onclick=async()=>{
+    if(!email.value||!pass.value){show("Completá email y contraseña.","err");return;}
+    show("Entrando…","info");
+    const {error}=await db.auth.signInWithPassword({email:email.value.trim(),password:pass.value});
+    if(error){show("No pudimos entrar: "+error.message,"err");return;}
+    const {data:{user}}=await db.auth.getUser(); enterApp(user);
+  };
+  document.getElementById("btn-up").onclick=async()=>{
+    if(!email.value||pass.value.length<6){show("Poné tu email y una contraseña de al menos 6 caracteres.","err");return;}
+    show("Creando cuenta…","info");
+    const {data,error}=await db.auth.signUp({email:email.value.trim(),password:pass.value});
+    if(error){show("No se pudo crear: "+error.message,"err");return;}
+    data.session?enterApp(data.user):show("Cuenta creada. Revisá tu email para confirmarla y después tocá Entrar.","ok");
+  };
+}
+
+/* ---------- CARGA ---------- */
+async function loadData(){
+  const [alumnos,grupos,empresas,asis,temas]=await Promise.all([
+    db.from("alumnos").select("id, nombre, email, nivel_sel, grupo_id, empresa_id, activo").order("nombre").then(r=>r.data||[]),
+    db.from("grupos").select("id, nombre, profesora, dias, horario, empresa_id").order("nombre").then(r=>r.data||[]),
+    db.from("empresas").select("id, nombre").then(r=>r.data||[]),
+    db.from("asistencia").select("alumno_id, grupo_id, fecha, presente").then(r=>r.data||[]),
+    db.from("temas").select("grupo_id, tema").then(r=>r.data||[])
+  ]);
+  Object.assign(ctx,{alumnos,grupos,empresas,asis,temas,
+    grupoById:Object.fromEntries(grupos.map(g=>[g.id,g])),
+    alumnoById:Object.fromEntries(alumnos.map(a=>[a.id,a]))});
+}
+async function enterApp(user){
+  const {data:staffRow}=await db.from("staff").select("rol").eq("email",user.email.toLowerCase()).maybeSingle();
+  ctx={user, email:user.email.toLowerCase(), rol:staffRow?staffRow.rol:"alumno"};
+  await loadData();
+  renderShell();
+}
+
+function renderShell(){
+  const {rol,user}=ctx;
+  const pill=rol==="profesora"?'<span class="rol-pill prof">Profesora</span>':rol==="rrhh"?'<span class="rol-pill rrhh">RRHH</span>':'<span class="rol-pill">Alumno</span>';
+  const esProf=rol==="profesora", verGraf=(rol==="profesora"||rol==="rrhh");
+  root.innerHTML=`
+    <div class="topnav"><div class="brandmark">innit<span class="ec">English Center</span></div>
+      <div class="who">${pill}<span>${user.email}</span><button class="btn-out" id="out">Salir</button></div></div>
+    <div class="wrap">
+      <div class="tabs">
+        <button class="tab active" data-v="fichas">Fichas de alumnos</button>
+        ${esProf?'<button class="tab" data-v="alumnos">Alumnos</button>':''}
+        ${esProf?'<button class="tab" data-v="lista">Pasar lista</button>':''}
+        ${verGraf?'<button class="tab" data-v="asis">Asistencia (gráficos)</button>':''}
+      </div>
+      <div id="view"></div>
+    </div>`;
+  document.getElementById("out").onclick=async()=>{ await db.auth.signOut(); renderLogin(); };
+  document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active")); t.classList.add("active");
+    const v=t.dataset.v; v==="fichas"?viewFichas():v==="alumnos"?viewAlumnos():v==="lista"?viewLista():viewAsistencia();
+  });
+  viewFichas();
+}
+
+/* ---------- VISTA FICHAS ---------- */
+function viewFichas(){
+  const {alumnos}=ctx, view=document.getElementById("view");
+  if(!alumnos.length){ view.innerHTML='<div class="empty">No hay alumnos para mostrar con tu acceso.</div>'; return; }
+  let sel="";
+  if(alumnos.length>1){
+    sel=`<div class="selector"><span class="eyebrow">Alumno</span><select id="pick">${alumnos.map(a=>`<option value="${a.id}">${a.nombre}${a.activo?'':' · baja'}</option>`).join("")}</select></div>`;
+  }
+  view.innerHTML=sel+'<div id="ficha"></div>';
+  if(alumnos.length>1) document.getElementById("pick").onchange=e=>renderFicha(e.target.value);
+  renderFicha(alumnos[0].id);
+}
+async function renderFicha(alumnoId){
+  const {grupoById,temas,asis,rol}=ctx, al=ctx.alumnoById[alumnoId], cont=document.getElementById("ficha");
+  cont.innerHTML='<div class="empty">Cargando ficha…</div>';
+  const g=al.grupo_id?grupoById[al.grupo_id]:null;
+  const empresa=(ctx.empresas.find(e=>e.id===al.empresa_id)||{}).nombre||"—";
+  const rows=asis.filter(a=>a.alumno_id===al.id);
+  const total=rows.length, pres=rows.filter(a=>a.presente).length, pct=total?Math.round(pres/total*100):0;
+  const buckets=aggregate(rows,"mensual");
+  const bars=buckets.length?barsHTML(buckets):'<div class="empty">Sin asistencia cargada.</div>';
+  const misTemas=g?temas.filter(t=>t.grupo_id===g.id):[];
+  const temasHTML=misTemas.length?`<div class="chips">${misTemas.map(t=>`<span class="chip">${t.tema}</span>`).join("")}</div>`:'<div class="empty">Todavía no hay temas cargados para este grupo.</div>';
+  const {data:obs}=await db.from("observaciones").select("fecha, tipo, texto, compartida, trimestre").eq("alumno_id",al.id).order("fecha",{ascending:false});
+  const tagCls=t=>t==="examen"?"examen":t==="cambio de grupo"?"cambio":"general";
+  const obsHTML=(obs&&obs.length)?obs.map(o=>`<div class="obs"><div class="obs-head">
+      <span class="obs-date">${fmtFecha(o.fecha)}</span>
+      ${o.trimestre?`<span class="tag tri">${o.trimestre}</span>`:''}
+      <span class="tag ${tagCls(o.tipo)}">${o.tipo}</span>
+      ${(rol==="profesora"&&!o.compartida)?'<span class="tag interna">interna</span>':''}
+    </div><div class="obs-body">${o.texto}</div></div>`).join(""):'<div class="empty">Sin observaciones visibles.</div>';
+  const horario=g?[g.dias,g.horario].filter(Boolean).join(" · "):"—";
+  cont.innerHTML=`
+    <div class="hero"><div class="hero-band"></div><div class="hero-body">
+      <div class="hero-top"><div><div class="eyebrow">Ficha de alumno</div><h1 class="name"><span class="hl">${al.nombre}</span></h1></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">${al.nivel_sel?`<div class="level-badge">${al.nivel_sel}</div>`:''}${al.activo?'':'<div class="baja-badge">Baja</div>'}</div></div>
+      <div class="meta">
+        <div><div class="k">Empresa</div><div class="v">${empresa}</div></div>
+        <div><div class="k">Grupo</div><div class="v">${g?g.nombre:"—"}</div></div>
+        <div><div class="k">Profesora</div><div class="v">${g&&g.profesora?g.profesora:"—"}</div></div>
+        <div><div class="k">Horario</div><div class="v">${horario}</div></div>
+      </div></div></div>
+    <div class="tile"><div class="big">${pct}<small>%</small></div><div class="lab">Asistencia · ${pres} de ${total} clases</div>${bars}</div>
+    <div class="section"><h2>Temas dictados en el grupo</h2><div class="sub">${g?`Contenidos cubiertos con ${g.nombre}. Se ven en todos los alumnos del grupo.`:'Sin grupo asignado.'}</div>${temasHTML}</div>
+    <div class="section"><h2>Observaciones</h2><div class="sub">${rol==="profesora"?'Trimestrales. Ves todas, incluidas las internas.':'Observaciones compartidas.'}</div>${obsHTML}</div>`;
+}
+
+/* ---------- VISTA ALUMNOS (gestión) ---------- */
+function viewAlumnos(){
+  const view=document.getElementById("view");
+  let q="", hideBajas=false;
+  function render(){
+    const list=ctx.alumnos.filter(a=>{
+      if(hideBajas && !a.activo) return false;
+      if(q && !a.nombre.toLowerCase().includes(q.toLowerCase()) && !(a.email||"").toLowerCase().includes(q.toLowerCase())) return false;
+      return true;
+    });
+    view.innerHTML=`
+      <div class="toolbar">
+        <input id="q" placeholder="Buscar por nombre o email…" value="${q}">
+        <label class="switch"><input type="checkbox" id="hb" ${hideBajas?'checked':''}> Ocultar bajas</label>
+        <div style="flex:1"></div>
+        <button class="btn-primary btn-sm" id="nuevo">＋ Nuevo alumno</button>
+      </div>
+      <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px">${list.length} alumno(s)${hideBajas?' activos':''}. Tocá uno para editarlo.</div>
+      <div class="alist">${list.map(a=>{
+        const g=a.grupo_id?ctx.grupoById[a.grupo_id]:null;
+        return `<div class="arow" data-id="${a.id}">
+          <span class="an">${a.nombre}</span>
+          <span class="ag">${g?g.nombre.replace('Avenga ',''):'—'}</span>
+          <span class="anv">${a.nivel_sel||'—'}</span>
+          <span class="state ${a.activo?'on':'off'}">${a.activo?'activo':'baja'}</span>
+        </div>`;}).join("")||'<div class="empty" style="padding:18px">Nada que mostrar.</div>'}</div>`;
+    document.getElementById("q").oninput=e=>{ q=e.target.value; const p=e.target.selectionStart; render(); const el=document.getElementById("q"); el.focus(); el.setSelectionRange(p,p); };
+    document.getElementById("hb").onchange=e=>{ hideBajas=e.target.checked; render(); };
+    document.getElementById("nuevo").onclick=()=>form(null);
+    view.querySelectorAll(".arow").forEach(r=>r.onclick=()=>form(r.dataset.id));
+  }
+  function form(id){
+    const a=id?ctx.alumnoById[id]:{nombre:"",email:"",nivel_sel:"",grupo_id:"",activo:true};
+    const gopts=ctx.grupos.map(g=>`<option value="${g.id}" ${g.id===a.grupo_id?'selected':''}>${g.nombre}</option>`).join("");
+    const nopts=['<option value="">— sin nivel —</option>'].concat(NIVELES.map(n=>`<option ${n===a.nivel_sel?'selected':''}>${n}</option>`)).join("");
+    view.innerHTML=`
+      <div class="section" style="max-width:560px">
+        <h2>${id?'Editar alumno':'Nuevo alumno'}</h2>
+        <div class="sub">${id?'Cambiá lo que necesites. Si cambiás el grupo, se guarda sola una nota de "cambio de grupo".':'Completá los datos del nuevo alumno.'}</div>
+        <div class="field"><label class="lab">Nombre</label><input id="f-nombre" value="${(a.nombre||'').replace(/"/g,'&quot;')}"></div>
+        <div class="field"><label class="lab">Email</label><input id="f-email" type="email" value="${a.email||''}"></div>
+        <div class="grid2">
+          <div class="field"><label class="lab">Grupo</label><select id="f-grupo"><option value="">— sin grupo —</option>${gopts}</select></div>
+          <div class="field"><label class="lab">Nivel</label><select id="f-nivel">${nopts}</select></div>
+        </div>
+        <label class="switch" style="margin-top:4px"><input type="checkbox" id="f-activo" ${a.activo?'checked':''}> Alumno activo (destildá para dar de baja)</label>
+        <div class="form-actions">
+          <button class="btn-primary" id="save">Guardar</button>
+          <button class="btn-ghost" id="cancel">Cancelar</button>
+          <div style="flex:1"></div>
+          <span class="msg" id="fmsg" style="margin:0"></span>
+        </div>
+      </div>`;
+    document.getElementById("cancel").onclick=render;
+    document.getElementById("save").onclick=async()=>{
+      const nombre=document.getElementById("f-nombre").value.trim();
+      const email=document.getElementById("f-email").value.trim().toLowerCase()||null;
+      const grupo_id=document.getElementById("f-grupo").value||null;
+      const nivel_sel=document.getElementById("f-nivel").value||null;
+      const activo=document.getElementById("f-activo").checked;
+      const fmsg=document.getElementById("fmsg");
+      if(!nombre){ fmsg.className="msg err"; fmsg.textContent="Poné un nombre."; return; }
+      const empresa_id=grupo_id?ctx.grupoById[grupo_id].empresa_id:(a.empresa_id||null);
+      const payload={nombre,email,grupo_id,nivel_sel,activo,empresa_id};
+      let error;
+      if(id){
+        const prevGrupo=a.grupo_id;
+        ({error}=await db.from("alumnos").update(payload).eq("id",id));
+        if(!error && grupo_id && prevGrupo && grupo_id!==prevGrupo){
+          const de=(ctx.grupoById[prevGrupo].nombre||'').replace('Avenga ','');
+          const aa=(ctx.grupoById[grupo_id].nombre||'').replace('Avenga ','');
+          const now=new Date();
+          await db.from("observaciones").insert({alumno_id:id, fecha:now.toISOString().slice(0,10), tipo:'cambio de grupo',
+            texto:`Antes en el grupo ${de}. Pasó a ${aa} en ${MESES_L[now.getMonth()]} ${now.getFullYear()}.`, compartida:true});
+        }
+      } else {
+        ({error}=await db.from("alumnos").insert(payload));
+      }
+      if(error){ fmsg.className="msg err"; fmsg.textContent="No se pudo guardar: "+error.message; return; }
+      await loadData(); toast(id?"Alumno actualizado":"Alumno creado"); render();
+    };
+  }
+  render();
+}
+
+/* ---------- VISTA PASAR LISTA ---------- */
+function viewLista(){
+  const {grupos}=ctx, view=document.getElementById("view");
+  const hoy=new Date().toISOString().slice(0,10);
+  view.innerHTML=`
+    <div class="section" style="max-width:660px">
+      <h2>Pasar lista</h2>
+      <div class="sub">Elegí grupo y fecha, marcá quién vino y guardá. Todos arrancan en "presente".</div>
+      <div class="grid2">
+        <div class="field"><label class="lab">Grupo</label><select id="l-grupo"><option value="">— elegí un grupo —</option>${grupos.map(g=>`<option value="${g.id}">${g.nombre}</option>`).join("")}</select></div>
+        <div class="field"><label class="lab">Fecha</label><input id="l-fecha" type="date" value="${hoy}"></div>
+      </div>
+      <div id="l-list"></div>
+    </div>`;
+  const gsel=document.getElementById("l-grupo"), fsel=document.getElementById("l-fecha"), listEl=document.getElementById("l-list");
+  let marks={};
+  async function loadList(){
+    const gid=gsel.value, fecha=fsel.value;
+    if(!gid||!fecha){ listEl.innerHTML=''; return; }
+    listEl.innerHTML='<div class="empty">Cargando…</div>';
+    const roster=ctx.alumnos.filter(a=>a.grupo_id===gid && a.activo);
+    const {data:ex}=await db.from("asistencia").select("alumno_id, presente, nota").eq("grupo_id",gid).eq("fecha",fecha);
+    const exMap=Object.fromEntries((ex||[]).map(r=>[r.alumno_id,r]));
+    marks={}; roster.forEach(a=>{ const e=exMap[a.id]; marks[a.id]={presente:e?e.presente:true, nota:e?(e.nota||""):""}; });
+    if(!roster.length){ listEl.innerHTML='<div class="empty">Ese grupo no tiene alumnos activos.</div>'; return; }
+    const yaHabia=(ex&&ex.length)?'<div style="font-size:12.5px;color:var(--green);margin-bottom:10px">Ya había lista para esta fecha — la cargué para que la edites.</div>':'';
+    listEl.innerHTML=yaHabia+'<div class="alist" style="margin-bottom:16px">'+roster.map(rowHTML).join("")+'</div>'+
+      `<div class="form-actions"><button class="btn-primary" id="l-save">Guardar lista</button><span class="msg" id="l-msg" style="margin:0"></span></div>`;
+    roster.forEach(a=>bindRow(a.id));
+    document.getElementById("l-save").onclick=()=>save(gid,fecha,roster);
+  }
+  function rowHTML(a){
+    const m=marks[a.id];
+    return `<div class="arow" style="cursor:default">
+      <span class="an">${a.nombre}</span>
+      <div class="seg" data-al="${a.id}"><button data-p="1" class="${m.presente?'active':''}">Presente</button><button data-p="0" class="${m.presente?'':'active'}">Ausente</button></div>
+      <input class="l-nota" data-al="${a.id}" placeholder="motivo (opcional)" value="${(m.nota||'').replace(/"/g,'&quot;')}" style="max-width:150px;${m.presente?'visibility:hidden':''}">
+    </div>`;
+  }
+  function bindRow(id){
+    const seg=listEl.querySelector(`.seg[data-al="${id}"]`), nota=listEl.querySelector(`.l-nota[data-al="${id}"]`);
+    seg.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+      seg.querySelectorAll("button").forEach(x=>x.classList.remove("active")); b.classList.add("active");
+      marks[id].presente=b.dataset.p==="1"; nota.style.visibility=marks[id].presente?'hidden':'visible';
+    });
+    nota.oninput=e=>{ marks[id].nota=e.target.value; };
+  }
+  async function save(gid,fecha,roster){
+    const msg=document.getElementById("l-msg"); msg.className="msg info"; msg.textContent="Guardando…";
+    await db.from("asistencia").delete().eq("grupo_id",gid).eq("fecha",fecha);
+    const rows=roster.map(a=>({alumno_id:a.id, grupo_id:gid, fecha, presente:marks[a.id].presente, nota:marks[a.id].presente?null:(marks[a.id].nota||null)}));
+    const {error}=await db.from("asistencia").insert(rows);
+    if(error){ msg.className="msg err"; msg.textContent="No se pudo guardar: "+error.message; return; }
+    await loadData(); msg.className="msg ok"; msg.textContent="Lista guardada ✓"; toast("Lista guardada");
+  }
+  gsel.onchange=loadList; fsel.onchange=loadList;
+}
+
+/* ---------- VISTA ASISTENCIA ---------- */
+function viewAsistencia(){
+  const {alumnos,grupos,empresas}=ctx, view=document.getElementById("view");
+  view.innerHTML=`
+    <div class="section">
+      <h2>Asistencia — vistas</h2>
+      <div class="sub">Por alumno, por grupo o por toda la empresa; mensual o anual.</div>
+      <div class="ana-controls">
+        <div class="seg" id="scope"><button data-s="alumno" class="active">Alumno</button><button data-s="grupo">Grupo</button><button data-s="empresa">Empresa</button></div>
+        <select id="target"></select>
+        <div class="seg" id="periodo"><button data-p="mensual" class="active">Mensual</button><button data-p="anual">Anual</button></div>
+      </div>
+      <div class="ana-overall" id="overall"></div><div id="chart"></div>
+    </div>`;
+  let scope="alumno", periodo="mensual"; const targetSel=document.getElementById("target");
+  function fillTargets(){
+    let opts= scope==="alumno"?alumnos.map(a=>[a.id,a.nombre]) : scope==="grupo"?grupos.map(g=>[g.id,g.nombre]) : empresas.map(e=>[e.id,e.nombre]);
+    targetSel.innerHTML=opts.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("");
+  }
+  function redraw(){
+    const rows=filterAsis(scope,targetSel.value);
+    const total=rows.length, pres=rows.filter(a=>a.presente).length, pct=total?Math.round(pres/total*100):0;
+    document.getElementById("overall").innerHTML=total?`${pct}% <span style="font-size:13px;color:var(--ink-soft);font-weight:400">· ${pres} de ${total} asistencias</span>`:'<span style="font-size:14px;color:var(--ink-soft);font-weight:400">Sin datos para esta selección.</span>';
+    const buckets=aggregate(rows,periodo);
+    document.getElementById("chart").innerHTML=buckets.length?barsHTML(buckets):'';
+  }
+  document.querySelectorAll("#scope button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#scope button").forEach(x=>x.classList.remove("active"));b.classList.add("active");scope=b.dataset.s;fillTargets();redraw();});
+  document.querySelectorAll("#periodo button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#periodo button").forEach(x=>x.classList.remove("active"));b.classList.add("active");periodo=b.dataset.p;redraw();});
+  targetSel.onchange=redraw; fillTargets(); redraw();
+}
+function filterAsis(scope,targetId){
+  const {asis,alumnoById,grupoById}=ctx;
+  return asis.filter(a=>{
+    const al=alumnoById[a.alumno_id];
+    const grupoId=a.grupo_id||(al?al.grupo_id:null);
+    const empresaId=(grupoId&&grupoById[grupoId]?grupoById[grupoId].empresa_id:null)||(al?al.empresa_id:null);
+    if(scope==="alumno") return a.alumno_id===targetId;
+    if(scope==="grupo") return grupoId===targetId;
+    return empresaId===targetId;
+  });
+}
+function aggregate(rows,periodo){
+  const map={};
+  rows.forEach(a=>{ const key=periodo==="anual"?a.fecha.slice(0,4):a.fecha.slice(0,7); map[key]=map[key]||{p:0,t:0}; map[key].t++; if(a.presente)map[key].p++; });
+  let keys=Object.keys(map).sort(); if(keys.length>12)keys=keys.slice(-12);
+  return keys.map(k=>{ const m=map[k], pct=Math.round(m.p/m.t*100); const lab=periodo==="anual"?k:(MESES[parseInt(k.slice(5,7))-1]+" "+k.slice(2,4)); return {lab,pct,p:m.p,t:m.t}; });
+}
+function barsHTML(buckets){
+  return `<div class="bars">${buckets.map(b=>`<div class="bar-col" title="${b.p} de ${b.t}">
+    <div class="bar-val">${b.pct}%</div><div class="bar-fill ${b.pct<85?'low':''}" style="height:${Math.max(b.pct,3)}%"></div><div class="bar-lab">${b.lab}</div></div>`).join("")}</div>`;
+}
+</script>
+</body>
+</html>

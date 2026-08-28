@@ -26,7 +26,8 @@
   .btn-ghost{background:transparent; color:var(--ink); padding:10px 15px; border:1px solid var(--line)} .btn-ghost:hover{border-color:var(--ink)}
   .btn-sm{padding:7px 12px; font-size:13px}
   input, select{font-family:inherit; font-size:15px; padding:11px 13px; border:1px solid var(--line); border-radius:10px; width:100%; background:#fff; color:var(--ink)}
-  input:focus, select:focus{outline:2px solid var(--yellow); outline-offset:1px; border-color:transparent}
+  textarea{font-family:inherit; font-size:15px; padding:11px 13px; border:1px solid var(--line); border-radius:10px; width:100%; background:#fff; color:var(--ink); resize:vertical; min-height:74px}
+  input:focus, select:focus, textarea:focus{outline:2px solid var(--yellow); outline-offset:1px; border-color:transparent}
   label.lab{display:block; font-size:12px; color:var(--ink-soft); margin-bottom:5px; font-weight:600}
 
   .login-wrap{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px}
@@ -217,6 +218,7 @@ function renderShell(){
         <button class="tab active" data-v="fichas">Fichas de alumnos</button>
         ${esProf?'<button class="tab" data-v="alumnos">Alumnos</button>':''}
         ${esProf?'<button class="tab" data-v="lista">Pasar lista</button>':''}
+        ${esProf?'<button class="tab" data-v="obs">Observaciones</button>':''}
         ${verGraf?'<button class="tab" data-v="asis">Asistencia (gráficos)</button>':''}
       </div>
       <div id="view"></div>
@@ -224,7 +226,7 @@ function renderShell(){
   document.getElementById("out").onclick=async()=>{ await db.auth.signOut(); renderLogin(); };
   document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active")); t.classList.add("active");
-    const v=t.dataset.v; v==="fichas"?viewFichas():v==="alumnos"?viewAlumnos():v==="lista"?viewLista():viewAsistencia();
+    const v=t.dataset.v; v==="fichas"?viewFichas():v==="alumnos"?viewAlumnos():v==="lista"?viewLista():v==="obs"?viewObs():viewAsistencia();
   });
   viewFichas();
 }
@@ -422,6 +424,59 @@ function viewLista(){
     await loadData(); msg.className="msg ok"; msg.textContent="Lista guardada ✓"; toast("Lista guardada");
   }
   gsel.onchange=loadList; fsel.onchange=loadList;
+}
+
+/* ---------- VISTA OBSERVACIONES ---------- */
+function viewObs(){
+  const {alumnos}=ctx, view=document.getElementById("view");
+  const opts=alumnos.map(a=>`<option value="${a.id}">${a.nombre}${a.activo?'':' · baja'}</option>`).join("");
+  view.innerHTML=`<div class="selector"><span class="eyebrow">Alumno</span><select id="o-al">${opts}</select></div><div id="o-body"></div>`;
+  const alSel=document.getElementById("o-al");
+  alSel.onchange=()=>load(alSel.value); load(alSel.value);
+  function obsItem(o){
+    return `<div class="obs"><div class="obs-head">
+      <span class="obs-date">${fmtFecha(o.fecha)}</span>
+      ${o.trimestre?`<span class="tag tri">${o.trimestre}</span>`:''}
+      <span class="tag ${o.tipo==='examen'?'examen':o.tipo==='cambio de grupo'?'cambio':'general'}">${o.tipo}</span>
+      <span class="tag ${o.compartida?'cambio':'interna'}">${o.compartida?'compartida':'interna'}</span>
+      <div style="flex:1"></div>
+      <button class="btn-ghost btn-sm" data-del="${o.id}">Borrar</button>
+    </div><div class="obs-body">${o.texto}</div></div>`;
+  }
+  async function load(alId){
+    const body=document.getElementById("o-body");
+    body.innerHTML='<div class="empty">Cargando…</div>';
+    const {data:obs}=await db.from("observaciones").select("id, fecha, tipo, texto, compartida, trimestre").eq("alumno_id",alId).order("fecha",{ascending:false});
+    const y=new Date().getFullYear();
+    const tri=['','1er trimestre '+y,'2do trimestre '+y,'3er trimestre '+y,'4to trimestre '+y];
+    body.innerHTML=`
+      <div class="section" style="max-width:640px">
+        <h2>Nueva observación</h2>
+        <div class="grid2">
+          <div class="field"><label class="lab">Tipo</label><select id="o-tipo"><option>general</option><option>examen</option><option>cambio de grupo</option></select></div>
+          <div class="field"><label class="lab">Trimestre</label><select id="o-tri">${tri.map(t=>`<option value="${t}">${t||'— sin trimestre —'}</option>`).join('')}</select></div>
+        </div>
+        <div class="field"><label class="lab">Texto</label><textarea id="o-texto" placeholder="Escribí la observación…"></textarea></div>
+        <label class="switch"><input type="checkbox" id="o-comp"> Compartida — la ven el alumno y RRHH. Si la dejás sin tildar, queda interna (solo profesoras).</label>
+        <div class="form-actions"><button class="btn-primary" id="o-save">Guardar observación</button><span class="msg" id="o-msg" style="margin:0"></span></div>
+      </div>
+      <div class="section">
+        <h2>Observaciones cargadas</h2>
+        ${(obs&&obs.length)?obs.map(obsItem).join(''):'<div class="empty">Todavía no hay observaciones para este alumno.</div>'}
+      </div>`;
+    document.getElementById("o-save").onclick=async()=>{
+      const texto=document.getElementById("o-texto").value.trim(), msg=document.getElementById("o-msg");
+      if(!texto){ msg.className="msg err"; msg.textContent="Escribí algo antes de guardar."; return; }
+      const payload={alumno_id:alId, tipo:document.getElementById("o-tipo").value, trimestre:document.getElementById("o-tri").value||null, texto, compartida:document.getElementById("o-comp").checked, fecha:new Date().toISOString().slice(0,10)};
+      const {error}=await db.from("observaciones").insert(payload);
+      if(error){ msg.className="msg err"; msg.textContent="No se pudo guardar: "+error.message; return; }
+      toast("Observación guardada"); load(alId);
+    };
+    body.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
+      if(!confirm("¿Borrar esta observación?")) return;
+      await db.from("observaciones").delete().eq("id",b.dataset.del); toast("Observación borrada"); load(alId);
+    });
+  }
 }
 
 /* ---------- VISTA ASISTENCIA ---------- */

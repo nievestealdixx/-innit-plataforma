@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Innit · Plataforma</title>
+<link rel="icon" type="image/png" href="isotipo-innit.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -17,8 +18,12 @@
   *{box-sizing:border-box}
   body{margin:0; background:var(--paper); color:var(--ink); font-family:"Inter",system-ui,sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased}
   .eyebrow{font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft); font-weight:600}
-  .brandmark{font-family:"Bricolage Grotesque"; font-weight:800; font-size:22px; letter-spacing:-.02em; color:var(--yellow); display:flex; align-items:baseline; gap:2px}
+  .brandmark{font-family:"Bricolage Grotesque"; font-weight:800; font-size:22px; letter-spacing:-.02em; color:var(--yellow); display:flex; align-items:center; gap:2px}
   .brandmark .ec{font-size:10px; letter-spacing:.18em; color:#fff; opacity:.6; text-transform:uppercase; font-family:"Inter"; font-weight:600; margin-left:6px}
+  .iso{height:30px; width:30px; margin-right:9px}
+  .login-logo{display:block; margin:0 auto 8px; height:88px; width:88px}
+  .home-logo{height:46px; display:block; position:relative; z-index:1}
+  .flor{position:absolute; right:-22px; bottom:-40px; width:180px; opacity:.13; z-index:0; pointer-events:none}
   .hl{background:linear-gradient(transparent 58%, var(--yellow) 58%); padding:0 .06em}
   button{font-family:inherit; cursor:pointer; border:none; border-radius:10px; font-weight:600; font-size:14px}
   .btn-primary{background:var(--yellow); color:var(--ink); padding:11px 18px} .btn-primary:hover{filter:brightness(.96)}
@@ -57,7 +62,7 @@
   .selector select{min-width:240px; font-size:15px; padding:10px 12px}
 
   /* HOME */
-  .home-hero{background:var(--ink); border-radius:20px; padding:34px 30px; margin-bottom:18px; box-shadow:var(--shadow)}
+  .home-hero{background:var(--ink); border-radius:20px; padding:34px 30px; margin-bottom:18px; box-shadow:var(--shadow); position:relative; overflow:hidden}
   .home-hero .brandmark{font-size:40px}
   .home-hero .tagline{color:#CFC9BC; font-size:14px; margin-top:8px}
   .stat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px}
@@ -177,7 +182,7 @@ async function init(){ const {data:{session}}=await db.auth.getSession(); sessio
 function renderLogin(){
   root.innerHTML=`
     <div class="login-wrap"><div class="login-card"><div class="login-band"></div><div class="login-body">
-      <div class="brandmark">innit<span class="ec">English Center</span></div>
+      <img src="isotipo-innit.png" class="login-logo" alt="Innit English Center">
       <h1>Ingresá a la plataforma</h1>
       <p class="hint">Con tu email. Si es tu primera vez, tocá "Crear cuenta".</p>
       <div class="field"><label class="lab">Email</label><input id="email" type="email" placeholder="tu@email.com" autocomplete="username"></div>
@@ -246,7 +251,7 @@ function renderShell(){
   }
   const first=tabs[0][0];
   root.innerHTML=`
-    <div class="topnav"><div class="brandmark">innit<span class="ec">English Center</span></div>
+    <div class="topnav"><div class="brandmark"><img src="isotipo-innit.png" class="iso" alt="">innit<span class="ec">English Center</span></div>
       <div class="who">${pill}<span>${user.email}</span><button class="btn-out" id="out">Salir</button></div></div>
     <div class="wrap"><div class="tabs">${tabs.map((t,i)=>`<button class="tab ${i===0?'active':''}" data-v="${t[0]}">${t[1]}</button>`).join("")}</div><div id="view"></div></div>`;
   document.getElementById("out").onclick=async()=>{ await db.auth.signOut(); renderLogin(); };
@@ -263,7 +268,7 @@ async function viewHome(){
   const {alumnos,grupos}=ctx, view=document.getElementById("view");
   const activos=alumnos.filter(a=>a.activo).length, bajas=alumnos.length-activos;
   view.innerHTML=`
-    <div class="home-hero"><div class="brandmark">innit<span class="ec">English Center</span></div>
+    <div class="home-hero"><img src="flor-innit.png" class="flor" alt=""><img src="logo-innit.png" class="home-logo" alt="Innit English Center">
       <div class="tagline">Plataforma de seguimiento · alumnos, asistencia y observaciones</div></div>
     <div class="stat-grid">
       <div class="stat"><div class="n">${activos}</div><div class="l">Alumnos activos</div></div>
@@ -606,4 +611,3 @@ function barsCount(buckets){
 </script>
 </body>
 </html>
-

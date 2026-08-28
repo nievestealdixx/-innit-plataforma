@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Innit · Plataforma</title>
-<link rel="icon" type="image/png" href="isotipo-innit.png">
+<link rel="icon" type="image/png" href="Logo_original.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -182,7 +182,7 @@ async function init(){ const {data:{session}}=await db.auth.getSession(); sessio
 function renderLogin(){
   root.innerHTML=`
     <div class="login-wrap"><div class="login-card"><div class="login-band"></div><div class="login-body">
-      <img src="isotipo-innit.png" class="login-logo" alt="Innit English Center">
+      <img src="Logo_original.png" class="login-logo" alt="Innit English Center">
       <h1>Ingresá a la plataforma</h1>
       <p class="hint">Con tu email. Si es tu primera vez, tocá "Crear cuenta".</p>
       <div class="field"><label class="lab">Email</label><input id="email" type="email" placeholder="tu@email.com" autocomplete="username"></div>
@@ -251,7 +251,7 @@ function renderShell(){
   }
   const first=tabs[0][0];
   root.innerHTML=`
-    <div class="topnav"><div class="brandmark"><img src="isotipo-innit.png" class="iso" alt="">innit<span class="ec">English Center</span></div>
+    <div class="topnav"><div class="brandmark"><img src="Logo_original.png" class="iso" alt="">innit<span class="ec">English Center</span></div>
       <div class="who">${pill}<span>${user.email}</span><button class="btn-out" id="out">Salir</button></div></div>
     <div class="wrap"><div class="tabs">${tabs.map((t,i)=>`<button class="tab ${i===0?'active':''}" data-v="${t[0]}">${t[1]}</button>`).join("")}</div><div id="view"></div></div>`;
   document.getElementById("out").onclick=async()=>{ await db.auth.signOut(); renderLogin(); };
@@ -268,7 +268,7 @@ async function viewHome(){
   const {alumnos,grupos}=ctx, view=document.getElementById("view");
   const activos=alumnos.filter(a=>a.activo).length, bajas=alumnos.length-activos;
   view.innerHTML=`
-    <div class="home-hero"><img src="flor-innit.png" class="flor" alt=""><img src="logo-innit.png" class="home-logo" alt="Innit English Center">
+    <div class="home-hero"><img src="Isotipo_amarillo__1_.png" class="flor" alt=""><img src="Logo_Innit.png" class="home-logo" alt="Innit English Center">
       <div class="tagline">Plataforma de seguimiento · alumnos, asistencia y observaciones</div></div>
     <div class="stat-grid">
       <div class="stat"><div class="n">${activos}</div><div class="l">Alumnos activos</div></div>

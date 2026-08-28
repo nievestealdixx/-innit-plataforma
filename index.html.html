@@ -175,12 +175,23 @@ function renderLogin(){
 }
 
 /* ---------- CARGA ---------- */
+async function fetchAllAsis(){
+  const all=[]; let from=0; const size=1000;
+  while(true){
+    const {data}=await db.from("asistencia").select("alumno_id, grupo_id, fecha, presente, nota").order("fecha").range(from, from+size-1);
+    if(!data||!data.length) break;
+    all.push(...data);
+    if(data.length<size) break;
+    from+=size;
+  }
+  return all;
+}
 async function loadData(){
   const [alumnos,grupos,empresas,asis,temas]=await Promise.all([
     db.from("alumnos").select("id, nombre, email, nivel_sel, grupo_id, empresa_id, activo").order("nombre").then(r=>r.data||[]),
     db.from("grupos").select("id, nombre, profesora, dias, horario, empresa_id").order("nombre").then(r=>r.data||[]),
     db.from("empresas").select("id, nombre").then(r=>r.data||[]),
-    db.from("asistencia").select("alumno_id, grupo_id, fecha, presente").then(r=>r.data||[]),
+    fetchAllAsis(),
     db.from("temas").select("grupo_id, tema").then(r=>r.data||[])
   ]);
   Object.assign(ctx,{alumnos,grupos,empresas,asis,temas,
@@ -239,6 +250,10 @@ async function renderFicha(alumnoId){
   const total=rows.length, pres=rows.filter(a=>a.presente).length, pct=total?Math.round(pres/total*100):0;
   const buckets=aggregate(rows,"mensual");
   const bars=buckets.length?barsHTML(buckets):'<div class="empty">Sin asistencia cargada.</div>';
+  const aus=rows.filter(a=>!a.presente).sort((x,y)=>y.fecha.localeCompare(x.fecha));
+  const ausHTML = total===0 ? '<div class="empty">Sin asistencia cargada.</div>'
+    : aus.length===0 ? '<div class="empty">Asistencia perfecta en el período. 🎉</div>'
+    : aus.map(a=>`<div class="obs" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span class="obs-date">${fmtFecha(a.fecha)}</span><span class="tag ${a.nota?'examen':'general'}">${a.nota?a.nota:'sin motivo'}</span></div>`).join("");
   const misTemas=g?temas.filter(t=>t.grupo_id===g.id):[];
   const temasHTML=misTemas.length?`<div class="chips">${misTemas.map(t=>`<span class="chip">${t.tema}</span>`).join("")}</div>`:'<div class="empty">Todavía no hay temas cargados para este grupo.</div>';
   const {data:obs}=await db.from("observaciones").select("fecha, tipo, texto, compartida, trimestre").eq("alumno_id",al.id).order("fecha",{ascending:false});
@@ -261,6 +276,7 @@ async function renderFicha(alumnoId){
         <div><div class="k">Horario</div><div class="v">${horario}</div></div>
       </div></div></div>
     <div class="tile"><div class="big">${pct}<small>%</small></div><div class="lab">Asistencia · ${pres} de ${total} clases</div>${bars}</div>
+    <div class="section"><h2>Ausencias${aus.length?` <span style="font-family:Inter;font-weight:600;font-size:13px;color:var(--ink-soft)">(${aus.length})</span>`:''}</h2><div class="sub">Días que faltó en el período, con el motivo si quedó registrado.</div>${ausHTML}</div>
     <div class="section"><h2>Temas dictados en el grupo</h2><div class="sub">${g?`Contenidos cubiertos con ${g.nombre}. Se ven en todos los alumnos del grupo.`:'Sin grupo asignado.'}</div>${temasHTML}</div>
     <div class="section"><h2>Observaciones</h2><div class="sub">${rol==="profesora"?'Trimestrales. Ves todas, incluidas las internas.':'Observaciones compartidas.'}</div>${obsHTML}</div>`;
 }
@@ -432,7 +448,18 @@ function viewAsistencia(){
     const total=rows.length, pres=rows.filter(a=>a.presente).length, pct=total?Math.round(pres/total*100):0;
     document.getElementById("overall").innerHTML=total?`${pct}% <span style="font-size:13px;color:var(--ink-soft);font-weight:400">· ${pres} de ${total} asistencias</span>`:'<span style="font-size:14px;color:var(--ink-soft);font-weight:400">Sin datos para esta selección.</span>';
     const buckets=aggregate(rows,periodo);
-    document.getElementById("chart").innerHTML=buckets.length?barsHTML(buckets):'';
+    let extra='';
+    if(scope==="grupo"){
+      const gid=targetSel.value;
+      const members=ctx.alumnos.filter(a=>a.grupo_id===gid).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+      extra = `<div style="margin-top:24px"><div class="eyebrow" style="margin-bottom:10px">Asistencia por alumno del grupo (${members.length})</div>`+
+        (members.length? '<div class="alist">'+members.map(a=>{
+          const rr=ctx.asis.filter(x=>x.alumno_id===a.id);
+          const t=rr.length, p=rr.filter(x=>x.presente).length, pc=t?Math.round(p/t*100):0;
+          return `<div class="arow" style="cursor:default"><span class="an">${a.nombre}${a.activo?'':' · baja'}</span><span class="anv">${p}/${t} clases</span><span class="state ${pc>=85?'on':'off'}">${t?pc+'%':'sin datos'}</span></div>`;
+        }).join('')+'</div>' : '<div class="empty">Este grupo no tiene alumnos asignados actualmente.</div>')+'</div>';
+    }
+    document.getElementById("chart").innerHTML=(buckets.length?barsHTML(buckets):'')+extra;
   }
   document.querySelectorAll("#scope button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#scope button").forEach(x=>x.classList.remove("active"));b.classList.add("active");scope=b.dataset.s;fillTargets();redraw();});
   document.querySelectorAll("#periodo button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#periodo button").forEach(x=>x.classList.remove("active"));b.classList.add("active");periodo=b.dataset.p;redraw();});

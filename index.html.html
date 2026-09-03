@@ -221,13 +221,21 @@ async function fetchAllAsis(){
   }
   return all;
 }
+async function fetchAllObs(){
+  const all=[]; let from=0; const size=1000;
+  while(true){
+    const {data}=await db.from("observaciones").select("alumno_id, fecha, tipo, texto, compartida, trimestre").order("fecha").range(from, from+size-1);
+    if(!data||!data.length) break; all.push(...data); if(data.length<size) break; from+=size;
+  }
+  return all;
+}
 async function loadData(){
   const [alumnos,grupos,empresas,asis,temas]=await Promise.all([
     db.from("alumnos").select("id, nombre, email, nivel_sel, grupo_id, empresa_id, activo, motivo_baja").order("nombre").then(r=>r.data||[]),
     db.from("grupos").select("id, nombre, profesora, dias, horario, empresa_id").order("nombre").then(r=>r.data||[]),
     db.from("empresas").select("id, nombre").then(r=>r.data||[]),
     fetchAllAsis(),
-    db.from("temas").select("grupo_id, tema").then(r=>r.data||[])
+    db.from("temas").select("grupo_id, tema, mes").then(r=>r.data||[])
   ]);
   Object.assign(ctx,{alumnos,grupos,empresas,asis,temas,
     grupoById:Object.fromEntries(grupos.map(g=>[g.id,g])),
@@ -279,13 +287,34 @@ async function viewHome(){
     <div class="section"><h2>Cambios de grupo recientes</h2><div class="sub">Últimos movimientos registrados.</div><div id="h-cambios"><div class="empty">Cargando…</div></div></div>
     <div class="section"><h2>Estudiantes dados de baja</h2><div class="sub">Los que ya no están cursando.</div>${
       bajas? '<div>'+alumnos.filter(a=>!a.activo).map(a=>{const g=a.grupo_id?ctx.grupoById[a.grupo_id]:null; return `<div class="obs"><div style="display:flex;justify-content:space-between;gap:10px"><span>${a.nombre}</span><span style="color:var(--ink-soft);font-size:13px">${g?g.nombre.replace('Avenga ',''):'—'}</span></div>${a.motivo_baja?`<div style="font-size:12.5px;color:var(--ink-soft);margin-top:3px">Motivo: ${a.motivo_baja}</div>`:''}</div>`;}).join('')+'</div>' : '<div class="empty">No hay bajas registradas.</div>'
-    }</div>`;
+    }</div>`+(ctx.rol==='profesora'?`
+    <div class="section"><h2>Copia de seguridad</h2><div class="sub">Descargá toda la base (estudiantes, asistencia, observaciones, temas, grupos) en un Excel. Guardala en tu Drive cada tanto — es tu red de seguridad.</div><button class="btn-primary" id="h-backup">⬇ Descargar backup completo</button></div>`:'');
   const {data:cam}=await db.from("observaciones").select("alumno_id, fecha, texto").eq("tipo","cambio de grupo").order("fecha",{ascending:false}).limit(15);
   const cont=document.getElementById("h-cambios");
   cont.innerHTML=(cam&&cam.length)?cam.map(c=>{
     const al=ctx.alumnoById[c.alumno_id];
     return `<div class="obs"><div class="obs-head"><span class="obs-date">${fmtFecha(c.fecha)}</span><span class="tag cambio">cambio de grupo</span><b style="font-size:13.5px">${al?al.nombre:'—'}</b></div><div class="obs-body" style="font-size:13.5px;color:var(--ink-soft)">${c.texto}</div></div>`;
   }).join(''):'<div class="empty">Sin cambios de grupo registrados.</div>';
+  const bkBtn=document.getElementById("h-backup");
+  if(bkBtn) bkBtn.onclick=async()=>{
+    toast("Preparando backup…");
+    const obs=await fetchAllObs();
+    const eN=id=>(ctx.empresas.find(e=>e.id===id)||{}).nombre||'';
+    const gN=id=>id&&ctx.grupoById[id]?ctx.grupoById[id].nombre:'';
+    const est=ctx.alumnos.map(a=>({Nombre:a.nombre,Email:a.email||'',Empresa:eN(a.empresa_id),Grupo:gN(a.grupo_id),Nivel:a.nivel_sel||'',Estado:a.activo?'activo':'baja','Motivo baja':a.motivo_baja||''}));
+    const asisR=ctx.asis.map(r=>{const a=ctx.alumnoById[r.alumno_id]||{};return {Estudiante:a.nombre||'',Email:a.email||'',Grupo:gN(r.grupo_id||a.grupo_id),Fecha:r.fecha,Estado:r.presente?'Presente':'Ausente',Motivo:r.presente?'':(r.nota||'')};});
+    const obsR=obs.map(o=>{const a=ctx.alumnoById[o.alumno_id]||{};return {Estudiante:a.nombre||'',Fecha:o.fecha,Tipo:o.tipo,Trimestre:o.trimestre||'',Visibilidad:o.compartida?'compartida':'interna',Texto:o.texto};});
+    const temR=ctx.temas.map(t=>({Grupo:gN(t.grupo_id),Tema:t.tema,Mes:t.mes||''}));
+    const grpR=ctx.grupos.map(g=>({Grupo:g.nombre,Profesora:g.profesora||'',Días:g.dias||'',Horario:g.horario||''}));
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(est), "Estudiantes");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(asisR), "Asistencia");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(obsR), "Observaciones");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(temR), "Temas");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(grpR), "Grupos");
+    XLSX.writeFile(wb, `innit_backup_${new Date().toISOString().slice(0,10)}.xlsx`);
+    toast("Backup descargado ✓");
+  };
 }
 
 /* ---------- FICHAS ---------- */
@@ -311,7 +340,7 @@ async function renderFicha(alumnoId){
   const ausHTML=total===0?'<div class="empty">Sin asistencia cargada.</div>':aus.length===0?'<div class="empty">Asistencia perfecta en el período. 🎉</div>':
     aus.map(a=>`<div class="obs" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span class="obs-date">${fmtFecha(a.fecha)}</span><span class="tag ${a.nota?'examen':'general'}">${a.nota?a.nota:'sin motivo'}</span></div>`).join("");
   const misTemas=g?temas.filter(t=>t.grupo_id===g.id):[];
-  const temasHTML=misTemas.length?`<div class="chips">${misTemas.map(t=>`<span class="chip">${t.tema}</span>`).join("")}</div>`:'<div class="empty">Todavía no hay temas cargados para este grupo.</div>';
+  const temasHTML=misTemas.length?`<div class="chips">${misTemas.map(t=>`<span class="chip">${t.tema}${t.mes?` <span style="color:var(--ink-soft)">· ${t.mes}</span>`:''}</span>`).join("")}</div>`:'<div class="empty">Todavía no hay temas cargados para este grupo.</div>';
   const {data:obs}=await db.from("observaciones").select("fecha, tipo, texto, compartida, trimestre").eq("alumno_id",al.id).order("fecha",{ascending:false});
   const tagCls=t=>t==="examen"?"examen":t==="cambio de grupo"?"cambio":"general";
   const obsHTML=(obs&&obs.length)?obs.map(o=>`<div class="obs"><div class="obs-head"><span class="obs-date">${fmtFecha(o.fecha)}</span>${o.trimestre?`<span class="tag tri">${o.trimestre}</span>`:''}<span class="tag ${tagCls(o.tipo)}">${o.tipo}</span>${(rol==="profesora"&&!o.compartida)?'<span class="tag interna">interna</span>':''}</div><div class="obs-body">${o.texto}</div></div>`).join(""):'<div class="empty">Sin observaciones visibles.</div>';
@@ -489,26 +518,27 @@ function viewTemas(){
     const body=document.getElementById("tm-body");
     if(!gid){ body.innerHTML='<div class="empty">Elegí un grupo para ver y cargar sus temas.</div>'; return; }
     body.innerHTML='<div class="empty">Cargando…</div>';
-    const {data:temas}=await db.from("temas").select("id, tema, creado_en").eq("grupo_id",gid).order("creado_en");
+    const {data:temas}=await db.from("temas").select("id, tema, creado_en, mes").eq("grupo_id",gid).order("creado_en");
     body.innerHTML=`
       <div class="section" style="max-width:640px">
         <h2>Agregar tema</h2>
         <div class="sub">Los temas que cargues acá se ven en la ficha de todos los estudiantes del grupo.</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <input id="tm-nuevo" placeholder="Ej: Present perfect, Phrasal verbs…" style="flex:1;min-width:200px">
+          <select id="tm-mes" style="max-width:150px">${['<option value="">Mes…</option>'].concat(MESES_L.map(m=>`<option>${m.charAt(0).toUpperCase()+m.slice(1)}</option>`)).join('')}</select>
           <button class="btn-primary" id="tm-add">Agregar</button>
         </div>
         <span class="msg" id="tm-msg" style="margin-top:12px"></span>
       </div>
       <div class="section">
         <h2>Temas del grupo${temas&&temas.length?` <span style="font-family:Inter;font-weight:600;font-size:13px;color:var(--ink-soft)">(${temas.length})</span>`:''}</h2>
-        ${(temas&&temas.length)?'<div>'+temas.map(t=>`<div class="obs" style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span>${t.tema}</span><button class="btn-ghost btn-sm" data-del="${t.id}">Borrar</button></div>`).join('')+'</div>':'<div class="empty">Todavía no hay temas cargados para este grupo.</div>'}
+        ${(temas&&temas.length)?'<div>'+temas.map(t=>`<div class="obs" style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span>${t.tema}${t.mes?` <span style="color:var(--ink-soft);font-size:12.5px">· ${t.mes}</span>`:''}</span><button class="btn-ghost btn-sm" data-del="${t.id}">Borrar</button></div>`).join('')+'</div>':'<div class="empty">Todavía no hay temas cargados para este grupo.</div>'}
       </div>`;
     const inp=document.getElementById("tm-nuevo"), msg=document.getElementById("tm-msg");
     async function add(){
       const tema=inp.value.trim();
       if(!tema){ msg.className="msg err"; msg.textContent="Escribí un tema."; return; }
-      const {error}=await db.from("temas").insert({grupo_id:gid, tema});
+      const {error}=await db.from("temas").insert({grupo_id:gid, tema, mes:document.getElementById("tm-mes").value||null});
       if(error){ msg.className="msg err"; msg.textContent="No se pudo guardar: "+error.message; return; }
       toast("Tema agregado"); load(gid);
     }
@@ -525,32 +555,38 @@ function viewObs(){
   view.innerHTML=`<div class="selector"><span class="eyebrow">Estudiante</span><select id="o-al">${opts}</select></div><div id="o-body"></div>`;
   const alSel=document.getElementById("o-al"); alSel.onchange=()=>load(alSel.value); load(alSel.value);
   function obsItem(o){
-    return `<div class="obs"><div class="obs-head"><span class="obs-date">${fmtFecha(o.fecha)}</span>${o.trimestre?`<span class="tag tri">${o.trimestre}</span>`:''}<span class="tag ${o.tipo==='examen'?'examen':o.tipo==='cambio de grupo'?'cambio':'general'}">${o.tipo}</span><span class="tag ${o.compartida?'cambio':'interna'}">${o.compartida?'compartida':'interna'}</span><div style="flex:1"></div><button class="btn-ghost btn-sm" data-del="${o.id}">Borrar</button></div><div class="obs-body">${o.texto}</div></div>`;
+    return `<div class="obs"><div class="obs-head"><span class="obs-date">${fmtFecha(o.fecha)}</span>${o.trimestre?`<span class="tag tri">${o.trimestre}</span>`:''}<span class="tag ${o.tipo==='examen'?'examen':o.tipo==='cambio de grupo'?'cambio':'general'}">${o.tipo}</span><span class="tag ${o.compartida?'cambio':'interna'}">${o.compartida?'compartida':'interna'}</span><div style="flex:1"></div><button class="btn-ghost btn-sm" data-edit="${o.id}">Editar</button><button class="btn-ghost btn-sm" data-del="${o.id}">Borrar</button></div><div class="obs-body">${o.texto}</div></div>`;
   }
-  async function load(alId){
+  async function load(alId, editId){
     const body=document.getElementById("o-body"); body.innerHTML='<div class="empty">Cargando…</div>';
     const {data:obs}=await db.from("observaciones").select("id, fecha, tipo, texto, compartida, trimestre").eq("alumno_id",alId).order("fecha",{ascending:false});
+    const e = editId && obs ? obs.find(o=>o.id===editId) : null;
     const y=new Date().getFullYear(); const tri=['','1er trimestre '+y,'2do trimestre '+y,'3er trimestre '+y,'4to trimestre '+y];
+    const st=v=>e&&e.tipo===v?' selected':'';
     body.innerHTML=`
       <div class="section" style="max-width:640px">
-        <h2>Nueva observación</h2>
+        <h2>${e?'Editar observación':'Nueva observación'}</h2>
         <div class="grid2">
-          <div class="field"><label class="lab">Tipo</label><select id="o-tipo"><option>general</option><option>examen</option><option>cambio de grupo</option></select></div>
-          <div class="field"><label class="lab">Trimestre</label><select id="o-tri">${tri.map(t=>`<option value="${t}">${t||'— sin trimestre —'}</option>`).join('')}</select></div>
+          <div class="field"><label class="lab">Tipo</label><select id="o-tipo"><option${st('general')}>general</option><option${st('examen')}>examen</option><option${st('cambio de grupo')}>cambio de grupo</option></select></div>
+          <div class="field"><label class="lab">Trimestre</label><select id="o-tri">${tri.map(t=>`<option value="${t}"${e&&(e.trimestre||'')===t?' selected':''}>${t||'— sin trimestre —'}</option>`).join('')}</select></div>
         </div>
-        <div class="field"><label class="lab">Texto</label><textarea id="o-texto" placeholder="Escribí la observación…"></textarea></div>
-        <label class="switch"><input type="checkbox" id="o-comp"> Compartida — la ven el estudiante y RRHH. Sin tildar queda interna (solo profesoras).</label>
-        <div class="form-actions"><button class="btn-primary" id="o-save">Guardar observación</button><span class="msg" id="o-msg" style="margin:0"></span></div>
+        <div class="field"><label class="lab">Texto</label><textarea id="o-texto" placeholder="Escribí la observación…">${e?e.texto.replace(/</g,'&lt;'):''}</textarea></div>
+        <label class="switch"><input type="checkbox" id="o-comp"${e&&e.compartida?' checked':''}> Compartida — la ven el estudiante y RRHH. Sin tildar queda interna (solo profesoras).</label>
+        <div class="form-actions"><button class="btn-primary" id="o-save">${e?'Guardar cambios':'Guardar observación'}</button>${e?'<button class="btn-ghost" id="o-cancel">Cancelar</button>':''}<span class="msg" id="o-msg" style="margin:0"></span></div>
       </div>
       <div class="section"><h2>Observaciones cargadas</h2>${(obs&&obs.length)?obs.map(obsItem).join(''):'<div class="empty">Todavía no hay observaciones para este estudiante.</div>'}</div>`;
+    if(e) document.getElementById("o-cancel").onclick=()=>load(alId);
     document.getElementById("o-save").onclick=async()=>{
       const texto=document.getElementById("o-texto").value.trim(), msg=document.getElementById("o-msg");
       if(!texto){ msg.className="msg err"; msg.textContent="Escribí algo antes de guardar."; return; }
-      const payload={alumno_id:alId,tipo:document.getElementById("o-tipo").value,trimestre:document.getElementById("o-tri").value||null,texto,compartida:document.getElementById("o-comp").checked,fecha:new Date().toISOString().slice(0,10)};
-      const {error}=await db.from("observaciones").insert(payload);
+      const payload={tipo:document.getElementById("o-tipo").value,trimestre:document.getElementById("o-tri").value||null,texto,compartida:document.getElementById("o-comp").checked};
+      let error;
+      if(e){ ({error}=await db.from("observaciones").update(payload).eq("id",e.id)); }
+      else { payload.alumno_id=alId; payload.fecha=new Date().toISOString().slice(0,10); ({error}=await db.from("observaciones").insert(payload)); }
       if(error){ msg.className="msg err"; msg.textContent="No se pudo guardar: "+error.message; return; }
-      toast("Observación guardada"); load(alId);
+      toast(e?"Observación actualizada":"Observación guardada"); load(alId);
     };
+    body.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{ load(alId, b.dataset.edit); window.scrollTo({top:0,behavior:'smooth'}); });
     body.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{ if(!confirm("¿Borrar esta observación?"))return; await db.from("observaciones").delete().eq("id",b.dataset.del); toast("Observación borrada"); load(alId); });
   }
 }

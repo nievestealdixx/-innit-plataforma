@@ -156,23 +156,20 @@ const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const MESES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 const MESES_L=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 const NIVELES=["B1 Intermediate Medium","B1 Intermediate High","B2 Upper-intermediate Low","B2 Upper-intermediate Medium","B2 Upper-intermediate High","C1 Advanced"];
-const CAUSAS=["Trabajo","Vacaciones","Enfermedad","Personal","Reunión","Viaje","Feriado","Otro"];
+const CAUSAS=["Trabajo","Reunión","Vacaciones","Personal","Sin justificar"];
 const root=document.getElementById("root");
 let db=null, ctx={};
 
 function fmtFecha(s){ const d=new Date(s+"T00:00:00"); return d.getDate()+" "+MESES[d.getMonth()]+" "+d.getFullYear(); }
 function toast(t){ const el=document.getElementById("toast"); el.textContent=t; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),2200); }
 function causaDe(nota){
-  if(!nota) return "Sin motivo";
+  if(!nota) return "Sin justificar";
   const s=(""+nota).toLowerCase();
   if(s.includes("vacacion")) return "Vacaciones";
   if(s.includes("trabaj")||s.includes("labor")||s.includes("ofic")||s.includes("office")) return "Trabajo";
-  if(s.includes("enferm")||s.includes("salud")||s.includes("medic")||s.includes("médic")||s.includes("reposo")) return "Enfermedad";
   if(s.includes("reuni")||s.includes("meeting")) return "Reunión";
-  if(s.includes("viaje")) return "Viaje";
-  if(s.includes("feriad")) return "Feriado";
-  if(s.includes("personal")||s.includes("familiar")||s.includes("asunto")) return "Personal";
-  return "Otro";
+  if(s.includes("sin just")||s.includes("injust")||s.includes("sin motivo")) return "Sin justificar";
+  return "Personal";
 }
 
 db=supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -614,7 +611,7 @@ function viewReportes(){
     </div>`;
   let mode="asis", scope="alumno";
   const targetSel=document.getElementById("target"), causaSel=document.getElementById("causa");
-  causaSel.innerHTML=['<option value="">Todas las causas</option>'].concat(CAUSAS.concat(["Sin motivo"]).map(c=>`<option>${c}</option>`)).join("");
+  causaSel.innerHTML=['<option value="">Todas las causas</option>'].concat(CAUSAS.map(c=>`<option>${c}</option>`)).join("");
   function fillTargets(){
     let opts= scope==="alumno"?alumnos.map(a=>[a.id,a.nombre]) : scope==="grupo"?grupos.map(g=>[g.id,g.nombre]) : empresas.map(e=>[e.id,e.nombre]);
     targetSel.innerHTML=opts.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("");
@@ -687,6 +684,16 @@ function viewReportes(){
     const ws=XLSX.utils.json_to_sheet(data);
     ws['!cols']=[{wch:8},{wch:12},{wch:24},{wch:24}].concat(months.map(()=>({wch:9}))).concat([{wch:10}]);
     const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Asistencia %");
+    // Hoja 2: motivos de inasistencia por estudiante
+    const motData=studs.slice().sort((a,b)=>{const ga=gOf(a)?gOf(a).nombre:'',gb=gOf(b)?gOf(b).nombre:''; return ga.localeCompare(gb)||a.nombre.localeCompare(b.nombre);}).map(a=>{
+      const g=gOf(a), mine=ctx.asis.filter(x=>x.alumno_id===a.id && !x.presente);
+      const row={Grupo:g?g.nombre.replace('Avenga ',''):'', Nombre:a.nombre};
+      let tot=0; CAUSAS.forEach(c=>{ const n=mine.filter(x=>causaDe(x.nota)===c).length; row[c]=n; tot+=n; });
+      row['Total faltas']=tot; return row;
+    });
+    const ws2=XLSX.utils.json_to_sheet(motData);
+    ws2['!cols']=[{wch:8},{wch:24}].concat(CAUSAS.map(()=>({wch:12}))).concat([{wch:12}]);
+    XLSX.utils.book_append_sheet(wb, ws2, "Motivos");
     const nom = scope==="alumno"?(ctx.alumnoById[id]||{}).nombre : scope==="grupo"?(ctx.grupoById[id]||{}).nombre : (ctx.empresas.find(e=>e.id===id)||{}).nombre;
     XLSX.writeFile(wb, `asistencia_${(nom||scope).replace(/[^\w]+/g,'_')}.xlsx`);
   };

@@ -663,19 +663,31 @@ function viewReportes(){
   document.querySelectorAll("#scope button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#scope button").forEach(x=>x.classList.remove("active"));b.classList.add("active");scope=b.dataset.s;fillTargets();redraw();});
   targetSel.onchange=redraw; causaSel.onchange=redraw;
   document.getElementById("dl-excel").onclick=()=>{
-    const rows=filterAsis(scope, targetSel.value);
-    if(!rows.length){ toast("No hay asistencia para descargar"); return; }
-    const data=rows.map(r=>{
-      const al=ctx.alumnoById[r.alumno_id]||{};
-      const gid=r.grupo_id||al.grupo_id;
-      const g=gid?ctx.grupoById[gid]:null;
-      const emp=(ctx.empresas.find(e=>e.id===al.empresa_id)||{}).nombre||'';
-      return {Estudiante:al.nombre||'', Email:al.email||'', Empresa:emp, Grupo:g?g.nombre:'', Fecha:r.fecha, Estado:r.presente?'Presente':'Ausente', Motivo:r.presente?'':(r.nota||'')};
-    }).sort((a,b)=> a.Estudiante.localeCompare(b.Estudiante) || a.Fecha.localeCompare(b.Fecha));
+    const id=targetSel.value;
+    let studs = scope==="alumno" ? [ctx.alumnoById[id]].filter(Boolean)
+              : scope==="grupo"  ? ctx.alumnos.filter(a=>a.grupo_id===id)
+              :                    ctx.alumnos.filter(a=>a.empresa_id===id);
+    if(!studs.length){ toast("No hay estudiantes para descargar"); return; }
+    const scopeRows=filterAsis(scope,id);
+    const months=[...new Set(scopeRows.map(r=>r.fecha.slice(0,7)))].sort();
+    const mLabel=k=>{ const nm=MESES_L[parseInt(k.slice(5,7))-1]; return nm.charAt(0).toUpperCase()+nm.slice(1); };
+    const gOf=a=>a.grupo_id?ctx.grupoById[a.grupo_id]:null;
+    const data=studs.slice().sort((a,b)=>{
+      const ga=gOf(a)?gOf(a).nombre:'', gb=gOf(b)?gOf(b).nombre:'';
+      return ga.localeCompare(gb)||a.nombre.localeCompare(b.nombre);
+    }).map(a=>{
+      const g=gOf(a);
+      const row={Grupo:g?g.nombre.replace('Avenga ',''):'', Profesor:g&&g.profesora?g.profesora:'', Horario:g?[g.dias,g.horario].filter(Boolean).join(' '):'', Nombre:a.nombre};
+      const mine=ctx.asis.filter(x=>x.alumno_id===a.id);
+      let tp=0,tt=0;
+      months.forEach(k=>{ const mm=mine.filter(x=>x.fecha.slice(0,7)===k); const t=mm.length,p=mm.filter(x=>x.presente).length; row[mLabel(k)]=t?Math.round(p/t*100)+'%':''; tp+=p; tt+=t; });
+      row['Promedio']=tt?Math.round(tp/tt*100)+'%':'';
+      return row;
+    });
     const ws=XLSX.utils.json_to_sheet(data);
-    ws['!cols']=[{wch:26},{wch:30},{wch:14},{wch:14},{wch:12},{wch:10},{wch:16}];
-    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Asistencia");
-    const nom = scope==="alumno"?(ctx.alumnoById[targetSel.value]||{}).nombre : scope==="grupo"?(ctx.grupoById[targetSel.value]||{}).nombre : (ctx.empresas.find(e=>e.id===targetSel.value)||{}).nombre;
+    ws['!cols']=[{wch:8},{wch:12},{wch:24},{wch:24}].concat(months.map(()=>({wch:9}))).concat([{wch:10}]);
+    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Asistencia %");
+    const nom = scope==="alumno"?(ctx.alumnoById[id]||{}).nombre : scope==="grupo"?(ctx.grupoById[id]||{}).nombre : (ctx.empresas.find(e=>e.id===id)||{}).nombre;
     XLSX.writeFile(wb, `asistencia_${(nom||scope).replace(/[^\w]+/g,'_')}.xlsx`);
   };
   fillTargets(); redraw();

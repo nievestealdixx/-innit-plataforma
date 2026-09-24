@@ -209,10 +209,10 @@ function toast(t){ const el=document.getElementById("toast"); el.textContent=t; 
 function causaDe(nota){
   if(!nota) return "Sin justificar";
   const s=(""+nota).toLowerCase();
-  if(s.includes("vacacion")) return "Vacaciones";
-  if(s.includes("trabaj")||s.includes("labor")||s.includes("ofic")||s.includes("office")) return "Trabajo";
+  if(s.includes("vacacion")||s.includes("vacation")||s.includes("holiday")) return "Vacaciones";
+  if(s.includes("trabaj")||s.includes("labor")||s.includes("ofic")||s.includes("office")||s.includes("work")) return "Trabajo";
   if(s.includes("reuni")||s.includes("meeting")) return "Reunión";
-  if(s.includes("sin just")||s.includes("injust")||s.includes("sin motivo")) return "Sin justificar";
+  if(s.includes("sin just")||s.includes("injust")||s.includes("sin motivo")||s.includes("unjust")) return "Sin justificar";
   return "Personal";
 }
 

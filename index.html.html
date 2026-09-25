@@ -182,7 +182,7 @@ const RE_RULES=[
   [/^(.+) · baja$/, function(m,a){return a+" · inactive";}],
   [/^(\d+)\/(\d+) clases$/, function(m,a,b){return a+"/"+b+" classes";}]
 ];
-Object.assign(DICT,{"Consulta de inasistencias": "Absence follow-up", "Estudiantes con 2 faltas sin justificar seguidas.": "Students with 2 consecutive unjustified absences.", "Estudiantes con 2 faltas sin justificar seguidas. Revisá y, si hace falta, mandá el mail.": "Students with 2 consecutive unjustified absences. Review and, if needed, send the email.", "Sin casos por ahora. 🎉": "No cases for now. 🎉", "Enviar mail": "Send email", "Estado": "Status", "Pendiente": "Pending", "Mail enviado": "Email sent", "Respondió": "Replied", "Sin respuesta": "No reply", "Desestimado": "Dismissed", "¿Qué respondió?": "What did they reply?", "Motivo (opcional)": "Reason (optional)", "Por qué se desestima": "Why it's dismissed", "Guardado": "Saved", "No se pudo guardar": "Couldn't save"});
+Object.assign(DICT,{"Consulta de inasistencias": "Absence follow-up", "Estudiantes con 3 faltas sin justificar seguidas.": "Students with 3 consecutive unjustified absences.", "Estudiantes con 3 faltas sin justificar seguidas. Revisá y, si hace falta, mandá el mail.": "Students with 3 consecutive unjustified absences. Review and, if needed, send the email.", "Sin casos por ahora. 🎉": "No cases for now. 🎉", "Enviar mail": "Send email", "Estado": "Status", "Pendiente": "Pending", "Mail enviado": "Email sent", "Respondió": "Replied", "Sin respuesta": "No reply", "Desestimado": "Dismissed", "¿Qué respondió?": "What did they reply?", "Motivo (opcional)": "Reason (optional)", "Por qué se desestima": "Why it's dismissed", "Guardado": "Saved", "No se pudo guardar": "Couldn't save"});
 RE_RULES.push([/^(\d+) faltas sin justificar seguidas: (.+)$/, function(m,a,b){return a+" consecutive unjustified absences: "+b;}]);
 Object.assign(DICT,{"Seguimiento":"Follow-up","Inasistencias":"Absences","Cambios de grupo":"Group changes","Ver seguimiento":"View follow-up","Revisá el seguimiento y, si hace falta, mandá el mail.":"Review the follow-up and, if needed, send the email."});
 RE_RULES.push([/^⚠️ (\d+) estudiante\(s\) con faltas sin justificar seguidas$/, function(m,a){return "⚠️ "+a+" student(s) with consecutive unjustified absences";}]);
@@ -347,7 +347,7 @@ function rachaSinJustificar(alumnoId){
   let runs=[], cur=[];
   for(const r of rows){ if(!r.presente && causaDe(r.nota)==='Sin justificar'){ cur.push(r); } else { if(cur.length)runs.push(cur); cur=[]; } }
   if(cur.length)runs.push(cur);
-  const q=runs.filter(rn=>rn.length>=2);
+  const q=runs.filter(rn=>rn.length>=3);
   if(!q.length) return null;
   const last=q[q.length-1];
   return {count:last.length, fechas:last.map(r=>r.fecha)};
@@ -367,7 +367,7 @@ async function renderInasistencias(cont){
   if(!cont) return;
   try{
   const flagged=flaggedInasistencias();
-  if(!flagged.length){ cont.innerHTML=`<div class="section"><h2>Consulta de inasistencias</h2><div class="sub">Estudiantes con 2 faltas sin justificar seguidas.</div><div class="empty">Sin casos por ahora. 🎉</div></div>`; return; }
+  if(!flagged.length){ cont.innerHTML=`<div class="section"><h2>Consulta de inasistencias</h2><div class="sub">Estudiantes con 3 faltas sin justificar seguidas.</div><div class="empty">Sin casos por ahora. 🎉</div></div>`; return; }
   const ids=flagged.map(f=>f.a.id);
   const {data:seg}=await db.from("seguimiento_inasistencias").select("*").in("alumno_id",ids);
   const segMap=Object.fromEntries((seg||[]).map(s=>[s.alumno_id,s]));
@@ -406,7 +406,7 @@ async function renderInasistencias(cont){
     const grupo=g?g.nombre.replace('Avenga ',''):'';
     const cc=ctx.rrhhEmailByEmp[a.empresa_id]||'';
     const bcc=(g&&g.profesora&&ctx.profeEmail[g.profesora])||'';
-    const body=`Hola ${a.nombre},\n\nTe escribimos porque no te sumaste a las últimas clases del grupo ${grupo}. Queríamos saber a qué se debió y si te podemos ayudar de alguna manera.\n\nQuedamos a la espera de tu respuesta.\n\nSaludos,\nInnit English Center`;
+    const body=`Hola ${a.nombre},\n\nTe escribimos porque notamos que no te sumaste a las últimas clases del grupo ${grupo}. Queríamos saber a qué se debió y si te podemos ayudar de alguna manera para que puedas retomar.\n\nQuedamos a la espera de tu respuesta.\n\nSaludos,\nInnit English Center`;
     window.open(gmailCompose({to:a.email||'',cc,bcc,subject:'Consulta de inasistencias',body}),'_blank');
   });
   cont.querySelectorAll('[data-save]').forEach(b=>b.onclick=async()=>{

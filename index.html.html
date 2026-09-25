@@ -385,7 +385,7 @@ async function renderInasistencias(cont){
       return `<div class="obs" data-al="${a.id}">
         <div class="obs-head"><b>${a.nombre}</b><span class="tag general">${g?g.nombre.replace('Avenga ',''):'—'}</span><span class="obs-date">${r.count} faltas sin justificar seguidas: ${r.fechas.map(fmtD).join(', ')}</span></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
-          <button class="btn-primary btn-sm" data-mail="${a.id}">Enviar mail</button>
+          ${ctx.rol==='profesora'?`<button class="btn-primary btn-sm" data-mail="${a.id}">Enviar mail</button>`:''}
           <span style="font-size:12px;color:var(--ink-soft)">Estado</span>
           <select class="al-estado" data-al="${a.id}" style="max-width:170px">${estOpts}</select>
           <button class="btn-ghost btn-sm" data-save="${a.id}">Guardar</button>

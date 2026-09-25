@@ -187,6 +187,7 @@ RE_RULES.push([/^(\d+) faltas sin justificar seguidas: (.+)$/, function(m,a,b){r
 Object.assign(DICT,{"Seguimiento":"Follow-up","Inasistencias":"Absences","Cambios de grupo":"Group changes","Ver seguimiento":"View follow-up","Revisá el seguimiento y, si hace falta, mandá el mail.":"Review the follow-up and, if needed, send the email."});
 RE_RULES.push([/^⚠️ (\d+) estudiante\(s\) con faltas sin justificar seguidas$/, function(m,a){return "⚠️ "+a+" student(s) with consecutive unjustified absences";}]);
 Object.assign(DICT,{"Pendientes de revisar o cerrar.":"Pending to review or close.","Sin pendientes. 🎉":"No pending cases. 🎉","Archivados":"Archived","Casos cerrados (respondidos o desestimados). Quedan guardados para consulta.":"Closed cases (replied or dismissed). Kept for reference."});
+Object.assign(DICT,{"Estado:":"Status:","Respuesta:":"Reply:","Motivo:":"Reason:"});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -373,6 +374,11 @@ async function renderInasistencias(cont){
   const segMap=Object.fromEntries((seg||[]).map(s=>[s.alumno_id,s]));
   const ESTADOS=[["pendiente","Pendiente"],["enviado","Mail enviado"],["respondio","Respondió"],["sin_respuesta","Sin respuesta"],["desestimado","Desestimado"]];
   const fmtD=s=>{const d=new Date(s+"T00:00:00");return d.getDate()+" "+MESES[d.getMonth()];};
+  function readonlyExtra(s){
+    if(s.estado==='respondio' && s.respuesta) return `<div class="obs-body" style="font-size:13.5px"><b>Respuesta:</b> ${(''+s.respuesta).replace(/</g,'&lt;')}</div>`;
+    if(s.estado==='desestimado' && s.nota) return `<div class="obs-body" style="font-size:13.5px;color:var(--ink-soft)"><b>Motivo:</b> ${(''+s.nota).replace(/</g,'&lt;')}</div>`;
+    return '';
+  }
   function extraFields(s){
     if(s.estado==='respondio') return `<label class="lab">¿Qué respondió?</label><textarea class="al-resp" style="min-height:60px">${(s.respuesta||'').replace(/</g,'&lt;')}</textarea>`;
     if(s.estado==='desestimado') return `<label class="lab">Motivo (opcional)</label><input class="al-nota" value="${(s.nota||'').replace(/"/g,'&quot;')}" placeholder="Por qué se desestima">`;
@@ -385,12 +391,13 @@ async function renderInasistencias(cont){
       return `<div class="obs" data-al="${a.id}">
         <div class="obs-head"><b>${a.nombre}</b><span class="tag general">${g?g.nombre.replace('Avenga ',''):'—'}</span><span class="obs-date">${r.count} faltas sin justificar seguidas: ${r.fechas.map(fmtD).join(', ')}</span></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
-          ${ctx.rol==='profesora'?`<button class="btn-primary btn-sm" data-mail="${a.id}">Enviar mail</button>`:''}
+          ${ctx.rol==='profesora'?`<button class="btn-primary btn-sm" data-mail="${a.id}">Enviar mail</button>
           <span style="font-size:12px;color:var(--ink-soft)">Estado</span>
           <select class="al-estado" data-al="${a.id}" style="max-width:170px">${estOpts}</select>
-          <button class="btn-ghost btn-sm" data-save="${a.id}">Guardar</button>
+          <button class="btn-ghost btn-sm" data-save="${a.id}">Guardar</button>`
+          :`<span style="font-size:12px;color:var(--ink-soft)">Estado:</span> <span class="tag general">${(ESTADOS.find(e=>e[0]===s.estado)||['','Pendiente'])[1]}</span>`}
         </div>
-        <div class="al-extra" data-al="${a.id}" style="margin-top:8px">${extraFields(s)}</div>
+        <div class="al-extra" data-al="${a.id}" style="margin-top:8px">${ctx.rol==='profesora'?extraFields(s):readonlyExtra(s)}</div>
       </div>`;
   };
   const esArch=f=>{const s=segMap[f.a.id]; return !!(s&&(s.estado==='respondio'||s.estado==='desestimado'));};

@@ -186,6 +186,7 @@ Object.assign(DICT,{"Consulta de inasistencias": "Absence follow-up", "Estudiant
 RE_RULES.push([/^(\d+) faltas sin justificar seguidas: (.+)$/, function(m,a,b){return a+" consecutive unjustified absences: "+b;}]);
 Object.assign(DICT,{"Seguimiento":"Follow-up","Inasistencias":"Absences","Cambios de grupo":"Group changes","Ver seguimiento":"View follow-up","Revisá el seguimiento y, si hace falta, mandá el mail.":"Review the follow-up and, if needed, send the email."});
 RE_RULES.push([/^⚠️ (\d+) estudiante\(s\) con faltas sin justificar seguidas$/, function(m,a){return "⚠️ "+a+" student(s) with consecutive unjustified absences";}]);
+Object.assign(DICT,{"Pendientes de revisar o cerrar.":"Pending to review or close.","Sin pendientes. 🎉":"No pending cases. 🎉","Archivados":"Archived","Casos cerrados (respondidos o desestimados). Quedan guardados para consulta.":"Closed cases (replied or dismissed). Kept for reference."});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -377,8 +378,7 @@ async function renderInasistencias(cont){
     if(s.estado==='desestimado') return `<label class="lab">Motivo (opcional)</label><input class="al-nota" value="${(s.nota||'').replace(/"/g,'&quot;')}" placeholder="Por qué se desestima">`;
     return '';
   }
-  cont.innerHTML=`<div class="section"><h2>Consulta de inasistencias</h2><div class="sub">Estudiantes con 2 faltas sin justificar seguidas. Revisá y, si hace falta, mandá el mail.</div>`+
-    flagged.map(({a,r})=>{
+  const cardHTML=({a,r})=>{
       const g=a.grupo_id?ctx.grupoById[a.grupo_id]:null;
       const s=segMap[a.id]||{estado:'pendiente',respuesta:'',nota:''};
       const estOpts=ESTADOS.map(e=>`<option value="${e[0]}"${s.estado===e[0]?' selected':''}>${e[1]}</option>`).join('');
@@ -392,7 +392,11 @@ async function renderInasistencias(cont){
         </div>
         <div class="al-extra" data-al="${a.id}" style="margin-top:8px">${extraFields(s)}</div>
       </div>`;
-    }).join('')+`</div>`;
+  };
+  const esArch=f=>{const s=segMap[f.a.id]; return !!(s&&(s.estado==='respondio'||s.estado==='desestimado'));};
+  const pend=flagged.filter(f=>!esArch(f)), arch=flagged.filter(esArch);
+  cont.innerHTML=`<div class="section"><h2>Consulta de inasistencias</h2><div class="sub">Pendientes de revisar o cerrar.</div>${pend.length?pend.map(cardHTML).join(''):'<div class="empty">Sin pendientes. 🎉</div>'}</div>`+
+    (arch.length?`<div class="section" style="opacity:.92"><h2>Archivados</h2><div class="sub">Casos cerrados (respondidos o desestimados). Quedan guardados para consulta.</div>${arch.map(cardHTML).join('')}</div>`:'');
   cont.querySelectorAll('.al-estado').forEach(sel=>sel.onchange=()=>{
     const id=sel.dataset.al, box=cont.querySelector(`.al-extra[data-al="${id}"]`);
     box.innerHTML=extraFields({estado:sel.value,respuesta:'',nota:''});
@@ -413,7 +417,7 @@ async function renderInasistencias(cont){
     const payload={alumno_id:id,estado,respuesta:respEl?respEl.value:null,nota:notaEl?notaEl.value:null,actualizado:new Date().toISOString()};
     const {error}=await db.from("seguimiento_inasistencias").upsert(payload);
     if(error){ toast("No se pudo guardar"); return; }
-    toast("Guardado");
+    toast("Guardado"); renderInasistencias(cont);
   });
   }catch(e){ console.warn('alerta inasistencias:',e); if(cont) cont.innerHTML=''; }
 }

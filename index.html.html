@@ -211,6 +211,7 @@ RE_RULES.push([/^Mail enviado \((\d+)\)$/,function(m,a){return "Email sent ("+a+
 RE_RULES.push([/^Archivados \((\d+)\)$/,function(m,a){return "Archived ("+a+")";}]);
 RE_RULES.push([/^(\d+) faltas$/,function(m,a){return a+" absences";}]);
 RE_RULES.push([/^(.+) \(hace (\d+) días\)$/,function(m,a,b){return a+" ("+b+" days ago)";}]);
+Object.assign(DICT,{"Justificar faltas":"Justify absences","Causa":"Reason","Nota (opcional)":"Note (optional)","Ej: avisó en clase":"E.g. told us in class","Faltas justificadas ✓":"Absences justified ✓"});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -418,6 +419,7 @@ async function renderInasistencias(cont){
     if(st==='pendiente') acts=`<button class="btn-primary btn-sm" data-act="mail" data-id="${id}">Enviar mail</button><button class="btn-ghost btn-sm" data-act="enviado" data-id="${id}">Marcar como enviado</button><button class="btn-ghost btn-sm" data-act="form-des" data-id="${id}">Desestimar</button>`;
     else if(st==='enviado'||st==='sin_respuesta') acts=`<button class="btn-primary btn-sm" data-act="form-resp" data-id="${id}">Registrar respuesta</button>${st==='enviado'?`<button class="btn-ghost btn-sm" data-act="sin_respuesta" data-id="${id}">Sin respuesta</button>`:''}<button class="btn-ghost btn-sm" data-act="mail" data-id="${id}">Reenviar mail</button><button class="btn-ghost btn-sm" data-act="form-des" data-id="${id}">Desestimar</button>`;
     else acts=`<button class="btn-ghost btn-sm" data-act="reabrir" data-id="${id}">Reabrir</button>`;
+    acts+=`<button class="btn-ghost btn-sm" data-act="form-just" data-id="${id}">Justificar faltas</button>`;
     return h+`<div class="idet-acts">${acts}</div><div class="idet-form" data-form="${id}"></div>`;
   }
   function row(i){
@@ -459,6 +461,20 @@ async function renderInasistencias(cont){
     else if(act==='form-resp'){
       formBox.innerHTML=`<label class="lab">¿Qué respondió?</label><textarea class="f-in" style="min-height:60px"></textarea><div class="idet-acts"><button class="btn-primary btn-sm" data-ok>Guardar</button></div>`;
       formBox.querySelector('[data-ok]').onclick=()=>upd(id,{estado:'respondio',respuesta:formBox.querySelector('.f-in').value.trim()||null});
+    }
+    else if(act==='form-just'){
+      const it=items.find(x=>x.a.id===id);
+      const opts=CAUSAS.filter(c=>c!=='Sin justificar').map(c=>`<option>${c}</option>`).join('');
+      formBox.innerHTML=`<div class="grid2"><div><label class="lab">Causa</label><select class="f-causa">${opts}</select></div><div><label class="lab">Nota (opcional)</label><input class="f-nota" placeholder="Ej: avisó en clase"></div></div><div class="idet-acts"><button class="btn-primary btn-sm" data-ok>Guardar</button></div>`;
+      formBox.querySelector('[data-ok]').onclick=async()=>{
+        const causa=formBox.querySelector('.f-causa').value, nota=formBox.querySelector('.f-nota').value.trim();
+        const {error}=await db.from("asistencia").update({nota:causa}).eq("alumno_id",id).eq("presente",false).in("fecha",it.r.fechas);
+        if(error){ toast("No se pudo guardar"); return; }
+        await db.from("observaciones").insert({alumno_id:id,fecha:hoyStr,tipo:'general',compartida:false,texto:`Faltas justificadas (${it.r.fechas.map(fmtD).join(', ')}): ${causa}${nota?'. '+nota:''}`});
+        const p=segMap[id]||{};
+        await db.from("seguimiento_inasistencias").upsert({alumno_id:id,estado:'desestimado',respuesta:p.respuesta||null,fecha_envio:p.fecha_envio||null,nota:`Justificadas: ${causa}${nota?' — '+nota:''}`,actualizado:new Date().toISOString()});
+        await loadData(); toast("Faltas justificadas ✓"); cont.dataset.open=''; renderInasistencias(cont);
+      };
     }
     else if(act==='form-des'){
       formBox.innerHTML=`<label class="lab">Motivo (opcional)</label><input class="f-in" placeholder="Por qué se desestima"><div class="idet-acts"><button class="btn-primary btn-sm" data-ok>Guardar</button></div>`;

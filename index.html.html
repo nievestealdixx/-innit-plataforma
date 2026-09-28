@@ -214,6 +214,8 @@ RE_RULES.push([/^(.+) \(hace (\d+) días\)$/,function(m,a,b){return a+" ("+b+" d
 Object.assign(DICT,{"Justificar faltas":"Justify absences","Causa":"Reason","Nota (opcional)":"Note (optional)","Ej: avisó en clase":"E.g. told us in class","Faltas justificadas ✓":"Absences justified ✓"});
 Object.assign(DICT,{"¿Olvidaste tu contraseña?":"Forgot your password?","Recuperar contraseña":"Reset password","Escribí tu email y te mandamos un link para crear una contraseña nueva.":"Enter your email and we'll send you a link to create a new password.","Enviar link":"Send link","Volver":"Back","Escribí tu email.":"Enter your email.","Enviando…":"Sending…","Listo. Si ese email tiene cuenta, te llega un link en unos minutos. Revisá también el spam.":"Done. If that email has an account, you'll get a link in a few minutes. Check your spam too.","Pediste varios links seguidos. Esperá unos minutos y probá de nuevo.":"You requested several links in a row. Wait a few minutes and try again.","No pudimos enviar el link. Probá de nuevo.":"We couldn't send the link. Try again.","Nueva contraseña":"New password","Elegí una contraseña nueva (mínimo 6 caracteres).":"Choose a new password (at least 6 characters).","Repetila":"Repeat it","Guardar contraseña":"Save password","La contraseña tiene que tener al menos 6 caracteres.":"The password must be at least 6 characters.","Las contraseñas no coinciden.":"The passwords don't match.","Guardando…":"Saving…","Contraseña actualizada ✓":"Password updated ✓"});
 Object.assign(DICT,{"Este email no está habilitado en Innit. Si creés que es un error, escribinos a innit.english@gmail.com.":"This email isn't enabled on Innit. If you think this is a mistake, write to us at innit.english@gmail.com."});
+Object.assign(DICT,{"Grupos y empresas":"Groups & companies","Empresas":"Companies","Cada empresa puede tener su contacto de HR, que va a ver solo los datos de esa empresa.":"Each company can have an HR contact, who will only see that company's data.","Nombre de la empresa nueva":"New company name","Agregar empresa":"Add company","＋ HR":"＋ HR","Todas las empresas":"All companies","＋ Nuevo grupo":"＋ New group","No hay grupos.":"No groups.","Nuevo grupo":"New group","Editar grupo":"Edit group","Nombre del grupo":"Group name","Empresa":"Company","Profesora":"Teacher","Días":"Days","— elegí —":"— choose —","— sin asignar —":"— unassigned —","Poné nombre y empresa.":"Enter a name and company.","Grupo creado":"Group created","Grupo actualizado":"Group updated","Empresa agregada":"Company added","Esa empresa ya existe":"That company already exists","Guardar HR":"Save HR","HR agregado":"HR added","Completá nombre y email":"Enter name and email","Cargar varios":"Bulk add","Cargar varios estudiantes":"Bulk add students","Pegá una lista, una persona por línea: nombre y email (podés copiar dos columnas directo desde Excel).":"Paste a list, one person per line: name and email (you can copy two columns straight from Excel).","Lista":"List","Nivel (opcional)":"Level (optional)","Cargar":"Add","Cargando…":"Adding…","Elegí un grupo.":"Choose a group.","No encontré ninguna línea con nombre y email.":"I couldn't find any line with a name and email.","Estudiantes cargados ✓":"Students added ✓"});
+RE_RULES.push([/^(\d+) estudiante\(s\) listos para cargar\.(.*)$/,function(m,a,b){return a+" student(s) ready to add."+(b?b.replace(/(\d+) línea\(s\) sin nombre o email válido\./,"$1 line(s) without a valid name or email."):"");}]);
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -404,7 +406,7 @@ function renderShell(){
   let tabs;
   if(rol==="alumno"){ tabs=[["fichas","Mi ficha"]]; }
   else { tabs=[["home","Home"],["fichas","Fichas de estudiantes"]];
-    if(esProf){ tabs.push(["gestion","Gestionar estudiantes"]); tabs.push(["lista","Gestionar asistencia"]); tabs.push(["temas","Temas"]); tabs.push(["obs","Observaciones"]); }
+    if(esProf){ tabs.push(["gestion","Gestionar estudiantes"]); tabs.push(["lista","Gestionar asistencia"]); tabs.push(["temas","Temas"]); tabs.push(["obs","Observaciones"]); tabs.push(["grupos","Grupos y empresas"]); }
     if(verGraf) tabs.push(["seguimiento","Seguimiento"]);
     if(verGraf) tabs.push(["reportes","Reportes"]);
   }
@@ -415,7 +417,7 @@ function renderShell(){
     <div class="wrap"><div class="tabs">${tabs.map((t,i)=>`<button class="tab ${i===0?'active':''}" data-v="${t[0]}">${t[1]}</button>`).join("")}</div><div id="view"></div></div>`;
   document.getElementById("out").onclick=async()=>{ await db.auth.signOut(); renderLogin(); };
   document.getElementById("lang-toggle").onclick=()=>toggleLang(renderShell);
-  const go={home:viewHome, fichas:viewFichas, gestion:viewGestion, lista:viewListaAsis, temas:viewTemas, obs:viewObs, reportes:viewReportes, seguimiento:viewSeguimiento};
+  const go={grupos:viewGrupos, home:viewHome, fichas:viewFichas, gestion:viewGestion, lista:viewListaAsis, temas:viewTemas, obs:viewObs, reportes:viewReportes, seguimiento:viewSeguimiento};
   document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
     document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active")); t.classList.add("active");
     (go[t.dataset.v]||viewFichas)();
@@ -659,6 +661,127 @@ async function renderFicha(alumnoId){
 }
 
 /* ---------- GESTIÓN DE ALUMNOS ---------- */
+function bulkForm(view,render){
+  const gopts=ctx.grupos.map(g=>`<option value="${g.id}">${g.nombre}</option>`).join("");
+  const nopts=['<option value="">— sin nivel —</option>'].concat(NIVELES.map(n=>`<option>${n}</option>`)).join("");
+  view.innerHTML=`<div class="section" style="max-width:620px">
+    <h2>Cargar varios estudiantes</h2>
+    <div class="sub">Pegá una lista, una persona por línea: nombre y email (podés copiar dos columnas directo desde Excel).</div>
+    <div class="field"><label class="lab">Lista</label><textarea id="bk-list" style="min-height:160px" placeholder="Ana Pérez	ana.perez@mail.com&#10;Juan Gómez	juan.gomez@mail.com"></textarea></div>
+    <div class="grid2">
+      <div class="field"><label class="lab">Grupo</label><select id="bk-grupo"><option value="">— elegí un grupo —</option>${gopts}</select></div>
+      <div class="field"><label class="lab">Nivel (opcional)</label><select id="bk-nivel">${nopts}</select></div>
+    </div>
+    <div id="bk-prev" style="font-size:13px;color:var(--ink-soft);margin-bottom:6px"></div>
+    <div class="form-actions"><button class="btn-primary" id="bk-save">Cargar</button><button class="btn-ghost" id="bk-cancel">Cancelar</button><span class="msg" id="bk-msg" style="margin:0"></span></div>
+  </div>`;
+  const ta=document.getElementById("bk-list"), prev=document.getElementById("bk-prev"), msg=document.getElementById("bk-msg");
+  const EMAIL=/[^\s,;<>]+@[^\s,;<>]+\.[^\s,;<>]+/;
+  function parse(){
+    const ok=[], bad=[];
+    ta.value.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).forEach(l=>{
+      const m=l.match(EMAIL);
+      if(!m){ bad.push(l); return; }
+      const email=m[0].toLowerCase();
+      const nombre=l.replace(m[0],'').replace(/[\t,;<>]+/g,' ').replace(/\s+/g,' ').trim();
+      if(!nombre){ bad.push(l); return; }
+      ok.push({nombre,email});
+    });
+    return {ok,bad};
+  }
+  ta.oninput=()=>{ const p=parse(); prev.textContent=(p.ok.length?`${p.ok.length} estudiante(s) listos para cargar.`:'')+(p.bad.length?` ${p.bad.length} línea(s) sin nombre o email válido.`:''); };
+  document.getElementById("bk-cancel").onclick=render;
+  document.getElementById("bk-save").onclick=async()=>{
+    const p=parse(), gid=document.getElementById("bk-grupo").value, nivel=document.getElementById("bk-nivel").value||null;
+    if(!p.ok.length){ msg.className="msg err"; msg.textContent="No encontré ninguna línea con nombre y email."; return; }
+    if(!gid){ msg.className="msg err"; msg.textContent="Elegí un grupo."; return; }
+    const emp=ctx.grupoById[gid].empresa_id;
+    msg.className="msg info"; msg.textContent="Cargando…";
+    let okN=0; const fail=[];
+    for(const s of p.ok){
+      const {error}=await db.from("alumnos").insert({nombre:s.nombre,email:s.email,grupo_id:gid,empresa_id:emp,nivel_sel:nivel,activo:true});
+      if(error) fail.push(s.email); else okN++;
+    }
+    await loadData();
+    msg.className=fail.length?"msg err":"msg ok";
+    msg.textContent=`Se cargaron ${okN}.`+(fail.length?` No se pudieron cargar (¿ya existen?): ${fail.join(', ')}`:'');
+    if(!fail.length){ toast("Estudiantes cargados ✓"); setTimeout(render,900); }
+  };
+}
+function viewGrupos(){
+  const view=document.getElementById("view");
+  let filtro="";
+  const profes=(ctx.staff||[]).filter(s=>s.rol==='profesora').map(s=>s.nombre).filter(Boolean);
+  function render(){
+    const emps=ctx.empresas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    const empN=id=>(ctx.empresas.find(e=>e.id===id)||{}).nombre||'—';
+    const grps=ctx.grupos.filter(g=>!filtro||g.empresa_id===filtro);
+    view.innerHTML=`
+      <div class="section">
+        <h2>Empresas</h2>
+        <div class="sub">Cada empresa puede tener su contacto de HR, que va a ver solo los datos de esa empresa.</div>
+        <div class="alist" style="margin-bottom:14px">${emps.map(e=>{
+          const hr=(ctx.staff||[]).filter(s=>s.rol==='rrhh'&&s.empresa_id===e.id);
+          const nG=ctx.grupos.filter(g=>g.empresa_id===e.id).length;
+          return `<div class="lrow" style="grid-template-columns:1fr auto auto"><span class="an">${e.nombre} <span style="font-weight:400;color:var(--ink-soft);font-size:12.5px">· ${nG} grupo(s)${hr.length?' · HR: '+hr.map(h=>h.email).join(', '):''}</span></span><span></span><button class="btn-ghost btn-sm" data-hr="${e.id}">＋ HR</button></div><div data-hrform="${e.id}"></div>`;
+        }).join('')}</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><input id="emp-nueva" placeholder="Nombre de la empresa nueva" style="flex:1;min-width:200px"><button class="btn-primary" id="emp-add">Agregar empresa</button></div>
+      </div>
+      <div class="section">
+        <h2>Grupos</h2>
+        <div class="toolbar"><select id="g-filtro" style="max-width:240px"><option value="">Todas las empresas</option>${emps.map(e=>`<option value="${e.id}"${filtro===e.id?' selected':''}>${e.nombre}</option>`).join('')}</select><div style="flex:1"></div><button class="btn-primary btn-sm" id="g-nuevo">＋ Nuevo grupo</button></div>
+        <div class="alist">${grps.map(g=>`<div class="lrow" data-g="${g.id}" style="grid-template-columns:1fr auto auto;cursor:pointer"><span class="an">${g.nombre} <span style="font-weight:400;color:var(--ink-soft);font-size:12.5px">· ${empN(g.empresa_id)}</span></span><span style="font-size:12.5px;color:var(--ink-soft)">${[g.dias,g.horario].filter(Boolean).join(' ')}</span><span class="tag general">${g.profesora||'—'}</span></div>`).join('')||'<div class="empty" style="padding:16px">No hay grupos.</div>'}</div>
+      </div>`;
+    document.getElementById("g-filtro").onchange=e=>{ filtro=e.target.value; render(); };
+    document.getElementById("g-nuevo").onclick=()=>grupoForm(null);
+    view.querySelectorAll("[data-g]").forEach(r=>r.onclick=()=>grupoForm(r.dataset.g));
+    document.getElementById("emp-add").onclick=async()=>{
+      const n=document.getElementById("emp-nueva").value.trim(); if(!n) return;
+      if(ctx.empresas.some(e=>e.nombre.toLowerCase()===n.toLowerCase())){ toast("Esa empresa ya existe"); return; }
+      const {error}=await db.from("empresas").insert({nombre:n});
+      if(error){ toast("No se pudo guardar"); return; }
+      await loadData(); toast("Empresa agregada"); render();
+    };
+    view.querySelectorAll("[data-hr]").forEach(b=>b.onclick=()=>{
+      const eid=b.dataset.hr, box=view.querySelector(`[data-hrform="${eid}"]`);
+      box.innerHTML=`<div style="padding:12px 18px;background:#FBF9F2;border-bottom:1px solid var(--line)"><div class="grid2"><input class="hr-n" placeholder="Nombre"><input class="hr-e" type="email" placeholder="Email de HR"></div><div class="idet-acts"><button class="btn-primary btn-sm" data-ok>Guardar HR</button></div></div>`;
+      box.querySelector("[data-ok]").onclick=async()=>{
+        const nombre=box.querySelector(".hr-n").value.trim(), email=box.querySelector(".hr-e").value.trim().toLowerCase();
+        if(!nombre||!email){ toast("Completá nombre y email"); return; }
+        const {error}=await db.from("staff").insert({nombre,email,rol:'rrhh',empresa_id:eid});
+        if(error){ toast("No se pudo guardar (¿ese email ya está cargado?)"); return; }
+        await loadData(); toast("HR agregado"); render();
+      };
+    });
+  }
+  function grupoForm(id){
+    const g=id?ctx.grupoById[id]:{nombre:"",empresa_id:filtro||"",profesora:"",dias:"",horario:""};
+    const eopts=ctx.empresas.map(e=>`<option value="${e.id}"${e.id===g.empresa_id?' selected':''}>${e.nombre}</option>`).join('');
+    const popts=['<option value="">— sin asignar —</option>'].concat(profes.map(p=>`<option${p===g.profesora?' selected':''}>${p}</option>`)).join('');
+    const esc=v=>(v||'').replace(/"/g,'&quot;');
+    view.innerHTML=`<div class="section" style="max-width:560px">
+      <h2>${id?'Editar grupo':'Nuevo grupo'}</h2>
+      <div class="field"><label class="lab">Nombre del grupo</label><input id="gf-n" value="${esc(g.nombre)}" placeholder="Ej: Avenga 6A, o el nombre del estudiante particular"></div>
+      <div class="grid2">
+        <div class="field"><label class="lab">Empresa</label><select id="gf-e"><option value="">— elegí —</option>${eopts}</select></div>
+        <div class="field"><label class="lab">Profesora</label><select id="gf-p">${popts}</select></div>
+        <div class="field"><label class="lab">Días</label><input id="gf-d" value="${esc(g.dias)}" placeholder="Ej: Martes y Jueves"></div>
+        <div class="field"><label class="lab">Horario</label><input id="gf-h" value="${esc(g.horario)}" placeholder="Ej: 09:00 a 10:00"></div>
+      </div>
+      <div class="form-actions"><button class="btn-primary" id="gf-save">Guardar</button><button class="btn-ghost" id="gf-cancel">Cancelar</button><span class="msg" id="gf-msg" style="margin:0"></span></div>
+    </div>`;
+    document.getElementById("gf-cancel").onclick=render;
+    document.getElementById("gf-save").onclick=async()=>{
+      const msg=document.getElementById("gf-msg");
+      const payload={nombre:document.getElementById("gf-n").value.trim(),empresa_id:document.getElementById("gf-e").value||null,profesora:document.getElementById("gf-p").value||null,dias:document.getElementById("gf-d").value.trim()||null,horario:document.getElementById("gf-h").value.trim()||null};
+      if(!payload.nombre||!payload.empresa_id){ msg.className="msg err"; msg.textContent="Poné nombre y empresa."; return; }
+      const {error}= id? await db.from("grupos").update(payload).eq("id",id) : await db.from("grupos").insert(payload);
+      if(error){ msg.className="msg err"; msg.textContent="No se pudo guardar: "+error.message; return; }
+      await loadData(); toast(id?"Grupo actualizado":"Grupo creado"); render();
+    };
+  }
+  render();
+}
 function viewGestion(){
   const view=document.getElementById("view");
   let q="", hideBajas=false, modo="alumno";
@@ -683,6 +806,7 @@ function viewGestion(){
         <div class="seg" id="modo"><button data-m="alumno" class="${modo==='alumno'?'active':''}">Por estudiante</button><button data-m="grupo" class="${modo==='grupo'?'active':''}">Por grupo</button></div>
         <label class="switch"><input type="checkbox" id="hb" ${hideBajas?'checked':''}> Ocultar bajas</label>
         <div style="flex:1"></div>
+        <button class="btn-ghost btn-sm" id="bulk">Cargar varios</button>
         <button class="btn-primary btn-sm" id="nuevo">＋ Nuevo estudiante</button>
       </div>${inner}`;
     const qi=document.getElementById("q");
@@ -690,6 +814,7 @@ function viewGestion(){
     document.getElementById("hb").onchange=e=>{ hideBajas=e.target.checked; render(); };
     document.querySelectorAll("#modo button").forEach(b=>b.onclick=()=>{ modo=b.dataset.m; render(); });
     document.getElementById("nuevo").onclick=()=>form(null);
+    document.getElementById("bulk").onclick=()=>bulkForm(view,render);
     view.querySelectorAll(".grow").forEach(r=>r.onclick=()=>form(r.dataset.id));
   }
   function matchQ(a){ return !q || a.nombre.toLowerCase().includes(q.toLowerCase()) || (a.email||"").toLowerCase().includes(q.toLowerCase()); }

@@ -213,6 +213,7 @@ RE_RULES.push([/^(\d+) faltas$/,function(m,a){return a+" absences";}]);
 RE_RULES.push([/^(.+) \(hace (\d+) días\)$/,function(m,a,b){return a+" ("+b+" days ago)";}]);
 Object.assign(DICT,{"Justificar faltas":"Justify absences","Causa":"Reason","Nota (opcional)":"Note (optional)","Ej: avisó en clase":"E.g. told us in class","Faltas justificadas ✓":"Absences justified ✓"});
 Object.assign(DICT,{"¿Olvidaste tu contraseña?":"Forgot your password?","Recuperar contraseña":"Reset password","Escribí tu email y te mandamos un link para crear una contraseña nueva.":"Enter your email and we'll send you a link to create a new password.","Enviar link":"Send link","Volver":"Back","Escribí tu email.":"Enter your email.","Enviando…":"Sending…","Listo. Si ese email tiene cuenta, te llega un link en unos minutos. Revisá también el spam.":"Done. If that email has an account, you'll get a link in a few minutes. Check your spam too.","Pediste varios links seguidos. Esperá unos minutos y probá de nuevo.":"You requested several links in a row. Wait a few minutes and try again.","No pudimos enviar el link. Probá de nuevo.":"We couldn't send the link. Try again.","Nueva contraseña":"New password","Elegí una contraseña nueva (mínimo 6 caracteres).":"Choose a new password (at least 6 characters).","Repetila":"Repeat it","Guardar contraseña":"Save password","La contraseña tiene que tener al menos 6 caracteres.":"The password must be at least 6 characters.","Las contraseñas no coinciden.":"The passwords don't match.","Guardando…":"Saving…","Contraseña actualizada ✓":"Password updated ✓"});
+Object.assign(DICT,{"Este email no está habilitado en Innit. Si creés que es un error, escribinos a innit.english@gmail.com.":"This email isn't enabled on Innit. If you think this is a mistake, write to us at innit.english@gmail.com."});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -284,6 +285,7 @@ function renderLogin(){
     if(s.includes("already registered")||s.includes("already been registered")||s.includes("exists")) return 'Ese email ya tiene cuenta. Tocá "Entrar".';
     if(s.includes("email not confirmed")) return "Todavía falta confirmar tu email. Revisá tu casilla (y el spam).";
     if(s.includes("rate")||s.includes("too many")) return "Muchos intentos seguidos. Esperá un ratito y probá de nuevo.";
+    if(s.includes("database error")||s.includes("no habilitado")) return "Este email no está habilitado en Innit. Si creés que es un error, escribinos a innit.english@gmail.com.";
     return m||"Algo salió mal. Probá de nuevo.";
   }
   form.onsubmit=async(ev)=>{

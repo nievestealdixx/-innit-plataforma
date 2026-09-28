@@ -246,10 +246,10 @@ function causaDe(nota){
 }
 
 db=supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-init();
 const IS_RECOVERY=/type=recovery/.test(location.hash);
-db.auth.onAuthStateChange(function(ev){ if(ev==='PASSWORD_RECOVERY') renderNewPassword(); });
 const APP_URL=location.origin+location.pathname;
+db.auth.onAuthStateChange(function(ev){ if(ev==='PASSWORD_RECOVERY') renderNewPassword(); });
+init();
 async function init(){
   if(IS_RECOVERY){ renderNewPassword(); return; }
   const {data:{session}}=await db.auth.getSession(); session?enterApp(session.user):renderLogin();

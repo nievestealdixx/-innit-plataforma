@@ -144,6 +144,22 @@
   .lrow:last-child{border-bottom:none} .lrow .an{font-weight:600}
   .grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
   .form-actions{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; align-items:center}
+
+  .irow{display:grid; grid-template-columns:1fr 46px 70px auto 16px; gap:10px; align-items:center; padding:12px 16px; border-bottom:1px solid var(--line); cursor:pointer}
+  .irow:hover, .irow-wrap.open .irow{background:#FBF9F2}
+  .irow-wrap:last-child .irow{border-bottom:none}
+  .irow-wrap.open .irow{border-bottom:none}
+  .irow .an{font-weight:600; display:flex; align-items:center; gap:7px; min-width:0}
+  .irow .ag, .irow .ic{font-size:12.5px; color:var(--ink-soft)}
+  .irow .chev{color:var(--ink-soft); font-size:12px}
+  .est{font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px; white-space:nowrap; justify-self:end}
+  .est-pend{background:var(--yellow-bg); color:var(--orange)} .est-env{background:var(--cyan-bg); color:var(--cyan)} .est-sin{background:var(--red-bg); color:var(--red)} .est-ok{background:var(--green-bg); color:var(--green)} .est-des{background:#EFEADD; color:var(--ink-soft)}
+  .late-dot{width:8px; height:8px; border-radius:50%; background:var(--red); display:inline-block; flex:none}
+  .idet{padding:2px 16px 16px; background:#FBF9F2; border-bottom:1px solid var(--line); font-size:13.5px}
+  .idet-line{margin:4px 0}
+  .idet-acts{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
+  .idet-form{margin-top:6px}
+  @media (max-width:620px){ .irow{grid-template-columns:1fr 40px auto 14px} .irow .ic{display:none} }
   .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 20px; border-radius:12px; font-size:14px; box-shadow:var(--shadow); opacity:0; transition:opacity .2s; z-index:50}
   .toast.show{opacity:1}
   @media (max-width:620px){ .grid2{grid-template-columns:1fr} .stat-grid{grid-template-columns:1fr} .grow{grid-template-columns:1fr 46px auto} .grow .anv{display:none} }
@@ -189,6 +205,12 @@ RE_RULES.push([/^⚠️ (\d+) estudiante\(s\) con faltas sin justificar seguidas
 Object.assign(DICT,{"Pendientes de revisar o cerrar.":"Pending to review or close.","Sin pendientes. 🎉":"No pending cases. 🎉","Archivados":"Archived","Casos cerrados (respondidos o desestimados). Quedan guardados para consulta.":"Closed cases (replied or dismissed). Kept for reference."});
 Object.assign(DICT,{"Estado:":"Status:","Respuesta:":"Reply:","Motivo:":"Reason:"});
 Object.assign(DICT,{"Asistencia del mes":"Attendance this month","Inasistencias pendientes":"Pending absences","Asistencia por mes":"Attendance by month","Promedio de la empresa.":"Company average.","Total del período.":"Total for the period.","Sin inasistencias.":"No absences.","Sin datos.":"No data."});
+Object.assign(DICT,{"Estudiantes con 3 faltas sin justificar seguidas. Tocá un caso para ver el detalle.":"Students with 3 consecutive unjustified absences. Tap a case to see details.","Nada en esta lista. 🎉":"Nothing in this list. 🎉","Marcar como enviado":"Mark as sent","Desestimar":"Dismiss","Registrar respuesta":"Log reply","Reenviar mail":"Resend email","Reabrir":"Reopen","Faltas:":"Absences:","Mail enviado:":"Email sent:","Estudiantes con 3 faltas sin justificar seguidas.":"Students with 3 consecutive unjustified absences."});
+RE_RULES.push([/^Pendientes \((\d+)\)$/,function(m,a){return "Pending ("+a+")";}]);
+RE_RULES.push([/^Mail enviado \((\d+)\)$/,function(m,a){return "Email sent ("+a+")";}]);
+RE_RULES.push([/^Archivados \((\d+)\)$/,function(m,a){return "Archived ("+a+")";}]);
+RE_RULES.push([/^(\d+) faltas$/,function(m,a){return a+" absences";}]);
+RE_RULES.push([/^(.+) \(hace (\d+) días\)$/,function(m,a,b){return a+" ("+b+" days ago)";}]);
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -368,64 +390,80 @@ function flaggedInasistencias(){
 async function renderInasistencias(cont){
   if(!cont) return;
   try{
+  const esProf=ctx.rol==='profesora';
   const flagged=flaggedInasistencias();
   if(!flagged.length){ cont.innerHTML=`<div class="section"><h2>Consulta de inasistencias</h2><div class="sub">Estudiantes con 3 faltas sin justificar seguidas.</div><div class="empty">Sin casos por ahora. 🎉</div></div>`; return; }
   const ids=flagged.map(f=>f.a.id);
   const {data:seg}=await db.from("seguimiento_inasistencias").select("*").in("alumno_id",ids);
   const segMap=Object.fromEntries((seg||[]).map(s=>[s.alumno_id,s]));
-  const ESTADOS=[["pendiente","Pendiente"],["enviado","Mail enviado"],["respondio","Respondió"],["sin_respuesta","Sin respuesta"],["desestimado","Desestimado"]];
+  const EST={pendiente:["Pendiente","est-pend"],enviado:["Mail enviado","est-env"],sin_respuesta:["Sin respuesta","est-sin"],respondio:["Respondió","est-ok"],desestimado:["Desestimado","est-des"]};
+  const grupoDe=s=>['respondio','desestimado'].includes(s)?'arch':(['enviado','sin_respuesta'].includes(s)?'env':'pend');
   const fmtD=s=>{const d=new Date(s+"T00:00:00");return d.getDate()+" "+MESES[d.getMonth()];};
-  function readonlyExtra(s){
-    if(s.estado==='respondio' && s.respuesta) return `<div class="obs-body" style="font-size:13.5px"><b>Respuesta:</b> ${(''+s.respuesta).replace(/</g,'&lt;')}</div>`;
-    if(s.estado==='desestimado' && s.nota) return `<div class="obs-body" style="font-size:13.5px;color:var(--ink-soft)"><b>Motivo:</b> ${(''+s.nota).replace(/</g,'&lt;')}</div>`;
-    return '';
+  const hoyStr=new Date().toISOString().slice(0,10);
+  const dias=f=>Math.max(0,Math.floor((new Date(hoyStr+"T00:00:00")-new Date(f+"T00:00:00"))/86400000));
+  const esc=t=>(''+(t||'')).replace(/</g,'&lt;');
+  const items=flagged.map(f=>({a:f.a,r:f.r,s:segMap[f.a.id]||{estado:'pendiente'}}));
+  const tab=cont.dataset.tab||'pend';
+  const openId=cont.dataset.open||'';
+  const counts={pend:0,env:0,arch:0}; items.forEach(i=>counts[grupoDe(i.s.estado)]++);
+  const list=items.filter(i=>grupoDe(i.s.estado)===tab);
+
+  function detail(i){
+    let h=`<div class="idet-line"><b>Faltas:</b> ${i.r.fechas.map(fmtD).join(', ')}</div>`;
+    if(i.s.fecha_envio) h+=`<div class="idet-line"><b>Mail enviado:</b> ${fmtD(i.s.fecha_envio)} (hace ${dias(i.s.fecha_envio)} días)</div>`;
+    if(i.s.respuesta) h+=`<div class="idet-line"><b>Respuesta:</b> ${esc(i.s.respuesta)}</div>`;
+    if(i.s.nota) h+=`<div class="idet-line"><b>Motivo:</b> ${esc(i.s.nota)}</div>`;
+    if(!esProf) return h;
+    const st=i.s.estado, id=i.a.id; let acts='';
+    if(st==='pendiente') acts=`<button class="btn-primary btn-sm" data-act="mail" data-id="${id}">Enviar mail</button><button class="btn-ghost btn-sm" data-act="enviado" data-id="${id}">Marcar como enviado</button><button class="btn-ghost btn-sm" data-act="form-des" data-id="${id}">Desestimar</button>`;
+    else if(st==='enviado'||st==='sin_respuesta') acts=`<button class="btn-primary btn-sm" data-act="form-resp" data-id="${id}">Registrar respuesta</button>${st==='enviado'?`<button class="btn-ghost btn-sm" data-act="sin_respuesta" data-id="${id}">Sin respuesta</button>`:''}<button class="btn-ghost btn-sm" data-act="mail" data-id="${id}">Reenviar mail</button><button class="btn-ghost btn-sm" data-act="form-des" data-id="${id}">Desestimar</button>`;
+    else acts=`<button class="btn-ghost btn-sm" data-act="reabrir" data-id="${id}">Reabrir</button>`;
+    return h+`<div class="idet-acts">${acts}</div><div class="idet-form" data-form="${id}"></div>`;
   }
-  function extraFields(s){
-    if(s.estado==='respondio') return `<label class="lab">¿Qué respondió?</label><textarea class="al-resp" style="min-height:60px">${(s.respuesta||'').replace(/</g,'&lt;')}</textarea>`;
-    if(s.estado==='desestimado') return `<label class="lab">Motivo (opcional)</label><input class="al-nota" value="${(s.nota||'').replace(/"/g,'&quot;')}" placeholder="Por qué se desestima">`;
-    return '';
+  function row(i){
+    const g=i.a.grupo_id?ctx.grupoById[i.a.grupo_id]:null;
+    const est=EST[i.s.estado]||EST.pendiente;
+    const late=(i.s.estado==='enviado'&&i.s.fecha_envio&&dias(i.s.fecha_envio)>=7);
+    const op=openId===i.a.id;
+    return `<div class="irow-wrap${op?' open':''}"><div class="irow" data-row="${i.a.id}"><span class="an">${late?'<span class="late-dot" title="7+ días sin respuesta"></span>':''}${i.a.nombre}</span><span class="ag">${g?g.nombre.replace('Avenga ',''):'—'}</span><span class="ic">${i.r.count} faltas</span><span class="est ${est[1]}">${est[0]}</span><span class="chev">${op?'▴':'▾'}</span></div>${op?`<div class="idet">${detail(i)}</div>`:''}</div>`;
   }
-  const cardHTML=({a,r})=>{
-      const g=a.grupo_id?ctx.grupoById[a.grupo_id]:null;
-      const s=segMap[a.id]||{estado:'pendiente',respuesta:'',nota:''};
-      const estOpts=ESTADOS.map(e=>`<option value="${e[0]}"${s.estado===e[0]?' selected':''}>${e[1]}</option>`).join('');
-      return `<div class="obs" data-al="${a.id}">
-        <div class="obs-head"><b>${a.nombre}</b><span class="tag general">${g?g.nombre.replace('Avenga ',''):'—'}</span><span class="obs-date">${r.count} faltas sin justificar seguidas: ${r.fechas.map(fmtD).join(', ')}</span></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
-          ${ctx.rol==='profesora'?`<button class="btn-primary btn-sm" data-mail="${a.id}">Enviar mail</button>
-          <span style="font-size:12px;color:var(--ink-soft)">Estado</span>
-          <select class="al-estado" data-al="${a.id}" style="max-width:170px">${estOpts}</select>
-          <button class="btn-ghost btn-sm" data-save="${a.id}">Guardar</button>`
-          :`<span style="font-size:12px;color:var(--ink-soft)">Estado:</span> <span class="tag general">${(ESTADOS.find(e=>e[0]===s.estado)||['','Pendiente'])[1]}</span>`}
-        </div>
-        <div class="al-extra" data-al="${a.id}" style="margin-top:8px">${ctx.rol==='profesora'?extraFields(s):readonlyExtra(s)}</div>
-      </div>`;
-  };
-  const esArch=f=>{const s=segMap[f.a.id]; return !!(s&&(s.estado==='respondio'||s.estado==='desestimado'));};
-  const pend=flagged.filter(f=>!esArch(f)), arch=flagged.filter(esArch);
-  cont.innerHTML=`<div class="section"><h2>Consulta de inasistencias</h2><div class="sub">Pendientes de revisar o cerrar.</div>${pend.length?pend.map(cardHTML).join(''):'<div class="empty">Sin pendientes. 🎉</div>'}</div>`+
-    (arch.length?`<div class="section" style="opacity:.92"><h2>Archivados</h2><div class="sub">Casos cerrados (respondidos o desestimados). Quedan guardados para consulta.</div>${arch.map(cardHTML).join('')}</div>`:'');
-  cont.querySelectorAll('.al-estado').forEach(sel=>sel.onchange=()=>{
-    const id=sel.dataset.al, box=cont.querySelector(`.al-extra[data-al="${id}"]`);
-    box.innerHTML=extraFields({estado:sel.value,respuesta:'',nota:''});
-  });
-  cont.querySelectorAll('[data-mail]').forEach(b=>b.onclick=()=>{
-    const a=ctx.alumnoById[b.dataset.mail], g=a.grupo_id?ctx.grupoById[a.grupo_id]:null;
+  cont.innerHTML=`<div class="section"><h2>Consulta de inasistencias</h2><div class="sub">Estudiantes con 3 faltas sin justificar seguidas. Tocá un caso para ver el detalle.</div>
+    <div class="seg" id="inas-tabs" style="margin-bottom:14px"><button data-t="pend" class="${tab==='pend'?'active':''}">Pendientes (${counts.pend})</button><button data-t="env" class="${tab==='env'?'active':''}">Mail enviado (${counts.env})</button><button data-t="arch" class="${tab==='arch'?'active':''}">Archivados (${counts.arch})</button></div>
+    ${list.length?'<div class="alist">'+list.map(row).join('')+'</div>':'<div class="empty">Nada en esta lista. 🎉</div>'}</div>`;
+
+  cont.querySelectorAll('#inas-tabs button').forEach(b=>b.onclick=()=>{ cont.dataset.tab=b.dataset.t; cont.dataset.open=''; renderInasistencias(cont); });
+  cont.querySelectorAll('.irow').forEach(r=>r.onclick=()=>{ cont.dataset.open=(cont.dataset.open===r.dataset.row)?'':r.dataset.row; renderInasistencias(cont); });
+
+  async function upd(id,patch){
+    const p=segMap[id]||{};
+    const payload=Object.assign({alumno_id:id,estado:p.estado||'pendiente',respuesta:p.respuesta||null,nota:p.nota||null,fecha_envio:p.fecha_envio||null},patch,{actualizado:new Date().toISOString()});
+    const {error}=await db.from("seguimiento_inasistencias").upsert(payload);
+    if(error){ toast("No se pudo guardar"); return; }
+    toast("Guardado"); renderInasistencias(cont);
+  }
+  function abrirMail(id){
+    const a=ctx.alumnoById[id], g=a.grupo_id?ctx.grupoById[a.grupo_id]:null;
     const grupo=g?g.nombre.replace('Avenga ',''):'';
     const cc=ctx.rrhhEmailByEmp[a.empresa_id]||'';
     const bcc=(g&&g.profesora&&ctx.profeEmail[g.profesora])||'';
     const body=`Hola ${a.nombre},\n\nTe escribimos porque notamos que no te sumaste a las últimas clases del grupo ${grupo}. Queríamos saber a qué se debió y si te podemos ayudar de alguna manera para que puedas retomar.\n\nQuedamos a la espera de tu respuesta.\n\nSaludos,\nInnit English Center`;
     window.open(gmailCompose({to:a.email||'',cc,bcc,subject:'Consulta de inasistencias',body}),'_blank');
-  });
-  cont.querySelectorAll('[data-save]').forEach(b=>b.onclick=async()=>{
-    const id=b.dataset.save;
-    const estado=cont.querySelector(`.al-estado[data-al="${id}"]`).value;
-    const respEl=cont.querySelector(`.al-extra[data-al="${id}"] .al-resp`);
-    const notaEl=cont.querySelector(`.al-extra[data-al="${id}"] .al-nota`);
-    const payload={alumno_id:id,estado,respuesta:respEl?respEl.value:null,nota:notaEl?notaEl.value:null,actualizado:new Date().toISOString()};
-    const {error}=await db.from("seguimiento_inasistencias").upsert(payload);
-    if(error){ toast("No se pudo guardar"); return; }
-    toast("Guardado"); renderInasistencias(cont);
+  }
+  cont.querySelectorAll('[data-act]').forEach(b=>b.onclick=(ev)=>{
+    ev.stopPropagation();
+    const id=b.dataset.id, act=b.dataset.act, formBox=cont.querySelector(`[data-form="${id}"]`);
+    if(act==='mail'){ abrirMail(id); setTimeout(()=>{ if(confirm(LANG==='en'?'Did you send the email?':'¿Enviaste el mail?')) upd(id,{estado:'enviado',fecha_envio:hoyStr}); },800); }
+    else if(act==='enviado'){ upd(id,{estado:'enviado',fecha_envio:hoyStr}); }
+    else if(act==='sin_respuesta'){ upd(id,{estado:'sin_respuesta'}); }
+    else if(act==='reabrir'){ const p=segMap[id]||{}; upd(id,{estado:p.fecha_envio?'enviado':'pendiente'}); }
+    else if(act==='form-resp'){
+      formBox.innerHTML=`<label class="lab">¿Qué respondió?</label><textarea class="f-in" style="min-height:60px"></textarea><div class="idet-acts"><button class="btn-primary btn-sm" data-ok>Guardar</button></div>`;
+      formBox.querySelector('[data-ok]').onclick=()=>upd(id,{estado:'respondio',respuesta:formBox.querySelector('.f-in').value.trim()||null});
+    }
+    else if(act==='form-des'){
+      formBox.innerHTML=`<label class="lab">Motivo (opcional)</label><input class="f-in" placeholder="Por qué se desestima"><div class="idet-acts"><button class="btn-primary btn-sm" data-ok>Guardar</button></div>`;
+      formBox.querySelector('[data-ok]').onclick=()=>upd(id,{estado:'desestimado',nota:formBox.querySelector('.f-in').value.trim()||null});
+    }
   });
   }catch(e){ console.warn('alerta inasistencias:',e); if(cont) cont.innerHTML=''; }
 }

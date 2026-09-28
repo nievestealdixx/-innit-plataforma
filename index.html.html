@@ -216,6 +216,8 @@ Object.assign(DICT,{"¿Olvidaste tu contraseña?":"Forgot your password?","Recup
 Object.assign(DICT,{"Este email no está habilitado en Innit. Si creés que es un error, escribinos a innit.english@gmail.com.":"This email isn't enabled on Innit. If you think this is a mistake, write to us at innit.english@gmail.com."});
 Object.assign(DICT,{"Grupos y empresas":"Groups & companies","Empresas":"Companies","Cada empresa puede tener su contacto de HR, que va a ver solo los datos de esa empresa.":"Each company can have an HR contact, who will only see that company's data.","Nombre de la empresa nueva":"New company name","Agregar empresa":"Add company","＋ HR":"＋ HR","Todas las empresas":"All companies","＋ Nuevo grupo":"＋ New group","No hay grupos.":"No groups.","Nuevo grupo":"New group","Editar grupo":"Edit group","Nombre del grupo":"Group name","Empresa":"Company","Profesora":"Teacher","Días":"Days","— elegí —":"— choose —","— sin asignar —":"— unassigned —","Poné nombre y empresa.":"Enter a name and company.","Grupo creado":"Group created","Grupo actualizado":"Group updated","Empresa agregada":"Company added","Esa empresa ya existe":"That company already exists","Guardar HR":"Save HR","HR agregado":"HR added","Completá nombre y email":"Enter name and email","Cargar varios":"Bulk add","Cargar varios estudiantes":"Bulk add students","Pegá una lista, una persona por línea: nombre y email (podés copiar dos columnas directo desde Excel).":"Paste a list, one person per line: name and email (you can copy two columns straight from Excel).","Lista":"List","Nivel (opcional)":"Level (optional)","Cargar":"Add","Cargando…":"Adding…","Elegí un grupo.":"Choose a group.","No encontré ninguna línea con nombre y email.":"I couldn't find any line with a name and email.","Estudiantes cargados ✓":"Students added ✓"});
 RE_RULES.push([/^(\d+) estudiante\(s\) listos para cargar\.(.*)$/,function(m,a,b){return a+" student(s) ready to add."+(b?b.replace(/(\d+) línea\(s\) sin nombre o email válido\./,"$1 line(s) without a valid name or email."):"");}]);
+Object.assign(DICT,{"Eliminar grupo":"Delete group","Grupo eliminado":"Group deleted","Este grupo tiene asistencia registrada. Para no perder el historial, no se puede eliminar.":"This group has attendance records. To keep the history, it can't be deleted."});
+RE_RULES.push([/^Este grupo tiene (\d+) estudiante\(s\)\. Pasalos a otro grupo o dalos de baja antes de eliminarlo\.$/,function(m,a){return "This group has "+a+" student(s). Move them to another group or deactivate them before deleting it.";}]);
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -768,9 +770,21 @@ function viewGrupos(){
         <div class="field"><label class="lab">Días</label><input id="gf-d" value="${esc(g.dias)}" placeholder="Ej: Martes y Jueves"></div>
         <div class="field"><label class="lab">Horario</label><input id="gf-h" value="${esc(g.horario)}" placeholder="Ej: 09:00 a 10:00"></div>
       </div>
-      <div class="form-actions"><button class="btn-primary" id="gf-save">Guardar</button><button class="btn-ghost" id="gf-cancel">Cancelar</button><span class="msg" id="gf-msg" style="margin:0"></span></div>
+      <div class="form-actions"><button class="btn-primary" id="gf-save">Guardar</button><button class="btn-ghost" id="gf-cancel">Cancelar</button><div style="flex:1"></div>${id?'<button class="btn-ghost" id="gf-del" style="color:var(--red);border-color:var(--red-bg)">Eliminar grupo</button>':''}</div><span class="msg" id="gf-msg"></span>
     </div>`;
     document.getElementById("gf-cancel").onclick=render;
+    const delBtn=document.getElementById("gf-del");
+    if(delBtn) delBtn.onclick=async()=>{
+      const msg=document.getElementById("gf-msg");
+      const nEst=ctx.alumnos.filter(a=>a.grupo_id===id).length;
+      const nAsis=ctx.asis.filter(a=>a.grupo_id===id).length;
+      if(nEst){ msg.className="msg err"; msg.textContent=`Este grupo tiene ${nEst} estudiante(s). Pasalos a otro grupo o dalos de baja antes de eliminarlo.`; return; }
+      if(nAsis){ msg.className="msg err"; msg.textContent="Este grupo tiene asistencia registrada. Para no perder el historial, no se puede eliminar."; return; }
+      if(!confirm(LANG==='en'?'Delete this group? This cannot be undone.':'¿Eliminar este grupo? No se puede deshacer.')) return;
+      const {error}=await db.from("grupos").delete().eq("id",id);
+      if(error){ msg.className="msg err"; msg.textContent="No se pudo eliminar: "+error.message; return; }
+      await loadData(); toast("Grupo eliminado"); render();
+    };
     document.getElementById("gf-save").onclick=async()=>{
       const msg=document.getElementById("gf-msg");
       const payload={nombre:document.getElementById("gf-n").value.trim(),empresa_id:document.getElementById("gf-e").value||null,profesora:document.getElementById("gf-p").value||null,dias:document.getElementById("gf-d").value.trim()||null,horario:document.getElementById("gf-h").value.trim()||null};

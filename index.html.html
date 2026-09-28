@@ -212,6 +212,7 @@ RE_RULES.push([/^Archivados \((\d+)\)$/,function(m,a){return "Archived ("+a+")";
 RE_RULES.push([/^(\d+) faltas$/,function(m,a){return a+" absences";}]);
 RE_RULES.push([/^(.+) \(hace (\d+) días\)$/,function(m,a,b){return a+" ("+b+" days ago)";}]);
 Object.assign(DICT,{"Justificar faltas":"Justify absences","Causa":"Reason","Nota (opcional)":"Note (optional)","Ej: avisó en clase":"E.g. told us in class","Faltas justificadas ✓":"Absences justified ✓"});
+Object.assign(DICT,{"¿Olvidaste tu contraseña?":"Forgot your password?","Recuperar contraseña":"Reset password","Escribí tu email y te mandamos un link para crear una contraseña nueva.":"Enter your email and we'll send you a link to create a new password.","Enviar link":"Send link","Volver":"Back","Escribí tu email.":"Enter your email.","Enviando…":"Sending…","Listo. Si ese email tiene cuenta, te llega un link en unos minutos. Revisá también el spam.":"Done. If that email has an account, you'll get a link in a few minutes. Check your spam too.","Pediste varios links seguidos. Esperá unos minutos y probá de nuevo.":"You requested several links in a row. Wait a few minutes and try again.","No pudimos enviar el link. Probá de nuevo.":"We couldn't send the link. Try again.","Nueva contraseña":"New password","Elegí una contraseña nueva (mínimo 6 caracteres).":"Choose a new password (at least 6 characters).","Repetila":"Repeat it","Guardar contraseña":"Save password","La contraseña tiene que tener al menos 6 caracteres.":"The password must be at least 6 characters.","Las contraseñas no coinciden.":"The passwords don't match.","Guardando…":"Saving…","Contraseña actualizada ✓":"Password updated ✓"});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -246,7 +247,13 @@ function causaDe(nota){
 
 db=supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 init();
-async function init(){ const {data:{session}}=await db.auth.getSession(); session?enterApp(session.user):renderLogin(); }
+const IS_RECOVERY=/type=recovery/.test(location.hash);
+db.auth.onAuthStateChange(function(ev){ if(ev==='PASSWORD_RECOVERY') renderNewPassword(); });
+const APP_URL=location.origin+location.pathname;
+async function init(){
+  if(IS_RECOVERY){ renderNewPassword(); return; }
+  const {data:{session}}=await db.auth.getSession(); session?enterApp(session.user):renderLogin();
+}
 
 /* ---------- LOGIN ---------- */
 function renderLogin(){
@@ -261,6 +268,7 @@ function renderLogin(){
           <div class="pass-wrap"><input id="pass" name="password" type="password" placeholder="Tu contraseña" autocomplete="current-password" required><button type="button" class="pass-toggle" id="pass-toggle" aria-label="Mostrar contraseña">Mostrar</button></div>
         </div>
         <div class="login-actions"><button type="submit" class="btn-primary" id="btn-in">Entrar</button><button type="button" class="btn-ghost" id="btn-up">Crear cuenta</button></div>
+        <div style="text-align:center;margin-top:14px"><a href="#" id="forgot" style="font-size:13px;color:var(--ink-soft)">¿Olvidaste tu contraseña?</a></div>
         <div class="msg" id="msg"></div>
       </form>
     </div></div></div>`;
@@ -290,12 +298,59 @@ function renderLogin(){
   btnUp.onclick=async()=>{
     if(!email.value||pass.value.length<6){show("Poné tu email y una contraseña de al menos 6 caracteres.","err");return;}
     show("Creando tu cuenta…","info"); btnUp.disabled=true;
-    const {data,error}=await db.auth.signUp({email:email.value.trim(),password:pass.value});
+    const {data,error}=await db.auth.signUp({email:email.value.trim(),password:pass.value,options:{emailRedirectTo:APP_URL}});
     btnUp.disabled=false;
     if(error){show(niceErr(error.message),"err");return;}
     data.session?enterApp(data.user):show('¡Cuenta creada! Revisá tu email para confirmarla y después tocá "Entrar".',"ok");
   };
   document.getElementById("lang-login").onclick=()=>toggleLang(renderLogin);
+  document.getElementById("forgot").onclick=(e)=>{ e.preventDefault(); renderForgot(email.value.trim()); };
+}
+function authCard(inner){
+  return `<div class="login-wrap"><div class="login-card"><div class="login-band"></div><div class="login-body"><div class="brandmark" style="color:var(--ink)">innit<span class="ec" style="color:var(--ink-soft);opacity:1">English Center</span></div>${inner}</div></div></div>`;
+}
+function renderForgot(pref){
+  root.innerHTML=authCard(`
+    <h1>Recuperar contraseña</h1>
+    <p class="hint">Escribí tu email y te mandamos un link para crear una contraseña nueva.</p>
+    <form id="fg-form"><div class="field"><label class="lab" for="fg-email">Email</label><input id="fg-email" type="email" autocomplete="username" required value="${(pref||'').replace(/"/g,'&quot;')}" placeholder="tu@email.com"></div>
+    <div class="login-actions"><button type="submit" class="btn-primary" id="fg-send">Enviar link</button><button type="button" class="btn-ghost" id="fg-back">Volver</button></div>
+    <div class="msg" id="fg-msg"></div></form>`);
+  const msg=document.getElementById("fg-msg"), btn=document.getElementById("fg-send");
+  document.getElementById("fg-back").onclick=renderLogin;
+  document.getElementById("fg-form").onsubmit=async(ev)=>{
+    ev.preventDefault();
+    const em=document.getElementById("fg-email").value.trim();
+    if(!em){ msg.className="msg err"; msg.textContent="Escribí tu email."; return; }
+    btn.disabled=true; msg.className="msg info"; msg.textContent="Enviando…";
+    const {error}=await db.auth.resetPasswordForEmail(em,{redirectTo:APP_URL});
+    btn.disabled=false;
+    if(error){ const s=(error.message||'').toLowerCase(); msg.className="msg err"; msg.textContent=(s.includes('rate')||s.includes('seconds'))?"Pediste varios links seguidos. Esperá unos minutos y probá de nuevo.":"No pudimos enviar el link. Probá de nuevo."; return; }
+    msg.className="msg ok"; msg.textContent="Listo. Si ese email tiene cuenta, te llega un link en unos minutos. Revisá también el spam.";
+  };
+}
+function renderNewPassword(){
+  root.innerHTML=authCard(`
+    <h1>Nueva contraseña</h1>
+    <p class="hint">Elegí una contraseña nueva (mínimo 6 caracteres).</p>
+    <form id="np-form">
+      <div class="field"><label class="lab" for="np1">Nueva contraseña</label><div class="pass-wrap"><input id="np1" type="password" autocomplete="new-password" required><button type="button" class="pass-toggle" id="np-tgl">Mostrar</button></div></div>
+      <div class="field"><label class="lab" for="np2">Repetila</label><input id="np2" type="password" autocomplete="new-password" required></div>
+      <div class="login-actions"><button type="submit" class="btn-primary" id="np-save">Guardar contraseña</button></div>
+      <div class="msg" id="np-msg"></div></form>`);
+  const p1=document.getElementById("np1"), p2=document.getElementById("np2"), msg=document.getElementById("np-msg"), tg=document.getElementById("np-tgl");
+  tg.onclick=()=>{ const sh=p1.type==="text"; p1.type=p2.type=sh?"password":"text"; tg.textContent=sh?"Mostrar":"Ocultar"; };
+  document.getElementById("np-form").onsubmit=async(ev)=>{
+    ev.preventDefault();
+    if(p1.value.length<6){ msg.className="msg err"; msg.textContent="La contraseña tiene que tener al menos 6 caracteres."; return; }
+    if(p1.value!==p2.value){ msg.className="msg err"; msg.textContent="Las contraseñas no coinciden."; return; }
+    msg.className="msg info"; msg.textContent="Guardando…";
+    const {error}=await db.auth.updateUser({password:p1.value});
+    if(error){ msg.className="msg err"; msg.textContent="El link venció o ya se usó. Pedí uno nuevo desde \"¿Olvidaste tu contraseña?\"."; return; }
+    history.replaceState(null,'',location.pathname);
+    toast("Contraseña actualizada ✓");
+    const {data:{user}}=await db.auth.getUser(); user?enterApp(user):renderLogin();
+  };
 }
 
 /* ---------- CARGA ---------- */

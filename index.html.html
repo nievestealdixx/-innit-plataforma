@@ -204,7 +204,18 @@
 const SUPABASE_URL="https://ornlicmealhanmldnpwo.supabase.co";
 const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ybmxpY21lYWxoYW5tbGRucHdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4NDAxNTcsImV4cCI6MjEwMzQxNjE1N30.eGT7e0RVlqf4hQiv4pJ8WEqokDw22S5mWFlfObDku5g";
 
-const MESES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const MESES_ES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const MESES_EN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MESES=new Proxy(MESES_ES,{get:(t,k)=>((typeof LANG!=='undefined'&&LANG==='en')?MESES_EN:MESES_ES)[k]});
+const DIAS_EN={"Lunes":"Monday","Martes":"Tuesday","Miércoles":"Wednesday","Miercoles":"Wednesday","Jueves":"Thursday","Viernes":"Friday","Sábado":"Saturday","Sabado":"Saturday"};
+function fmtDH(dias,hor){
+  let d=dias||'', h=hor||'';
+  if(typeof LANG!=='undefined'&&LANG==='en'){
+    d=d.replace(/Lunes|Martes|Miércoles|Miercoles|Jueves|Viernes|Sábado|Sabado/g,m=>DIAS_EN[m]).replace(/ y /g,' & ');
+    h=h.replace(/ a /g,'–');
+  }
+  return [d,h].filter(Boolean).join(' ');
+}
 const MESES_L=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 const NIVELES=["A2","B1 Intermediate Medium","B1 Intermediate High","B2 Upper-intermediate Low","B2 Upper-intermediate Medium","B2 Upper-intermediate High","C1 Advanced"];
 const CAUSAS=["Trabajo","Reunión","Vacaciones","Personal","Sin justificar"];
@@ -593,7 +604,7 @@ async function renderInasistencias(cont){
         const causa=formBox.querySelector('.f-causa').value, nota=formBox.querySelector('.f-nota').value.trim();
         const {error}=await db.from("asistencia").update({nota:causa}).eq("alumno_id",id).eq("presente",false).in("fecha",it.r.fechas);
         if(error){ toast("No se pudo guardar"); return; }
-        await db.from("observaciones").insert({alumno_id:id,fecha:hoyStr,tipo:'general',compartida:false,texto:`Faltas justificadas (${it.r.fechas.map(fmtD).join(', ')}): ${causa}${nota?'. '+nota:''}`});
+        await db.from("observaciones").insert({alumno_id:id,fecha:hoyStr,tipo:'general',compartida:false,texto:`Faltas justificadas (${it.r.fechas.map(f=>{const d=new Date(f+"T00:00:00");return d.getDate()+" "+MESES_ES[d.getMonth()];}).join(', ')}): ${causa}${nota?'. '+nota:''}`});
         const p=segMap[id]||{};
         await db.from("seguimiento_inasistencias").upsert({alumno_id:id,estado:'desestimado',respuesta:p.respuesta||null,fecha_envio:p.fecha_envio||null,nota:`Justificadas: ${causa}${nota?' — '+nota:''}`,actualizado:new Date().toISOString()});
         await loadData(); toast("Faltas justificadas ✓"); cont.dataset.open=''; renderInasistencias(cont);
@@ -740,7 +751,7 @@ async function renderFicha(alumnoId){
   const {data:obs}=await db.from("observaciones").select("fecha, tipo, texto, compartida, trimestre").eq("alumno_id",al.id).order("fecha",{ascending:false});
   const tagCls=t=>t==="examen"?"examen":t==="cambio de grupo"?"cambio":"general";
   const obsHTML=(obs&&obs.length)?obs.map(o=>`<div class="obs"><div class="obs-head"><span class="obs-date">${fmtFecha(o.fecha)}</span>${o.trimestre?`<span class="tag tri">${o.trimestre}</span>`:''}<span class="tag ${tagCls(o.tipo)}">${o.tipo}</span>${(rol==="profesora"&&!o.compartida)?'<span class="tag interna">interna</span>':''}</div><div class="obs-body">${o.texto}</div></div>`).join(""):'<div class="empty">Sin observaciones visibles.</div>';
-  const horario=g?[g.dias,g.horario].filter(Boolean).join(" · "):"—";
+  const horario=g?(fmtDH(g.dias,g.horario)||"—"):"—";
   cont.innerHTML=`
     <div class="hero"><div class="hero-band"></div><div class="hero-body">
       <div class="hero-top"><div><div class="eyebrow">Ficha de estudiante</div><h1 class="name"><span class="hl">${al.nombre}</span></h1></div>
@@ -847,7 +858,7 @@ function viewGrupos(){
       <div class="section">
         <h2>Grupos</h2>
         <div class="toolbar"><select id="g-filtro" style="max-width:240px"><option value="">Todas las empresas</option>${emps.map(e=>`<option value="${e.id}"${filtro===e.id?' selected':''}>${e.nombre}</option>`).join('')}</select><div style="flex:1"></div><button class="btn-primary btn-sm" id="g-nuevo">＋ Nuevo grupo</button></div>
-        <div class="alist">${grps.map(g=>`<div class="lrow" data-g="${g.id}" style="grid-template-columns:1fr auto auto;cursor:pointer"><span class="an">${g.nombre} <span style="font-weight:400;color:var(--ink-soft);font-size:12.5px">· ${empN(g.empresa_id)}</span></span><span style="font-size:12.5px;color:var(--ink-soft)">${[g.dias,g.horario].filter(Boolean).join(' ')}</span><span class="tag general">${g.profesora||'—'}</span></div>`).join('')||'<div class="empty" style="padding:16px">No hay grupos.</div>'}</div>
+        <div class="alist">${grps.map(g=>`<div class="lrow" data-g="${g.id}" style="grid-template-columns:1fr auto auto;cursor:pointer"><span class="an">${g.nombre} <span style="font-weight:400;color:var(--ink-soft);font-size:12.5px">· ${empN(g.empresa_id)}</span></span><span style="font-size:12.5px;color:var(--ink-soft)">${fmtDH(g.dias,g.horario)}</span><span class="tag general">${g.profesora||'—'}</span></div>`).join('')||'<div class="empty" style="padding:16px">No hay grupos.</div>'}</div>
       </div>`;
     document.getElementById("g-filtro").onchange=e=>{ filtro=e.target.value; render(); };
     document.getElementById("g-nuevo").onclick=()=>grupoForm(null);
@@ -941,7 +952,7 @@ function viewGestion(){
       ctx.grupos.forEach(g=>{
         const mem=ctx.alumnos.filter(a=>a.grupo_id===g.id && (!hideBajas||a.activo) && matchQ(a));
         if(!mem.length) return;
-        inner+=`<div class="alist" style="margin-bottom:14px"><div class="gh"><span class="gn">${g.nombre}</span><span class="gp">${g.profesora||'—'} · ${g.horario||''}</span></div>`+
+        inner+=`<div class="alist" style="margin-bottom:14px"><div class="gh"><span class="gn">${g.nombre}</span><span class="gp">${g.profesora||'—'} · ${fmtDH(g.dias,g.horario)}</span></div>`+
           mem.map(rowHTML).join("")+`</div>`;
       });
       if(!inner) inner='<div class="empty" style="padding:18px">Nada que mostrar.</div>';
@@ -1064,7 +1075,7 @@ function renderResumenGrupo(gid,fecha){
   const bars=aggPct(rowsG.filter(a=>a.fecha.slice(0,4)===y));
   box.innerHTML=`<div class="section">
     <h2>Cómo viene ${g.nombre}</h2>
-    <div class="sub">${[g.profesora,[g.dias,g.horario].filter(Boolean).join(' ')].filter(Boolean).join(' · ')}</div>
+    <div class="sub">${[g.profesora,fmtDH(g.dias,g.horario)].filter(Boolean).join(' · ')}</div>
     <div class="stat-grid" style="margin-bottom:6px">
       <div class="stat"><div class="n">${mesG.pct===null?'—':mesG.pct+'%'}</div><div class="l">Asistencia de ${mesNom}</div></div>
       <div class="stat"><div class="n">${anioG.pct===null?'—':anioG.pct+'%'}</div><div class="l">Asistencia del año</div></div>

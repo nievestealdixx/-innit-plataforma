@@ -234,6 +234,7 @@ Object.assign(DICT,{"Particular":"Private"});
 Object.assign(DICT,{"Segmento":"Segment","＋ Crear su grupo particular":"＋ Create a private group"});
 Object.assign(DICT,{"Todos los segmentos":"All segments","Promedio de todos los segmentos":"Average across all segments"});
 RE_RULES.push([/^Promedio de (.+)$/,function(m,a){return "Average for "+a;}]);
+Object.assign(DICT,{"Quitar":"Remove","HR quitado":"HR removed","HR actualizado":"HR updated","No se pudo quitar":"Couldn't remove"});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -402,7 +403,7 @@ async function loadData(){
     db.from("empresas").select("id, nombre").then(r=>r.data||[]),
     fetchAllAsis(),
     db.from("temas").select("grupo_id, tema, mes").then(r=>r.data||[]),
-    db.from("staff").select("nombre, email, rol, empresa_id").then(r=>r.data||[])
+    db.from("staff").select("id, nombre, email, rol, empresa_id").then(r=>r.data||[])
   ]);
   const profeEmail={}, rrhhEmailByEmp={};
   (staff||[]).forEach(s=>{ if(s.rol==='profesora'&&s.email) profeEmail[(s.nombre||'').trim()]=s.email; if(s.rol==='rrhh'&&s.email&&s.empresa_id) rrhhEmailByEmp[s.empresa_id]=s.email; });
@@ -798,7 +799,9 @@ function viewGrupos(){
         <div class="alist" style="margin-bottom:14px">${emps.map(e=>{
           const hr=(ctx.staff||[]).filter(s=>s.rol==='rrhh'&&s.empresa_id===e.id);
           const nG=ctx.grupos.filter(g=>g.empresa_id===e.id).length;
-          return `<div class="lrow" style="grid-template-columns:1fr auto auto"><span class="an">${e.nombre} <span style="font-weight:400;color:var(--ink-soft);font-size:12.5px">· ${nG} grupo(s)${hr.length?' · HR: '+hr.map(h=>h.email).join(', '):''}</span></span><span></span><button class="btn-ghost btn-sm" data-hr="${e.id}">＋ HR</button></div><div data-hrform="${e.id}"></div>`;
+          return `<div class="lrow" style="grid-template-columns:1fr auto"><span class="an">${e.nombre} <span style="font-weight:400;color:var(--ink-soft);font-size:12.5px">· ${nG} grupo(s)</span></span><button class="btn-ghost btn-sm" data-hr="${e.id}">＋ HR</button></div>`+
+            hr.map(h=>`<div class="lrow" style="grid-template-columns:1fr auto auto;padding-left:34px;background:#FBF9F2"><span style="font-size:13px"><span class="tag tri">HR</span> ${h.nombre} · <span style="color:var(--ink-soft)">${h.email}</span></span><button class="btn-ghost btn-sm" data-hredit="${h.id}">Editar</button><button class="btn-ghost btn-sm" data-hrdel="${h.id}" style="color:var(--red)">Quitar</button></div>`).join('')+
+            `<div data-hrform="${e.id}"></div>`;
         }).join('')}</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap"><input id="emp-nueva" placeholder="Nombre de la empresa nueva" style="flex:1;min-width:200px"><button class="btn-primary" id="emp-add">Agregar empresa</button></div>
       </div>
@@ -817,6 +820,27 @@ function viewGrupos(){
       if(error){ toast("No se pudo guardar"); return; }
       await loadData(); toast("Empresa agregada"); render();
     };
+    view.querySelectorAll("[data-hrdel]").forEach(b=>b.onclick=async()=>{
+      const h=(ctx.staff||[]).find(s=>s.id===b.dataset.hrdel); if(!h) return;
+      if(!confirm((LANG==='en'?'Remove HR access for ':'¿Quitarle el acceso de HR a ')+h.email+'?')) return;
+      const {error}=await db.from("staff").delete().eq("id",h.id);
+      if(error){ toast("No se pudo quitar"); return; }
+      await loadData(); toast("HR quitado"); render();
+    });
+    view.querySelectorAll("[data-hredit]").forEach(b=>b.onclick=()=>{
+      const h=(ctx.staff||[]).find(s=>s.id===b.dataset.hredit); if(!h) return;
+      const box=view.querySelector(`[data-hrform="${h.empresa_id}"]`);
+      const eopts=ctx.empresas.map(e=>`<option value="${e.id}"${e.id===h.empresa_id?' selected':''}>${e.nombre}</option>`).join('');
+      box.innerHTML=`<div style="padding:12px 18px;background:#FBF9F2;border-bottom:1px solid var(--line)"><div class="grid2"><input class="hr-n" value="${(h.nombre||'').replace(/"/g,'&quot;')}" placeholder="Nombre"><input class="hr-e" type="email" value="${h.email||''}" placeholder="Email de HR"></div><div class="field" style="margin-top:10px"><label class="lab">Empresa</label><select class="hr-emp">${eopts}</select></div><div class="idet-acts"><button class="btn-primary btn-sm" data-ok>Guardar</button><button class="btn-ghost btn-sm" data-cancel>Cancelar</button></div></div>`;
+      box.querySelector("[data-cancel]").onclick=render;
+      box.querySelector("[data-ok]").onclick=async()=>{
+        const nombre=box.querySelector(".hr-n").value.trim(), email=box.querySelector(".hr-e").value.trim().toLowerCase(), empresa_id=box.querySelector(".hr-emp").value;
+        if(!nombre||!email){ toast("Completá nombre y email"); return; }
+        const {error}=await db.from("staff").update({nombre,email,empresa_id}).eq("id",h.id);
+        if(error){ toast("No se pudo guardar (¿ese email ya está cargado?)"); return; }
+        await loadData(); toast("HR actualizado"); render();
+      };
+    });
     view.querySelectorAll("[data-hr]").forEach(b=>b.onclick=()=>{
       const eid=b.dataset.hr, box=view.querySelector(`[data-hrform="${eid}"]`);
       box.innerHTML=`<div style="padding:12px 18px;background:#FBF9F2;border-bottom:1px solid var(--line)"><div class="grid2"><input class="hr-n" placeholder="Nombre"><input class="hr-e" type="email" placeholder="Email de HR"></div><div class="idet-acts"><button class="btn-primary btn-sm" data-ok>Guardar HR</button></div></div>`;

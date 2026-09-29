@@ -274,6 +274,7 @@ RE_RULES.push([/^Mitad de año (\d{4})$/,function(m,a){return "Mid-year "+a;}]);
 RE_RULES.push([/^Final de año (\d{4})$/,function(m,a){return "End of year "+a;}]);
 Object.assign(DICT,{"Nota interna":"Internal note","nota interna":"internal note","🔒 Este tipo siempre es interno: solo lo ven las profesoras.":"🔒 This type is always internal: only teachers can see it."});
 Object.assign(DICT,{"¡Bienvenido/a a Innit! 👋":"Welcome to Innit! 👋","Para terminar, creá tu contraseña (mínimo 6 caracteres). Con tu email y esta contraseña vas a ingresar de ahora en más.":"To finish, create your password (at least 6 characters). You'll log in with your email and this password from now on.","¡Listo! Ya tenés tu cuenta ✓":"All set! Your account is ready ✓"});
+Object.assign(DICT,{"Eliminar estudiante":"Delete student","Estudiante eliminado":"Student deleted"});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -1020,9 +1021,28 @@ function viewGestion(){
         <div class="field"><label class="lab">Nivel</label><select id="f-nivel">${nopts}</select></div>
         <label class="switch" style="margin-top:4px"><input type="checkbox" id="f-activo" ${a.activo?'checked':''}> Estudiante activo (destildá para dar de baja)</label>
         <div class="field" id="f-motivo-wrap" style="margin-top:12px;${a.activo?'display:none':''}"><label class="lab">Motivo de la baja</label><input id="f-motivo" value="${(a.motivo_baja||'').replace(/"/g,'&quot;')}" placeholder="Ej: dejó la empresa, cambió de horario…"></div>
-        <div class="form-actions"><button class="btn-primary" id="save">Guardar</button><button class="btn-ghost" id="cancel">Cancelar</button><div style="flex:1"></div><span class="msg" id="fmsg" style="margin:0"></span></div>
+        <div class="form-actions"><button class="btn-primary" id="save">Guardar</button><button class="btn-ghost" id="cancel">Cancelar</button><div style="flex:1"></div>${id?'<button class="btn-ghost" id="del-est" style="color:var(--red);border-color:var(--red-bg)">Eliminar estudiante</button>':''}</div><span class="msg" id="fmsg"></span>
       </div>`;
     document.getElementById("cancel").onclick=render;
+    const delEst=document.getElementById("del-est");
+    if(delEst) delEst.onclick=async()=>{
+      const nAs=ctx.asis.filter(x=>x.alumno_id===id).length;
+      const {count:nObs}=await db.from("observaciones").select("id",{count:"exact",head:true}).eq("alumno_id",id);
+      const en=LANG==='en';
+      let txt=en?`Delete ${a.nombre}? This cannot be undone.`:`¿Eliminar a ${a.nombre}? No se puede deshacer.`;
+      if(nAs||nObs) txt=en?`${a.nombre} has ${nAs} attendance records and ${nObs||0} observations. They will ALL be deleted. If this person just stopped attending, better deactivate them instead. Delete anyway?`:`${a.nombre} tiene ${nAs} registros de asistencia y ${nObs||0} observaciones. Se van a borrar TODOS. Si la persona dejó de venir, conviene darla de baja en vez de eliminarla. ¿Eliminar igual?`;
+      if(!confirm(txt)) return;
+      const gid=a.grupo_id, g=gid?ctx.grupoById[gid]:null;
+      const {error}=await db.from("alumnos").delete().eq("id",id);
+      const fmsg=document.getElementById("fmsg");
+      if(error){ fmsg.className="msg err"; fmsg.textContent="No se pudo eliminar: "+error.message; return; }
+      if(g){
+        const emp=(ctx.empresas.find(e=>e.id===g.empresa_id)||{}).nombre||'';
+        const quedan=ctx.alumnos.filter(x=>x.grupo_id===gid&&x.id!==id).length, asisG=ctx.asis.filter(x=>x.grupo_id===gid&&x.alumno_id!==id).length;
+        if(emp.toLowerCase()==='particulares'&&!quedan&&!asisG) await db.from("grupos").delete().eq("id",gid);
+      }
+      await loadData(); toast("Estudiante eliminado"); render();
+    };
     const segSel=document.getElementById("f-seg"), grpSel=document.getElementById("f-grupo"), newg=document.getElementById("f-newg");
     function fillGrupos(){
       const sid=segSel.value, emp=ctx.empresas.find(e=>e.id===sid), esPart=emp&&emp.nombre.toLowerCase()==='particulares';

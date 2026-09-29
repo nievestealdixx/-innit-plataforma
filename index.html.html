@@ -231,6 +231,7 @@ Object.assign(DICT,{"Inicio":"Home","Consultar":"View","Gestionar":"Manage","Fic
 RE_RULES.push([/^Cómo viene (.+)$/,function(m,a){return "How "+a+" is doing";}]);
 RE_RULES.push([/^Asistencia de ([a-záéíóú]+)$/,function(m,a){const M={enero:"January",febrero:"February",marzo:"March",abril:"April",mayo:"May",junio:"June",julio:"July",agosto:"August",septiembre:"September",octubre:"October",noviembre:"November",diciembre:"December"};return "Attendance in "+(M[a]||a);}]);
 Object.assign(DICT,{"Particular":"Private"});
+Object.assign(DICT,{"Segmento":"Segment","＋ Crear su grupo particular":"＋ Create a private group"});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -877,7 +878,9 @@ function viewGestion(){
   }
   function form(id){
     const a=id?ctx.alumnoById[id]:{nombre:"",email:"",nivel_sel:"",grupo_id:"",activo:true};
-    const gopts=ctx.grupos.map(g=>`<option value="${g.id}" ${g.id===a.grupo_id?'selected':''}>${g.nombre}</option>`).join("");
+    const segIni=(a.grupo_id&&ctx.grupoById[a.grupo_id])?ctx.grupoById[a.grupo_id].empresa_id:(a.empresa_id||'');
+    const sopts=ctx.empresas.slice().sort((x,y)=>x.nombre.localeCompare(y.nombre)).map(e=>`<option value="${e.id}" ${e.id===segIni?'selected':''}>${e.nombre}</option>`).join("");
+    const profes=(ctx.staff||[]).filter(s=>s.rol==='profesora').map(s=>s.nombre).filter(Boolean);
     const nopts=['<option value="">— sin nivel —</option>'].concat(NIVELES.map(n=>`<option ${n===a.nivel_sel?'selected':''}>${n}</option>`)).join("");
     view.innerHTML=`
       <div class="section" style="max-width:560px">
@@ -886,26 +889,51 @@ function viewGestion(){
         <div class="field"><label class="lab">Nombre</label><input id="f-nombre" value="${(a.nombre||'').replace(/"/g,'&quot;')}"></div>
         <div class="field"><label class="lab">Email</label><input id="f-email" type="email" value="${a.email||''}"></div>
         <div class="grid2">
-          <div class="field"><label class="lab">Grupo</label><select id="f-grupo"><option value="">— sin grupo —</option>${gopts}</select></div>
-          <div class="field"><label class="lab">Nivel</label><select id="f-nivel">${nopts}</select></div>
+          <div class="field"><label class="lab">Segmento</label><select id="f-seg"><option value="">— elegí —</option>${sopts}</select></div>
+          <div class="field"><label class="lab">Grupo</label><select id="f-grupo"></select></div>
         </div>
+        <div id="f-newg" class="grid2" style="display:none;background:#FBF9F2;border-radius:10px;padding:12px;margin-bottom:12px">
+          <div class="field"><label class="lab">Profesora</label><select id="ng-p"><option value="">— sin asignar —</option>${profes.map(p=>`<option>${p}</option>`).join('')}</select></div>
+          <div class="field"><label class="lab">Días</label><input id="ng-d" placeholder="Ej: Lunes y Miércoles"></div>
+          <div class="field"><label class="lab">Horario</label><input id="ng-h" placeholder="Ej: 18:00 a 19:00"></div>
+        </div>
+        <div class="field"><label class="lab">Nivel</label><select id="f-nivel">${nopts}</select></div>
         <label class="switch" style="margin-top:4px"><input type="checkbox" id="f-activo" ${a.activo?'checked':''}> Estudiante activo (destildá para dar de baja)</label>
         <div class="field" id="f-motivo-wrap" style="margin-top:12px;${a.activo?'display:none':''}"><label class="lab">Motivo de la baja</label><input id="f-motivo" value="${(a.motivo_baja||'').replace(/"/g,'&quot;')}" placeholder="Ej: dejó la empresa, cambió de horario…"></div>
         <div class="form-actions"><button class="btn-primary" id="save">Guardar</button><button class="btn-ghost" id="cancel">Cancelar</button><div style="flex:1"></div><span class="msg" id="fmsg" style="margin:0"></span></div>
       </div>`;
     document.getElementById("cancel").onclick=render;
+    const segSel=document.getElementById("f-seg"), grpSel=document.getElementById("f-grupo"), newg=document.getElementById("f-newg");
+    function fillGrupos(){
+      const sid=segSel.value, emp=ctx.empresas.find(e=>e.id===sid), esPart=emp&&emp.nombre.toLowerCase()==='particulares';
+      const gs=ctx.grupos.filter(g=>g.empresa_id===sid);
+      let o='<option value="">— sin grupo —</option>';
+      if(esPart) o+='<option value="__new__">＋ Crear su grupo particular</option>';
+      o+=gs.map(g=>`<option value="${g.id}" ${g.id===a.grupo_id?'selected':''}>${g.nombre}</option>`).join('');
+      grpSel.innerHTML=o;
+      if(esPart && !id) grpSel.value='__new__';
+      newg.style.display=grpSel.value==='__new__'?'':'none';
+    }
+    segSel.onchange=fillGrupos;
+    grpSel.onchange=()=>{ newg.style.display=grpSel.value==='__new__'?'':'none'; };
+    fillGrupos();
     const actChk=document.getElementById("f-activo"), motWrap=document.getElementById("f-motivo-wrap");
     actChk.onchange=()=>{ motWrap.style.display=actChk.checked?'none':''; };
     document.getElementById("save").onclick=async()=>{
       const nombre=document.getElementById("f-nombre").value.trim();
       const email=document.getElementById("f-email").value.trim().toLowerCase()||null;
-      const grupo_id=document.getElementById("f-grupo").value||null;
+      let grupo_id=document.getElementById("f-grupo").value||null;
       const nivel_sel=document.getElementById("f-nivel").value||null;
       const activo=document.getElementById("f-activo").checked;
       const motivo_baja=activo?null:(document.getElementById("f-motivo").value.trim()||null);
       const fmsg=document.getElementById("fmsg");
       if(!nombre){ fmsg.className="msg err"; fmsg.textContent="Poné un nombre."; return; }
-      const empresa_id=grupo_id?ctx.grupoById[grupo_id].empresa_id:(a.empresa_id||null);
+      if(grupo_id==='__new__'){
+        const {data:ng,error:ge}=await db.from("grupos").insert({nombre,empresa_id:segSel.value,profesora:document.getElementById("ng-p").value||null,dias:document.getElementById("ng-d").value.trim()||null,horario:document.getElementById("ng-h").value.trim()||null}).select("id").single();
+        if(ge||!ng){ fmsg.className="msg err"; fmsg.textContent="No se pudo crear el grupo: "+(ge?ge.message:''); return; }
+        grupo_id=ng.id; await loadData();
+      }
+      const empresa_id=grupo_id?ctx.grupoById[grupo_id].empresa_id:(segSel.value||a.empresa_id||null);
       const payload={nombre,email,grupo_id,nivel_sel,activo,empresa_id,motivo_baja};
       let error;
       if(id){

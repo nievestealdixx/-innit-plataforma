@@ -628,7 +628,7 @@ async function viewHome(){
       <div class="stat"><div class="n" style="color:${nInas>0?'var(--orange)':'var(--ink)'}">${nInas}</div><div class="l">Inasistencias pendientes</div></div>
       <div class="stat"><div class="n">${grupos.length}</div><div class="l">Grupos</div></div>
     </div>
-    ${nInas>0?`<div class="section" style="border-left:4px solid var(--orange)"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><b>⚠️ ${nInas} estudiante(s) con faltas sin justificar seguidas</b><div class="sub" style="margin:4px 0 0">Revisá el seguimiento y, si hace falta, mandá el mail.</div></div><button class="btn-primary btn-sm" id="ir-seg">Ver seguimiento</button></div></div>`:''}${chartsHTML}`+(ctx.rol==='profesora'?`
+    ${(nInas>0&&ctx.rol==='profesora')?`<div class="section" style="border-left:4px solid var(--orange)"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><b>⚠️ ${nInas} estudiante(s) con faltas sin justificar seguidas</b><div class="sub" style="margin:4px 0 0">Revisá el seguimiento y, si hace falta, mandá el mail.</div></div><button class="btn-primary btn-sm" id="ir-seg">Ver seguimiento</button></div></div>`:''}${chartsHTML}`+(ctx.rol==='profesora'?`
     <div class="section"><h2>Copia de seguridad</h2><div class="sub">Descargá toda la base (estudiantes, asistencia, observaciones, temas, grupos) en un Excel. Guardala en tu Drive cada tanto — es tu red de seguridad.</div><button class="btn-primary" id="h-backup">⬇ Descargar backup completo</button></div>`:'');
   const irSeg=document.getElementById("ir-seg");
   if(irSeg) irSeg.onclick=()=>goTo(ctx.rol==='profesora'?'gestionar':'consultar','seguimiento');

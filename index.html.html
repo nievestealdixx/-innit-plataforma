@@ -168,6 +168,11 @@
   .subtabs{margin-top:-8px}
   .subtabs .tab{padding:6px 13px; font-size:13px; background:#fff}
   .subtabs .tab.active{background:var(--yellow); color:var(--ink); border-color:var(--yellow)}
+  .daypick{display:flex; flex-wrap:wrap; gap:6px}
+  .dchip{cursor:pointer}
+  .dchip input{display:none}
+  .dchip span{display:inline-block; padding:7px 12px; border:1px solid var(--line); border-radius:20px; font-size:13px; font-weight:600; color:var(--ink-soft); background:#fff}
+  .dchip input:checked + span{background:var(--ink); color:#fff; border-color:var(--ink)}
   .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 20px; border-radius:12px; font-size:14px; box-shadow:var(--shadow); opacity:0; transition:opacity .2s; z-index:50}
   .toast.show{opacity:1}
   @media (max-width:620px){ .grid2{grid-template-columns:1fr} .stat-grid{grid-template-columns:1fr} .grow{grid-template-columns:1fr 90px auto} .grow .anv{display:none} }
@@ -235,6 +240,7 @@ Object.assign(DICT,{"Segmento":"Segment","＋ Crear su grupo particular":"＋ Cr
 Object.assign(DICT,{"Todos los segmentos":"All segments","Promedio de todos los segmentos":"Average across all segments"});
 RE_RULES.push([/^Promedio de (.+)$/,function(m,a){return "Average for "+a;}]);
 Object.assign(DICT,{"Quitar":"Remove","HR quitado":"HR removed","HR actualizado":"HR updated","No se pudo quitar":"Couldn't remove"});
+Object.assign(DICT,{"Desde":"From","Hasta":"To","Lun":"Mon","Mar":"Tue","Mié":"Wed","Jue":"Thu","Vie":"Fri","Sáb":"Sat"});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -784,6 +790,23 @@ function bulkForm(view,render){
     if(!fail.length){ toast("Estudiantes cargados ✓"); setTimeout(render,900); }
   };
 }
+const DIAS_SEM=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+function _sinTilde(s){return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
+function _horas(){const o=[];for(let h=7;h<=22;h++){for(const m of ['00','30']){if(h===22&&m==='30')continue;o.push(String(h).padStart(2,'0')+':'+m);}}return o;}
+function _parseHor(hor){const m=[...String(hor||'').matchAll(/(\d{1,2})[:.](\d{2})/g)].map(x=>x[1].padStart(2,'0')+':'+x[2]);return [m[0]||'',m[1]||''];}
+function dhHTML(p,dias,hor){
+  const d=_sinTilde(dias), sel=DIAS_SEM.filter(x=>d.includes(_sinTilde(x)));
+  const [de,ha]=_parseHor(hor), hs=_horas();
+  const opt=v=>['<option value="">—</option>'].concat(hs.map(h=>`<option${h===v?' selected':''}>${h}</option>`)).join('');
+  return `<div class="field"><label class="lab">Días</label><div class="daypick">${DIAS_SEM.map(x=>`<label class="dchip"><input type="checkbox" class="${p}-dia" value="${x}"${sel.includes(x)?' checked':''}><span>${x.slice(0,3)}</span></label>`).join('')}</div></div>
+    <div class="grid2"><div class="field"><label class="lab">Desde</label><select id="${p}-desde">${opt(de)}</select></div><div class="field"><label class="lab">Hasta</label><select id="${p}-hasta">${opt(ha)}</select></div></div>`;
+}
+function dhRead(p){
+  const ds=DIAS_SEM.filter(x=>[...document.querySelectorAll('.'+p+'-dia')].some(i=>i.checked&&i.value===x));
+  const dias=ds.length?(ds.length===1?ds[0]:ds.slice(0,-1).join(', ')+' y '+ds[ds.length-1]):null;
+  const de=(document.getElementById(p+'-desde')||{}).value||'', ha=(document.getElementById(p+'-hasta')||{}).value||'';
+  return {dias, horario:(de&&ha)?de+' a '+ha:(de||null)};
+}
 function viewGrupos(){
   const view=document.getElementById("view");
   let filtro="";
@@ -864,9 +887,8 @@ function viewGrupos(){
       <div class="grid2">
         <div class="field"><label class="lab">Empresa</label><select id="gf-e"><option value="">— elegí —</option>${eopts}</select></div>
         <div class="field"><label class="lab">Profesora</label><select id="gf-p">${popts}</select></div>
-        <div class="field"><label class="lab">Días</label><input id="gf-d" value="${esc(g.dias)}" placeholder="Ej: Martes y Jueves"></div>
-        <div class="field"><label class="lab">Horario</label><input id="gf-h" value="${esc(g.horario)}" placeholder="Ej: 09:00 a 10:00"></div>
       </div>
+      ${dhHTML('gf',g.dias,g.horario)}
       <div class="form-actions"><button class="btn-primary" id="gf-save">Guardar</button><button class="btn-ghost" id="gf-cancel">Cancelar</button><div style="flex:1"></div>${id?'<button class="btn-ghost" id="gf-del" style="color:var(--red);border-color:var(--red-bg)">Eliminar grupo</button>':''}</div><span class="msg" id="gf-msg"></span>
     </div>`;
     document.getElementById("gf-cancel").onclick=render;
@@ -884,7 +906,7 @@ function viewGrupos(){
     };
     document.getElementById("gf-save").onclick=async()=>{
       const msg=document.getElementById("gf-msg");
-      const payload={nombre:document.getElementById("gf-n").value.trim(),empresa_id:document.getElementById("gf-e").value||null,profesora:document.getElementById("gf-p").value||null,dias:document.getElementById("gf-d").value.trim()||null,horario:document.getElementById("gf-h").value.trim()||null};
+      const payload={nombre:document.getElementById("gf-n").value.trim(),empresa_id:document.getElementById("gf-e").value||null,profesora:document.getElementById("gf-p").value||null,...dhRead('gf')};
       if(!payload.nombre||!payload.empresa_id){ msg.className="msg err"; msg.textContent="Poné nombre y empresa."; return; }
       const {error}= id? await db.from("grupos").update(payload).eq("id",id) : await db.from("grupos").insert(payload);
       if(error){ msg.className="msg err"; msg.textContent="No se pudo guardar: "+error.message; return; }
@@ -949,10 +971,9 @@ function viewGestion(){
           <div class="field"><label class="lab">Segmento</label><select id="f-seg"><option value="">— elegí —</option>${sopts}</select></div>
           <div class="field"><label class="lab">Grupo</label><select id="f-grupo"></select></div>
         </div>
-        <div id="f-newg" class="grid2" style="display:none;background:#FBF9F2;border-radius:10px;padding:12px;margin-bottom:12px">
+        <div id="f-newg" style="display:none;background:#FBF9F2;border-radius:10px;padding:12px;margin-bottom:12px">
           <div class="field"><label class="lab">Profesora</label><select id="ng-p"><option value="">— sin asignar —</option>${profes.map(p=>`<option>${p}</option>`).join('')}</select></div>
-          <div class="field"><label class="lab">Días</label><input id="ng-d" placeholder="Ej: Lunes y Miércoles"></div>
-          <div class="field"><label class="lab">Horario</label><input id="ng-h" placeholder="Ej: 18:00 a 19:00"></div>
+          ${dhHTML('ng','','')}
         </div>
         <div class="field"><label class="lab">Nivel</label><select id="f-nivel">${nopts}</select></div>
         <label class="switch" style="margin-top:4px"><input type="checkbox" id="f-activo" ${a.activo?'checked':''}> Estudiante activo (destildá para dar de baja)</label>
@@ -986,7 +1007,7 @@ function viewGestion(){
       const fmsg=document.getElementById("fmsg");
       if(!nombre){ fmsg.className="msg err"; fmsg.textContent="Poné un nombre."; return; }
       if(grupo_id==='__new__'){
-        const {data:ng,error:ge}=await db.from("grupos").insert({nombre,empresa_id:segSel.value,profesora:document.getElementById("ng-p").value||null,dias:document.getElementById("ng-d").value.trim()||null,horario:document.getElementById("ng-h").value.trim()||null}).select("id").single();
+        const {data:ng,error:ge}=await db.from("grupos").insert({nombre,empresa_id:segSel.value,profesora:document.getElementById("ng-p").value||null,...dhRead('ng')}).select("id").single();
         if(ge||!ng){ fmsg.className="msg err"; fmsg.textContent="No se pudo crear el grupo: "+(ge?ge.message:''); return; }
         grupo_id=ng.id; await loadData();
       }

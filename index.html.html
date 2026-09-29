@@ -268,6 +268,7 @@ Object.assign(DICT,{"Todos los segmentos":"All segments","Promedio de todos los 
 RE_RULES.push([/^Promedio de (.+)$/,function(m,a){return "Average for "+a;}]);
 Object.assign(DICT,{"Quitar":"Remove","HR quitado":"HR removed","HR actualizado":"HR updated","No se pudo quitar":"Couldn't remove"});
 Object.assign(DICT,{"Desde":"From","Hasta":"To","Lun":"Mon","Mar":"Tue","Mié":"Wed","Jue":"Thu","Vie":"Fri","Sáb":"Sat"});
+Object.assign(DICT,{"Trimestral":"Quarterly","trimestral":"quarterly","Cambio de grupo":"Group change","Examen":"Exam","Observación final":"Final observation","observación final":"final observation","nota":"note"});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -500,6 +501,13 @@ function grupoLabel(g){
   const emp=(ctx.empresas.find(e=>e.id===g.empresa_id)||{}).nombre||'';
   if(emp.toLowerCase()==='particulares') return 'Particular';
   return g.nombre.replace('Avenga ','');
+}
+const TIPOS_OBS=[["trimestral","Trimestral"],["cambio de grupo","Cambio de grupo"],["examen","Examen"],["final","Observación final"]];
+function tipoTag(o){
+  if(o.tipo==='trimestral' && o.trimestre) return '';
+  const lab={trimestral:'trimestral',final:'observación final',examen:'examen','cambio de grupo':'cambio de grupo',general:'nota'}[o.tipo]||o.tipo;
+  const cls={examen:'examen','cambio de grupo':'cambio',final:'tri'}[o.tipo]||'general';
+  return `<span class="tag ${cls}">${lab}</span>`;
 }
 function rachaSinJustificar(alumnoId){
   const rows=ctx.asis.filter(x=>x.alumno_id===alumnoId && x.fecha>=SEGUIMIENTO_DESDE).slice().sort((p,q)=>p.fecha.localeCompare(q.fecha));
@@ -750,7 +758,7 @@ async function renderFicha(alumnoId){
   const temasHTML=misTemas.length?`<div class="chips">${misTemas.map(t=>`<span class="chip">${t.tema}${t.mes?` <span style="color:var(--ink-soft)">· ${t.mes}</span>`:''}</span>`).join("")}</div>`:'<div class="empty">Todavía no hay temas cargados para este grupo.</div>';
   const {data:obs}=await db.from("observaciones").select("fecha, tipo, texto, compartida, trimestre").eq("alumno_id",al.id).order("fecha",{ascending:false});
   const tagCls=t=>t==="examen"?"examen":t==="cambio de grupo"?"cambio":"general";
-  const obsHTML=(obs&&obs.length)?obs.map(o=>`<div class="obs"><div class="obs-head"><span class="obs-date">${fmtFecha(o.fecha)}</span>${o.trimestre?`<span class="tag tri">${o.trimestre}</span>`:''}<span class="tag ${tagCls(o.tipo)}">${o.tipo}</span>${(rol==="profesora"&&!o.compartida)?'<span class="tag interna">interna</span>':''}</div><div class="obs-body">${o.texto}</div></div>`).join(""):'<div class="empty">Sin observaciones visibles.</div>';
+  const obsHTML=(obs&&obs.length)?obs.map(o=>`<div class="obs"><div class="obs-head"><span class="obs-date">${fmtFecha(o.fecha)}</span>${o.trimestre?`<span class="tag tri">${o.trimestre}</span>`:''}${tipoTag(o)}${(rol==="profesora"&&!o.compartida)?'<span class="tag interna">interna</span>':''}</div><div class="obs-body">${o.texto}</div></div>`).join(""):'<div class="empty">Sin observaciones visibles.</div>';
   const horario=g?(fmtDH(g.dias,g.horario)||"—"):"—";
   cont.innerHTML=`
     <div class="hero"><div class="hero-band"></div><div class="hero-body">
@@ -1190,7 +1198,7 @@ function viewObs(){
   view.innerHTML=`<div class="selector"><span class="eyebrow">Estudiante</span><select id="o-al">${opts}</select></div><div id="o-body"></div>`;
   const alSel=document.getElementById("o-al"); alSel.onchange=()=>load(alSel.value); load(alSel.value);
   function obsItem(o){
-    return `<div class="obs"><div class="obs-head"><span class="obs-date">${fmtFecha(o.fecha)}</span>${o.trimestre?`<span class="tag tri">${o.trimestre}</span>`:''}<span class="tag ${o.tipo==='examen'?'examen':o.tipo==='cambio de grupo'?'cambio':'general'}">${o.tipo}</span><span class="tag ${o.compartida?'cambio':'interna'}">${o.compartida?'compartida':'interna'}</span><div style="flex:1"></div><button class="btn-ghost btn-sm" data-edit="${o.id}">Editar</button><button class="btn-ghost btn-sm" data-del="${o.id}">Borrar</button></div><div class="obs-body">${o.texto}</div></div>`;
+    return `<div class="obs"><div class="obs-head"><span class="obs-date">${fmtFecha(o.fecha)}</span>${o.trimestre?`<span class="tag tri">${o.trimestre}</span>`:''}${tipoTag(o)}<span class="tag ${o.compartida?'cambio':'interna'}">${o.compartida?'compartida':'interna'}</span><div style="flex:1"></div><button class="btn-ghost btn-sm" data-edit="${o.id}">Editar</button><button class="btn-ghost btn-sm" data-del="${o.id}">Borrar</button></div><div class="obs-body">${o.texto}</div></div>`;
   }
   async function load(alId, editId){
     const body=document.getElementById("o-body"); body.innerHTML='<div class="empty">Cargando…</div>';
@@ -1202,8 +1210,8 @@ function viewObs(){
       <div class="section" style="max-width:640px">
         <h2>${e?'Editar observación':'Nueva observación'}</h2>
         <div class="grid2">
-          <div class="field"><label class="lab">Tipo</label><select id="o-tipo"><option${st('general')}>general</option><option${st('examen')}>examen</option><option${st('cambio de grupo')}>cambio de grupo</option></select></div>
-          <div class="field"><label class="lab">Trimestre</label><select id="o-tri">${tri.map(t=>`<option value="${t}"${e&&(e.trimestre||'')===t?' selected':''}>${t||'— sin trimestre —'}</option>`).join('')}</select></div>
+          <div class="field"><label class="lab">Tipo</label><select id="o-tipo">${TIPOS_OBS.map(t=>`<option value="${t[0]}"${(e?e.tipo:'trimestral')===t[0]?' selected':''}>${t[1]}</option>`).join('')}</select></div>
+          <div class="field" id="o-tri-wrap"><label class="lab">Trimestre</label><select id="o-tri">${tri.map(t=>`<option value="${t}"${e&&(e.trimestre||'')===t?' selected':''}>${t||'— sin trimestre —'}</option>`).join('')}</select></div>
         </div>
         <div class="field"><label class="lab">Texto</label><textarea id="o-texto" placeholder="Escribí la observación…">${e?e.texto.replace(/</g,'&lt;'):''}</textarea></div>
         <label class="switch"><input type="checkbox" id="o-comp"${e&&e.compartida?' checked':''}> Compartida — la ven el estudiante y RRHH. Sin tildar queda interna (solo profesoras).</label>
@@ -1211,10 +1219,13 @@ function viewObs(){
       </div>
       <div class="section"><h2>Observaciones cargadas</h2>${(obs&&obs.length)?obs.map(obsItem).join(''):'<div class="empty">Todavía no hay observaciones para este estudiante.</div>'}</div>`;
     if(e) document.getElementById("o-cancel").onclick=()=>load(alId);
+    const tSel=document.getElementById("o-tipo"), triW=document.getElementById("o-tri-wrap");
+    const syncTri=()=>{ triW.style.visibility=tSel.value==='trimestral'?'visible':'hidden'; };
+    tSel.onchange=syncTri; syncTri();
     document.getElementById("o-save").onclick=async()=>{
       const texto=document.getElementById("o-texto").value.trim(), msg=document.getElementById("o-msg");
       if(!texto){ msg.className="msg err"; msg.textContent="Escribí algo antes de guardar."; return; }
-      const payload={tipo:document.getElementById("o-tipo").value,trimestre:document.getElementById("o-tri").value||null,texto,compartida:document.getElementById("o-comp").checked};
+      const payload={tipo:document.getElementById("o-tipo").value,trimestre:(document.getElementById("o-tipo").value==='trimestral'?(document.getElementById("o-tri").value||null):null),texto,compartida:document.getElementById("o-comp").checked};
       let error;
       if(e){ ({error}=await db.from("observaciones").update(payload).eq("id",e.id)); }
       else { payload.alumno_id=alId; payload.fecha=new Date().toISOString().slice(0,10); ({error}=await db.from("observaciones").insert(payload)); }

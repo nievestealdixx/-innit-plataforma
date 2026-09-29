@@ -273,6 +273,7 @@ Object.assign(DICT,{"Período":"Period"});
 RE_RULES.push([/^Mitad de año (\d{4})$/,function(m,a){return "Mid-year "+a;}]);
 RE_RULES.push([/^Final de año (\d{4})$/,function(m,a){return "End of year "+a;}]);
 Object.assign(DICT,{"Nota interna":"Internal note","nota interna":"internal note","🔒 Este tipo siempre es interno: solo lo ven las profesoras.":"🔒 This type is always internal: only teachers can see it."});
+Object.assign(DICT,{"¡Bienvenido/a a Innit! 👋":"Welcome to Innit! 👋","Para terminar, creá tu contraseña (mínimo 6 caracteres). Con tu email y esta contraseña vas a ingresar de ahora en más.":"To finish, create your password (at least 6 characters). You'll log in with your email and this password from now on.","¡Listo! Ya tenés tu cuenta ✓":"All set! Your account is ready ✓"});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -306,7 +307,8 @@ function causaDe(nota){
 }
 
 db=supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const IS_RECOVERY=/type=recovery/.test(location.hash);
+const IS_RECOVERY=/type=(recovery|invite)/.test(location.hash);
+const IS_INVITE=/type=invite/.test(location.hash);
 const APP_URL=location.origin+location.pathname;
 db.auth.onAuthStateChange(function(ev){ if(ev==='PASSWORD_RECOVERY') renderNewPassword(); });
 init();
@@ -392,8 +394,8 @@ function renderForgot(pref){
 }
 function renderNewPassword(){
   root.innerHTML=authCard(`
-    <h1>Nueva contraseña</h1>
-    <p class="hint">Elegí una contraseña nueva (mínimo 6 caracteres).</p>
+    <h1>${IS_INVITE?'¡Bienvenido/a a Innit! 👋':'Nueva contraseña'}</h1>
+    <p class="hint">${IS_INVITE?'Para terminar, creá tu contraseña (mínimo 6 caracteres). Con tu email y esta contraseña vas a ingresar de ahora en más.':'Elegí una contraseña nueva (mínimo 6 caracteres).'}</p>
     <form id="np-form">
       <div class="field"><label class="lab" for="np1">Nueva contraseña</label><div class="pass-wrap"><input id="np1" type="password" autocomplete="new-password" required><button type="button" class="pass-toggle" id="np-tgl">Mostrar</button></div></div>
       <div class="field"><label class="lab" for="np2">Repetila</label><input id="np2" type="password" autocomplete="new-password" required></div>
@@ -407,9 +409,9 @@ function renderNewPassword(){
     if(p1.value!==p2.value){ msg.className="msg err"; msg.textContent="Las contraseñas no coinciden."; return; }
     msg.className="msg info"; msg.textContent="Guardando…";
     const {error}=await db.auth.updateUser({password:p1.value});
-    if(error){ msg.className="msg err"; msg.textContent="El link venció o ya se usó. Pedí uno nuevo desde \"¿Olvidaste tu contraseña?\"."; return; }
+    if(error){ msg.className="msg err"; msg.textContent=IS_INVITE?"El link de invitación venció o ya se usó. Usá \"¿Olvidaste tu contraseña?\" en el ingreso con tu email.":"El link venció o ya se usó. Pedí uno nuevo desde \"¿Olvidaste tu contraseña?\"."; return; }
     history.replaceState(null,'',location.pathname);
-    toast("Contraseña actualizada ✓");
+    toast(IS_INVITE?"¡Listo! Ya tenés tu cuenta ✓":"Contraseña actualizada ✓");
     const {data:{user}}=await db.auth.getUser(); user?enterApp(user):renderLogin();
   };
 }

@@ -619,7 +619,7 @@ async function viewHome(segArg){
   if(segArg!==undefined) window._homeSeg=segArg;
   const seg='';
   const pruebasId=(ctx.empresas.find(e=>e.nombre.toLowerCase()==='pruebas')||{}).id;
-  const okEmp=id=>id!==pruebasId&&(!seg||id===seg);
+  const okEmp=id=>(!esProf||id!==pruebasId)&&(!seg||id===seg);
   const empDe=a=>{const g=a.grupo_id&&ctx.grupoById[a.grupo_id]; const al=ctx.alumnoById[a.alumno_id]; return (g&&g.empresa_id)||(al&&al.empresa_id);};
   const alumnos=ctx.alumnos.filter(a=>okEmp(a.empresa_id)), grupos=ctx.grupos.filter(g=>okEmp(g.empresa_id));
   const activos=alumnos.filter(a=>a.activo).length, bajas=alumnos.length-activos;

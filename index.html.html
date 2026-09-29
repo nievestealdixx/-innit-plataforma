@@ -275,6 +275,7 @@ RE_RULES.push([/^Final de año (\d{4})$/,function(m,a){return "End of year "+a;}
 Object.assign(DICT,{"Nota interna":"Internal note","nota interna":"internal note","🔒 Este tipo siempre es interno: solo lo ven las profesoras.":"🔒 This type is always internal: only teachers can see it."});
 Object.assign(DICT,{"¡Bienvenido/a a Innit! 👋":"Welcome to Innit! 👋","Para terminar, creá tu contraseña (mínimo 6 caracteres). Con tu email y esta contraseña vas a ingresar de ahora en más.":"To finish, create your password (at least 6 characters). You'll log in with your email and this password from now on.","¡Listo! Ya tenés tu cuenta ✓":"All set! Your account is ready ✓"});
 Object.assign(DICT,{"Eliminar estudiante":"Delete student","Estudiante eliminado":"Student deleted"});
+Object.assign(DICT,{"Horario de su grupo":"Group schedule"});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -1015,8 +1016,7 @@ function viewGestion(){
           <div class="field"><label class="lab">Grupo</label><select id="f-grupo"></select></div>
         </div>
         <div id="f-newg" style="display:none;background:#FBF9F2;border-radius:10px;padding:12px;margin-bottom:12px">
-          <div class="field"><label class="lab">Profesora</label><select id="ng-p"><option value="">— sin asignar —</option>${profes.map(p=>`<option>${p}</option>`).join('')}</select></div>
-          ${dhHTML('ng','','')}
+
         </div>
         <div class="field"><label class="lab">Nivel</label><select id="f-nivel">${nopts}</select></div>
         <label class="switch" style="margin-top:4px"><input type="checkbox" id="f-activo" ${a.activo?'checked':''}> Estudiante activo (destildá para dar de baja)</label>
@@ -1052,10 +1052,19 @@ function viewGestion(){
       o+=gs.map(g=>`<option value="${g.id}" ${g.id===a.grupo_id?'selected':''}>${g.nombre}</option>`).join('');
       grpSel.innerHTML=o;
       if(esPart && !id) grpSel.value='__new__';
-      newg.style.display=grpSel.value==='__new__'?'':'none';
+      syncNg();
+    }
+    function esPartSel(){ const emp=ctx.empresas.find(e=>e.id===segSel.value); return !!(emp&&emp.nombre.toLowerCase()==='particulares'); }
+    function syncNg(){
+      const v=grpSel.value, g=(v&&v!=='__new__')?ctx.grupoById[v]:null;
+      const show=v==='__new__'||(esPartSel()&&g);
+      newg.style.display=show?'':'none';
+      if(!show){ newg.innerHTML=''; return; }
+      const pf=g?(g.profesora||''):'';
+      newg.innerHTML=`${g?'<div class="eyebrow" style="margin-bottom:8px">Horario de su grupo</div>':''}<div class="field"><label class="lab">Profesora</label><select id="ng-p"><option value="">— sin asignar —</option>${profes.map(p=>`<option${p===pf?' selected':''}>${p}</option>`).join('')}</select></div>${dhHTML('ng',g?g.dias:'',g?g.horario:'')}`;
     }
     segSel.onchange=fillGrupos;
-    grpSel.onchange=()=>{ newg.style.display=grpSel.value==='__new__'?'':'none'; };
+    grpSel.onchange=syncNg;
     fillGrupos();
     const actChk=document.getElementById("f-activo"), motWrap=document.getElementById("f-motivo-wrap");
     actChk.onchange=()=>{ motWrap.style.display=actChk.checked?'none':''; };
@@ -1072,6 +1081,9 @@ function viewGestion(){
         const {data:ng,error:ge}=await db.from("grupos").insert({nombre,empresa_id:segSel.value,profesora:document.getElementById("ng-p").value||null,...dhRead('ng')}).select("id").single();
         if(ge||!ng){ fmsg.className="msg err"; fmsg.textContent="No se pudo crear el grupo: "+(ge?ge.message:''); return; }
         grupo_id=ng.id; await loadData();
+      } else if(grupo_id && esPartSel() && document.getElementById("ng-p")){
+        const {error:ue}=await db.from("grupos").update({profesora:document.getElementById("ng-p").value||null,...dhRead('ng')}).eq("id",grupo_id);
+        if(ue){ fmsg.className="msg err"; fmsg.textContent="No se pudo actualizar el horario: "+ue.message; return; }
       }
       const empresa_id=grupo_id?ctx.grupoById[grupo_id].empresa_id:(segSel.value||a.empresa_id||null);
       const payload={nombre,email,grupo_id,nivel_sel,activo,empresa_id,motivo_baja};

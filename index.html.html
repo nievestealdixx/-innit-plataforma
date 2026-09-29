@@ -604,13 +604,20 @@ async function renderInasistencias(cont){
     const cc=ctx.rrhhEmailByEmp[a.empresa_id]||'';
     const bcc=(g&&g.profesora&&ctx.profeEmail[g.profesora])||'';
     const nom=(a.nombre||'').replace(/</g,'&lt;');
-    const frase=grupo?`de las últimas clases del grupo <b>${grupo}</b>`:'de las últimas clases';
-    const plain=`Hola ${a.nombre},\n\nTe escribimos porque notamos que no te sumaste a las últimas clases${grupo?' del grupo '+grupo:''}. Queríamos saber a qué se debió y si te podemos ayudar de alguna manera para que puedas retomar.\n\nQuedamos a la espera de tu respuesta.\n\nSaludos,\nEquipo de Innit English Center`;
-    const html=`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F3E8;"><tr><td align="center" style="padding:24px 12px;">
-<table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border-radius:16px;">
-<tr><td style="background:#1B1A17;padding:20px 26px;border-radius:16px 16px 0 0;font-family:Arial,Helvetica,sans-serif;"><span style="font-size:26px;font-weight:800;color:#F5C70F;">innit</span><span style="font-size:10px;letter-spacing:3px;color:#CFC9BC;margin-left:6px;">ENGLISH CENTER</span></td></tr>
-<tr><td style="padding:26px;font-family:Arial,Helvetica,sans-serif;color:#1B1A17;font-size:15px;line-height:1.6;">Hola <b>${nom}</b>,<br><br>Te escribimos porque notamos que no te sumaste a ${frase.replace('de las','las')}. Queríamos saber a qué se debió y si te podemos ayudar de alguna manera para que puedas retomar.<br><br>Quedamos a la espera de tu respuesta.<br><br>Saludos,<br><b>Equipo de Innit English Center</b></td></tr>
-</table></td></tr></table>`;
+    const primer=nom.split(' ')[0]||nom;
+    const profe=(g&&g.profesora)?g.profesora:'';
+    const clases=grupo?`las últimas clases del grupo <b>${grupo}</b>`:'las últimas clases';
+    const plain=`¡Hola, ${(a.nombre||'').split(' ')[0]}!\n\nTe escribimos porque notamos que no te sumaste a las últimas clases${grupo?' del grupo '+grupo:''}. Queríamos saber a qué se debió y si te podemos ayudar de alguna manera para que puedas retomar.\n\nSi pasó algo o necesitás reorganizar tus horarios, contanos: buscamos la mejor forma de que sigas.\n\nUn abrazo,\nEquipo de Innit English Center`;
+    const bar=['#F5C70F','#D96A32','#CC3333','#18AACD','#189B83'].map(c=>`<td style="background:${c};height:4px;font-size:0;line-height:0;">&nbsp;</td>`).join('');
+    const F='font-family:Arial,Helvetica,sans-serif;color:#1B1A17;';
+    const html=`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;${F}">
+<tr><td style="padding:0 0 18px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${bar}</tr></table></td></tr>
+<tr><td style="padding:0 0 18px;${F}"><span style="font-size:22px;font-weight:800;background:#F5C70F;padding:0 6px;">innit</span><span style="font-size:10px;letter-spacing:3px;color:#6A6459;margin-left:8px;">ENGLISH CENTER</span></td></tr>
+<tr><td style="${F}font-size:15px;line-height:1.65;padding:0 0 14px;"><b style="font-size:17px;">¡Hola, ${primer}! 👋</b><br><br>Te escribimos porque notamos que no te sumaste a ${clases}. Queríamos saber a qué se debió y si te podemos ayudar de alguna manera para que puedas retomar.</td></tr>
+<tr><td style="padding:0 0 18px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="background:#E4F0F5;border-left:4px solid #18AACD;padding:12px 16px;${F}font-size:15px;line-height:1.55;">Si pasó algo o necesitás reorganizar tus horarios, contanos: buscamos la mejor forma de que sigas.</td></tr></table></td></tr>
+<tr><td style="${F}font-size:15px;line-height:1.5;padding:0 0 18px;">Un abrazo,<br><b style="color:#D96A32;">Equipo de Innit English Center</b></td></tr>
+<tr><td style="border-top:1px solid #E7E1D2;padding:10px 0 0;${F}font-size:12px;color:#6A6459;">innitenglish.com.ar</td></tr>
+</table>`;
     return {a,cc,bcc,plain,html};
   }
 

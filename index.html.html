@@ -160,6 +160,11 @@
   .idet-acts{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
   .idet-form{margin-top:6px}
   @media (max-width:620px){ .irow{grid-template-columns:1fr 40px auto 14px} .irow .ic{display:none} }
+  .aus-det{margin-top:12px}
+  .aus-det summary{cursor:pointer; font-size:13px; font-weight:600; color:var(--ink-soft); padding:6px 0; list-style:none}
+  .aus-det summary::-webkit-details-marker{display:none}
+  .aus-det summary::before{content:"▸ "}
+  .aus-det[open] summary::before{content:"▾ "}
   .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 20px; border-radius:12px; font-size:14px; box-shadow:var(--shadow); opacity:0; transition:opacity .2s; z-index:50}
   .toast.show{opacity:1}
   @media (max-width:620px){ .grid2{grid-template-columns:1fr} .stat-grid{grid-template-columns:1fr} .grow{grid-template-columns:1fr 46px auto} .grow .anv{display:none} }
@@ -218,6 +223,7 @@ Object.assign(DICT,{"Grupos y empresas":"Groups & companies","Empresas":"Compani
 RE_RULES.push([/^(\d+) estudiante\(s\) listos para cargar\.(.*)$/,function(m,a,b){return a+" student(s) ready to add."+(b?b.replace(/(\d+) línea\(s\) sin nombre o email válido\./,"$1 line(s) without a valid name or email."):"");}]);
 Object.assign(DICT,{"Eliminar grupo":"Delete group","Grupo eliminado":"Group deleted","Este grupo tiene asistencia registrada. Para no perder el historial, no se puede eliminar.":"This group has attendance records. To keep the history, it can't be deleted."});
 RE_RULES.push([/^Este grupo tiene (\d+) estudiante\(s\)\. Pasalos a otro grupo o dalos de baja antes de eliminarlo\.$/,function(m,a){return "This group has "+a+" student(s). Move them to another group or deactivate them before deleting it.";}]);
+Object.assign(DICT,{"Ver fechas":"See dates"});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -639,8 +645,11 @@ async function renderFicha(alumnoId){
   const buckets=aggPct(rows);
   const bars=buckets.length?barsPct(buckets):'<div class="empty">Sin asistencia cargada.</div>';
   const aus=rows.filter(a=>!a.presente).sort((x,y)=>y.fecha.localeCompare(x.fecha));
+  const _ausBy={}; aus.forEach(a=>{const c=causaDe(a.nota); _ausBy[c]=(_ausBy[c]||0)+1;});
+  const _ausRes=Object.entries(_ausBy).sort((x,y)=>y[1]-x[1]).map(([c,n])=>`<span class="cause-chip">${c}: ${n}</span>`).join('');
   const ausHTML=total===0?'<div class="empty">Sin asistencia cargada.</div>':aus.length===0?'<div class="empty">Asistencia perfecta en el período. 🎉</div>':
-    aus.map(a=>`<div class="obs" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span class="obs-date">${fmtFecha(a.fecha)}</span><span class="tag ${a.nota?'examen':'general'}">${a.nota?a.nota:'sin motivo'}</span></div>`).join("");
+    `<div class="chips">${_ausRes}</div><details class="aus-det"><summary>Ver fechas</summary>`+
+    aus.map(a=>`<div class="obs" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span class="obs-date">${fmtFecha(a.fecha)}</span><span class="tag ${a.nota?'examen':'general'}">${a.nota?causaDe(a.nota):'sin motivo'}</span></div>`).join("")+`</details>`;
   const misTemas=g?temas.filter(t=>t.grupo_id===g.id):[];
   const temasHTML=misTemas.length?`<div class="chips">${misTemas.map(t=>`<span class="chip">${t.tema}${t.mes?` <span style="color:var(--ink-soft)">· ${t.mes}</span>`:''}</span>`).join("")}</div>`:'<div class="empty">Todavía no hay temas cargados para este grupo.</div>';
   const {data:obs}=await db.from("observaciones").select("fecha, tipo, texto, compartida, trimestre").eq("alumno_id",al.id).order("fecha",{ascending:false});

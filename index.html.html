@@ -269,6 +269,10 @@ RE_RULES.push([/^Promedio de (.+)$/,function(m,a){return "Average for "+a;}]);
 Object.assign(DICT,{"Quitar":"Remove","HR quitado":"HR removed","HR actualizado":"HR updated","No se pudo quitar":"Couldn't remove"});
 Object.assign(DICT,{"Desde":"From","Hasta":"To","Lun":"Mon","Mar":"Tue","Mié":"Wed","Jue":"Thu","Vie":"Fri","Sáb":"Sat"});
 Object.assign(DICT,{"Trimestral":"Quarterly","trimestral":"quarterly","Cambio de grupo":"Group change","Examen":"Exam","Observación final":"Final observation","observación final":"final observation","nota":"note"});
+Object.assign(DICT,{"Período":"Period"});
+RE_RULES.push([/^Mitad de año (\d{4})$/,function(m,a){return "Mid-year "+a;}]);
+RE_RULES.push([/^Final de año (\d{4})$/,function(m,a){return "End of year "+a;}]);
+Object.assign(DICT,{"Nota interna":"Internal note","nota interna":"internal note","🔒 Este tipo siempre es interno: solo lo ven las profesoras.":"🔒 This type is always internal: only teachers can see it."});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -502,10 +506,11 @@ function grupoLabel(g){
   if(emp.toLowerCase()==='particulares') return 'Particular';
   return g.nombre.replace('Avenga ','');
 }
-const TIPOS_OBS=[["trimestral","Trimestral"],["cambio de grupo","Cambio de grupo"],["examen","Examen"],["final","Observación final"]];
+const TIPOS_OBS=[["trimestral","Trimestral"],["examen","Examen"],["cambio de grupo","Cambio de grupo"],["general","Nota interna"]];
+const TIPOS_INTERNOS=["cambio de grupo","general"];
 function tipoTag(o){
   if(o.tipo==='trimestral' && o.trimestre) return '';
-  const lab={trimestral:'trimestral',final:'observación final',examen:'examen','cambio de grupo':'cambio de grupo',general:'nota'}[o.tipo]||o.tipo;
+  const lab={trimestral:'trimestral',final:'observación final',examen:'examen','cambio de grupo':'cambio de grupo',general:'nota interna'}[o.tipo]||o.tipo;
   const cls={examen:'examen','cambio de grupo':'cambio',final:'tri'}[o.tipo]||'general';
   return `<span class="tag ${cls}">${lab}</span>`;
 }
@@ -632,7 +637,7 @@ function renderBajasHTML(){
 }
 async function renderCambios(cont){
   if(!cont) return;
-  const {data:cam}=await db.from("observaciones").select("alumno_id, fecha, texto").eq("tipo","cambio de grupo").order("fecha",{ascending:false}).limit(30);
+  const {data:cam}=await db.from("observaciones").select("alumno_id, fecha, texto").eq("tipo","cambio de grupo").like("texto","Antes en el grupo%").order("fecha",{ascending:false}).limit(30);
   cont.innerHTML=(cam&&cam.length)?cam.map(c=>{const al=ctx.alumnoById[c.alumno_id];return `<div class="obs"><div class="obs-head"><span class="obs-date">${fmtFecha(c.fecha)}</span><span class="tag cambio">cambio de grupo</span><b style="font-size:13.5px">${al?al.nombre:'—'}</b></div><div class="obs-body" style="font-size:13.5px;color:var(--ink-soft)">${c.texto}</div></div>`;}).join(''):'<div class="empty">Sin cambios de grupo registrados.</div>';
 }
 function viewSeguimiento(){
@@ -1211,21 +1216,33 @@ function viewObs(){
         <h2>${e?'Editar observación':'Nueva observación'}</h2>
         <div class="grid2">
           <div class="field"><label class="lab">Tipo</label><select id="o-tipo">${TIPOS_OBS.map(t=>`<option value="${t[0]}"${(e?e.tipo:'trimestral')===t[0]?' selected':''}>${t[1]}</option>`).join('')}</select></div>
-          <div class="field" id="o-tri-wrap"><label class="lab">Trimestre</label><select id="o-tri">${tri.map(t=>`<option value="${t}"${e&&(e.trimestre||'')===t?' selected':''}>${t||'— sin trimestre —'}</option>`).join('')}</select></div>
+          <div class="field" id="o-tri-wrap"><label class="lab" id="o-tri-lab">Trimestre</label><select id="o-tri">${tri.map(t=>`<option value="${t}"${e&&(e.trimestre||'')===t?' selected':''}>${t||'— sin trimestre —'}</option>`).join('')}</select></div>
         </div>
         <div class="field"><label class="lab">Texto</label><textarea id="o-texto" placeholder="Escribí la observación…">${e?e.texto.replace(/</g,'&lt;'):''}</textarea></div>
-        <label class="switch"><input type="checkbox" id="o-comp"${e&&e.compartida?' checked':''}> Compartida — la ven el estudiante y RRHH. Sin tildar queda interna (solo profesoras).</label>
+        <label class="switch" id="o-comp-wrap"><input type="checkbox" id="o-comp"${e&&e.compartida?' checked':''}> Compartida — la ven el estudiante y RRHH. Sin tildar queda interna (solo profesoras).</label><div id="o-int-note" style="display:none;font-size:13px;color:var(--ink-soft)">🔒 Este tipo siempre es interno: solo lo ven las profesoras.</div>
         <div class="form-actions"><button class="btn-primary" id="o-save">${e?'Guardar cambios':'Guardar observación'}</button>${e?'<button class="btn-ghost" id="o-cancel">Cancelar</button>':''}<span class="msg" id="o-msg" style="margin:0"></span></div>
       </div>
       <div class="section"><h2>Observaciones cargadas</h2>${(obs&&obs.length)?obs.map(obsItem).join(''):'<div class="empty">Todavía no hay observaciones para este estudiante.</div>'}</div>`;
     if(e) document.getElementById("o-cancel").onclick=()=>load(alId);
     const tSel=document.getElementById("o-tipo"), triW=document.getElementById("o-tri-wrap");
-    const syncTri=()=>{ triW.style.visibility=tSel.value==='trimestral'?'visible':'hidden'; };
-    tSel.onchange=syncTri; syncTri();
+    const _y=new Date().getFullYear();
+    const OPC={trimestral:['1er trimestre '+_y,'2do trimestre '+_y,'3er trimestre '+_y,'4to trimestre '+_y],examen:['Mitad de año '+_y,'Final de año '+_y]};
+    const triSel=document.getElementById("o-tri"), triLab=document.getElementById("o-tri-lab");
+    const syncTri=()=>{
+      const o=OPC[tSel.value];
+      if(!o){ triW.style.visibility='hidden'; return; }
+      triW.style.visibility='visible';
+      triLab.textContent=tSel.value==='examen'?'Período':'Trimestre';
+      const cur=(e&&e.tipo===tSel.value)?(e.trimestre||''):'';
+      triSel.innerHTML=o.map(v=>`<option${v===cur?' selected':''}>${v}</option>`).join('');
+    };
+    const compW=document.getElementById("o-comp-wrap"), intN=document.getElementById("o-int-note");
+    const syncComp=()=>{ const int=TIPOS_INTERNOS.includes(tSel.value); compW.style.display=int?'none':''; intN.style.display=int?'':'none'; };
+    tSel.onchange=()=>{ syncTri(); syncComp(); }; syncTri(); syncComp();
     document.getElementById("o-save").onclick=async()=>{
       const texto=document.getElementById("o-texto").value.trim(), msg=document.getElementById("o-msg");
       if(!texto){ msg.className="msg err"; msg.textContent="Escribí algo antes de guardar."; return; }
-      const payload={tipo:document.getElementById("o-tipo").value,trimestre:(document.getElementById("o-tipo").value==='trimestral'?(document.getElementById("o-tri").value||null):null),texto,compartida:document.getElementById("o-comp").checked};
+      const payload={tipo:document.getElementById("o-tipo").value,trimestre:(['trimestral','examen'].includes(document.getElementById("o-tipo").value)?(document.getElementById("o-tri").value||null):null),texto,compartida:(TIPOS_INTERNOS.includes(document.getElementById("o-tipo").value)?false:document.getElementById("o-comp").checked)};
       let error;
       if(e){ ({error}=await db.from("observaciones").update(payload).eq("id",e.id)); }
       else { payload.alumno_id=alId; payload.fecha=new Date().toISOString().slice(0,10); ({error}=await db.from("observaciones").insert(payload)); }

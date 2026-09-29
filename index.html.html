@@ -173,6 +173,22 @@
   .dchip input{display:none}
   .dchip span{display:inline-block; padding:7px 12px; border:1px solid var(--line); border-radius:20px; font-size:13px; font-weight:600; color:var(--ink-soft); background:#fff}
   .dchip input:checked + span{background:var(--ink); color:#fff; border-color:var(--ink)}
+  .asis-row{grid-template-columns:1fr auto 160px}
+  .asis-row .l-causa{visibility:hidden; max-width:160px}
+  .asis-row.is-abs .l-causa{visibility:visible}
+  .asis-row .seg button{padding:9px 14px}
+  @media (max-width:620px){
+    .wrap{padding:14px 12px 60px}
+    .section{padding:18px 14px}
+    .asis-row{grid-template-columns:1fr; gap:8px; padding:14px 14px}
+    .asis-row .an{font-size:15px}
+    .asis-row .seg{display:flex; width:100%}
+    .asis-row .seg button{flex:1; padding:12px 0; font-size:14px}
+    .asis-row .l-causa{display:none; max-width:none; width:100%}
+    .asis-row.is-abs .l-causa{display:block}
+    .who{font-size:12px; gap:6px} .who > span:not(.rol-pill){display:none}
+    .tabs{gap:6px} .tab{padding:8px 12px; font-size:13px}
+  }
   .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 20px; border-radius:12px; font-size:14px; box-shadow:var(--shadow); opacity:0; transition:opacity .2s; z-index:50}
   .toast.show{opacity:1}
   @media (max-width:620px){ .grid2{grid-template-columns:1fr} .stat-grid{grid-template-columns:1fr} .grow{grid-template-columns:1fr 90px auto} .grow .anv{display:none} }
@@ -1091,15 +1107,15 @@ function viewListaAsis(){
   function rowHTML(a){
     const m=marks[a.id];
     const copts=['<option value="">causa…</option>'].concat(CAUSAS.map(c=>`<option ${m.nota===c?'selected':''}>${c}</option>`)).join("");
-    return `<div class="lrow"><span class="an">${a.nombre}</span>
+    return `<div class="lrow asis-row${m.presente?'':' is-abs'}" data-row="${a.id}"><span class="an">${a.nombre}</span>
       <div class="seg" data-al="${a.id}"><button data-p="1" class="${m.presente?'active':''}">Presente</button><button data-p="0" class="${m.presente?'':'active'}">Ausente</button></div>
-      <select class="l-causa" data-al="${a.id}" style="max-width:150px;${m.presente?'visibility:hidden':''}">${copts}</select></div>`;
+      <select class="l-causa" data-al="${a.id}">${copts}</select></div>`;
   }
   function bindRow(id){
     const seg=listEl.querySelector(`.seg[data-al="${id}"]`), causa=listEl.querySelector(`.l-causa[data-al="${id}"]`);
     seg.querySelectorAll("button").forEach(b=>b.onclick=()=>{
       seg.querySelectorAll("button").forEach(x=>x.classList.remove("active")); b.classList.add("active");
-      marks[id].presente=b.dataset.p==="1"; causa.style.visibility=marks[id].presente?'hidden':'visible';
+      marks[id].presente=b.dataset.p==="1"; listEl.querySelector(`.asis-row[data-row="${id}"]`).classList.toggle('is-abs',!marks[id].presente);
     });
     causa.onchange=e=>{ marks[id].nota=e.target.value; };
   }

@@ -428,8 +428,10 @@ function renderShell(){
 }
 
 /* ---------- HOME ---------- */
+// El seguimiento de inasistencias cuenta solo faltas desde esta fecha (el historial anterior queda para reportes)
+const SEGUIMIENTO_DESDE='2026-10-01';
 function rachaSinJustificar(alumnoId){
-  const rows=ctx.asis.filter(x=>x.alumno_id===alumnoId).slice().sort((p,q)=>p.fecha.localeCompare(q.fecha));
+  const rows=ctx.asis.filter(x=>x.alumno_id===alumnoId && x.fecha>=SEGUIMIENTO_DESDE).slice().sort((p,q)=>p.fecha.localeCompare(q.fecha));
   let runs=[], cur=[];
   for(const r of rows){ if(!r.presente && causaDe(r.nota)==='Sin justificar'){ cur.push(r); } else { if(cur.length)runs.push(cur); cur=[]; } }
   if(cur.length)runs.push(cur);

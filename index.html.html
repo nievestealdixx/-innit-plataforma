@@ -165,6 +165,9 @@
   .aus-det summary::-webkit-details-marker{display:none}
   .aus-det summary::before{content:"▸ "}
   .aus-det[open] summary::before{content:"▾ "}
+  .subtabs{margin-top:-8px}
+  .subtabs .tab{padding:6px 13px; font-size:13px; background:#fff}
+  .subtabs .tab.active{background:var(--yellow); color:var(--ink); border-color:var(--yellow)}
   .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 20px; border-radius:12px; font-size:14px; box-shadow:var(--shadow); opacity:0; transition:opacity .2s; z-index:50}
   .toast.show{opacity:1}
   @media (max-width:620px){ .grid2{grid-template-columns:1fr} .stat-grid{grid-template-columns:1fr} .grow{grid-template-columns:1fr 46px auto} .grow .anv{display:none} }
@@ -224,6 +227,9 @@ RE_RULES.push([/^(\d+) estudiante\(s\) listos para cargar\.(.*)$/,function(m,a,b
 Object.assign(DICT,{"Eliminar grupo":"Delete group","Grupo eliminado":"Group deleted","Este grupo tiene asistencia registrada. Para no perder el historial, no se puede eliminar.":"This group has attendance records. To keep the history, it can't be deleted."});
 RE_RULES.push([/^Este grupo tiene (\d+) estudiante\(s\)\. Pasalos a otro grupo o dalos de baja antes de eliminarlo\.$/,function(m,a){return "This group has "+a+" student(s). Move them to another group or deactivate them before deleting it.";}]);
 Object.assign(DICT,{"Ver fechas":"See dates"});
+Object.assign(DICT,{"Inicio":"Home","Consultar":"View","Gestionar":"Manage","Fichas":"Records","Estudiantes":"Students","Pasar lista":"Take attendance","Asistencia del año":"Attendance this year","Año":"Year","Sin estudiantes activos.":"No active students."});
+RE_RULES.push([/^Cómo viene (.+)$/,function(m,a){return "How "+a+" is doing";}]);
+RE_RULES.push([/^Asistencia de ([a-záéíóú]+)$/,function(m,a){const M={enero:"January",febrero:"February",marzo:"March",abril:"April",mayo:"May",junio:"June",julio:"July",agosto:"August",septiembre:"September",octubre:"October",noviembre:"November",diciembre:"December"};return "Attendance in "+(M[a]||a);}]);
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -407,27 +413,42 @@ async function enterApp(user){
   renderShell();
 }
 
+const SECCIONES={
+  consultar:()=> ctx.rol==='rrhh'
+    ? [["fichas","Fichas",viewFichas],["reportes","Reportes",viewReportes],["seguimiento","Seguimiento",viewSeguimiento]]
+    : [["fichas","Fichas",viewFichas],["reportes","Reportes",viewReportes]],
+  gestionar:()=>[["gestion","Estudiantes",viewGestion],["grupos","Grupos y empresas",viewGrupos],["temas","Temas",viewTemas],["obs","Observaciones",viewObs],["seguimiento","Seguimiento",viewSeguimiento]]
+};
+function viewSection(key,sub){
+  const items=SECCIONES[key](), cur=(items.find(i=>i[0]===sub)||items[0])[0];
+  const st=document.getElementById("subtabs");
+  st.innerHTML=`<div class="tabs subtabs">${items.map(i=>`<button class="tab ${i[0]===cur?'active':''}" data-s="${i[0]}">${i[1]}</button>`).join('')}</div>`;
+  st.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>viewSection(key,b.dataset.s));
+  items.find(i=>i[0]===cur)[2]();
+}
+function goTo(top,sub){
+  document.querySelectorAll('#toptabs .tab').forEach(x=>x.classList.toggle('active',x.dataset.v===top));
+  if(SECCIONES[top]) viewSection(top,sub);
+}
 function renderShell(){
   const {rol,user}=ctx;
   const pill=rol==="profesora"?'<span class="rol-pill prof">Profesora</span>':rol==="rrhh"?'<span class="rol-pill rrhh">RRHH</span>':'<span class="rol-pill">Estudiante</span>';
   const esProf=rol==="profesora", verGraf=(rol==="profesora"||rol==="rrhh");
   let tabs;
   if(rol==="alumno"){ tabs=[["fichas","Mi ficha"]]; }
-  else { tabs=[["home","Home"],["fichas","Fichas de estudiantes"]];
-    if(esProf){ tabs.push(["gestion","Gestionar estudiantes"]); tabs.push(["lista","Gestionar asistencia"]); tabs.push(["temas","Temas"]); tabs.push(["obs","Observaciones"]); tabs.push(["grupos","Grupos y empresas"]); }
-    if(verGraf) tabs.push(["seguimiento","Seguimiento"]);
-    if(verGraf) tabs.push(["reportes","Reportes"]);
-  }
+  else if(esProf){ tabs=[["home","Inicio"],["lista","Asistencia"],["consultar","Consultar"],["gestionar","Gestionar"]]; }
+  else { tabs=[["home","Inicio"],["consultar","Consultar"]]; }
   const first=tabs[0][0];
   root.innerHTML=`
     <div class="topnav"><div class="brandmark"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAANx0lEQVR42uWce4wd113HP79z5j733t3Y3l27IeRBSNLUpChOGjtvb2lMoS3Qgq2mlRqQGqGmLQJEeTUoa0FAQohKqBWhbQJUCCW7vORS0aaQdUn8iLDbJo3bWClFceLY3vVjd+/7zpzz44+Zu75re7Ove9eOfaSR9jH3zpnvfH/f3+P8zghdHqoYETxAff/AL4vKA95zq3P0i2hojBwylrEo5Cs9m8b3AugIVrbhuACGrAQ4k98c/Incav46MLJFBJpNxbn46qlASKWh0dQQeLJ00v3+wJYTb1woIEm3wZnes+7GTFqfSWdlXWnK++SCIhJfWxUFvAi2p88Q1vzhWpVf6bt7fG87SKoIoxgGzjHnzXhARdC3BECqCCAcGMhXy7Ivn5cbSiUNjSE1z+fCXFZSHqbDint3z93H9+tLpFlP1DLTN/38CBagk8zrFkBWBFfaPfDHhdX24dIJPy84reE9Lp8XGzb1UDbd+Gm5eWoSQF+8clXoGtdpyDWRMqjqsyKmHsAxCcz/pjLRQfmpiXL7A1oIqCsOkCoigp76Tt9l6Xr6h9bK6jCClkktCCQlKvaZoDztvyLoWBDIh71nQ2BlIJUBjMw6uVkHr3pYjI6pl7/P3Tb+n50Se+kWe6b3DHyoWDD/XC6pE4mpv5jhFc2mRVIZQKFRV8Io1ivatSZmi0mnRNI5QSMldPp0s8JniveMv9iaz1Lvx3RamHmFQMcIjHInRpQlCqcRpBGqL5fUlcvqwggVQUSwAsHMIVgRpBmqlqa9K1fVp9OyJVNgz+Rzgx8Vwaku/gF1FCBVbGJaXq6nIUNEwOWoyjLpbRIA7HwmKoIYwRrBlMsaRSH5vl75h8lnBz8igmsJ+IqaWCKGtNxr/dv91xHJTQ7WqeOhdMasb9TVi3SWqQs0UZ8KQAxNsDdnbjlycCnCHXQiQq7+z+D9Bj6hERuzWUljhWbV06gr5wOcxERNFBEVeiVbmnKfywo/13qgXWdQC5yJ59Zc3pu1j6ez5r1ESrWmeHCAovObxUqRKQiQyOnNhU0TL7Q/2K4wSB+JL1Ddte4qk9H/Sufk2vKUjxBEYgdsFw+9JHLo26TRx+5rufoIPpM3QTTlfwl4gZ2zLtRZgFoUPfyBt+XVRTsyGXNtaXLhQeCcfkIb8SGJT9cmSBYkvZh7mQshwSuK3grAxOJQDxZt2oIr7XIP59fYdy4mQp4THF+F9BXQ+z5IXx3/ufEjmP4ahG+AyS8XJMGBiKwFYGuXRDpx4678/MA68fob9WnvRZYu8jFzapBbD2v/CILV4JsgAvlboDgER/8EGj8AyS2bSapLcxYL/9DOWFu854P5XtsTOfzyRNjHZtT/SbC9EJ2MAfPV+Gd7GQx8Kj5nOdmCEEMjTAAwujigFn7y5th2DTKELjMCxICvQ+YGSP04+ApIKpmOiX/2lfh/mevAN5YT0ypWFPgewDnLJR0BaBhNXOS1GiJLpewsBpk8iHlz79YS7qXDYzRSQXl6KSI9703qI5ixMQLZjhfBO6+Z5XtfjT1UeAh8LZmGzgavpVHh4YRduhTd8bmsmEpZXzlFepcqwfCBDnqxmUx4O17HrsqGvc31YRjlnF92khID1HwNpv8dVn0M3GSb1thYg07+LYSvgyksTaQFb9MY29QvXbnp9Vr7fSVVTJ3/K+aYPknyeWrP2quzgX7SCB8Euda5uJ4snYqRNYRVH4be9ydAAL4EUztgcjRhzzI0WlAxHBPDt/HyT7Wp5r+svu/U1Jnp0oIBak9AK3sHfzNIMZzOmb6oqtSbql1JH3wVUusgdUX8e/M1iI4lMdDyRyqAdCaO85sNf0iVvzo0Pv7563+exnz1IjkLnFEMW9Hq84NP5PvMA7Vpj3NECEboVuJpYiZpM5lVOmGO7wxJNYmnFTJpsem80Kj67zbqPNR31/iesTGCobhEMy9AcTVw9+ATxTXm18onfEhclFqBpNOc9mjqOwbOucBScIW8BJHXsF7n0713jP+NjhHIOUCaYYSOzIDz8eKqGBwRUisGjobgpuODkG6RNSmsBZWqumaToNhnHivvHvhdGSLSsbOdlrTrTunZdf027Q9aS18YxRW97oMjsQYFA5C5PsnFXoboBJierjGpVfe2BpcvmqB0yj/Ye9f4l88s9McAJfQq7x78w57LzKOlSR+ZZeVZi4moK1B8N6x5MHbtEKcaJx6D8rMrAlIQ4G2AD0O9rbBx4rvt3s0kaYRTxXj0ftdQXRnmJIFg9kYY+O0YCF+OD9sLg78DmZ8ErdPN6RhBoghSVlLq+KKOYBlu+3+Clk7tGrjGGHl7o6GyMrojse4UhmKv5etxgIiNTU5yULg38WzdnY4RbLmirtBr3lW+YuBDsh0/luiRaV09MFzXk5XAeXzXZ9QKRzGno+T2nEySop8pJlPR7j8uARyq8BDA5s0tE9uZ6BCyGgtGumjwcwIlc0QgupLTMPW6ijFsrDy35nIRvD6COf3YVFYYmAtriCCRw+czJueNfUdSwRDTqvNgOeYjUM7PMs0FApKXAAUGkyKhGIZjgKThXq7VfTUwmKRn55IbrSTdGKqnBXw7XhVTuPf4EVXZn82KsuI6dIEwCEytpt4593IS/niTUMkk5dvHCUS4BBnkFZfLC5HT/cU7Thxsrf/FAA3hVJGe/r4nK9P+5VxOAtULo4lyhcDx1qLGICLyWRGU9bFrNa2QjVGMXP/Dhvf+1xUwNg7DL3rdUchnxeQLJihN+d8r3j7+zfZ8bMZjyba4RaT3zuP/XSn7T+WLxgYWucgFW63FefRgeVLv771r4s/PTFZnJaSyLW42Epn4Qnn32noqI58D7UlKrHIxAhSkRWt1Hui789jzuo+U3Ep4znpQ+4dGRrA+kh3qtX6RAjNTPEsFBMb7z+ojmNEfne29zwZoFNm2DUfgnsj0mIEwWu4K6gUdGNpKWTWVkveXt6x9x7bYgmZhEpyBaNycsHvwplTA+6pT3htZen/fWyQ4dJmCCdyU2wq8dGZ7zGwGzcRDfCDTY8RzSQSMoqGiKpsTDPycDJrJy9B3opdMrChRCCpcq/93VVauebXe6vU+m0GjM7TrQWn1IF/sCZg4pwB9lfHqZQDDw6fvezZAM50PcipO2y6NlEOTkEics/N7McCI7kVELhUbswZEqTbSWk4YpOcEaDgRKG3qv1anXTUVXPSRdBwsBgJwZNUtp6aV0/pzFkDbt+N1BFu49/gRp/pops9YILyoQRK8SaEqsl8EZWx2WHO2iW2LQSrefvzPKifdk4V+kxYBVSK9GN2+JkUy4d9iLz+PBgkoW/EMIz2bJj5Sn9RHUynCQp8JcmkxF5P3V/CZjJhyyb96wqe/oYps3jy7zGPmCMGV7XHZLHfbsYebTjY06/4vQqc/sBa9aExOcamciIo8euUdr9d27sSe2VRl5jbNeA+ojmCLG48dyNwy/pnQ6edzBSPIW7+Y5pWo0CupypT7VnHT+OMjI9hztcDMu/4u23D6Emkm8GUvGzu/VqVJ6tMub63ftXvg5CWo1/R1UfdRQLceOPe5C1vi+T5OhogQ+pN5dy5GkjRIPl5qnnXkk60IHS1veFWiYq8JwkhfrVSiLT13nDwMiGw/twNabAdHh4NHA+FrUD8AWml7Xg6kEDdwLmKZLtFGTbyuJJmAQtzCnM+KsRkxzZr/emky+nj/e04ebvVFzfWdCwNooNW3qCcRoTP70z2YLJx6Ck49eQ7skyVps7BtCKoQBEgmJRK5BBEjElggJRAqDcf3wrL7y9zGib9rL++82fcGi+TPAZJVoY5RSYIFaNS8Z2gQIM7pyZrjkAqDoIF4rUSRHCZkXyD+P/Z8deKZoe1EbY2q8yK/MICS7nRR80xU1w53nnVEiH02J7ZcZl/h9vGf1ZcGClgvvP3qusj+8AymLWoX9IJuNCnmS/61Y/saDf9iNiuiXDiuXpJ4WFVOALB+oiI3niiJ7A9VER0j0BFskme5RarkwsbOnfFyiIr+qU1fWKuvMb1FBL8HgP0Eqkir8CVDRLINJ0ug64IBGhoiUsUUbz/+VHnSf71wmQm8n71Ecp7AUWswtbJrWLU7APgqTqQzLztZnJYMx+5TnflYrexfKfZK6nyDpIrLFY2JQvnH/J1HX9UR7FwxTdcBSi4svfccnaiXzH2NOi8WV5uUgveKmy9HazVxdzLwS6ew9bI/ZXPuYVWEA501/UV7I4lb+s3qnzn66qGJ8O5GWb+UTosp9hobBIhXvEJ05uHjm5FCj9hOJLuqeGPRdFqk6fjVnltOvMFo3M7TYQewxAk+cnoylb2Dm2wgn1av781mZDWBnI7eWpVbp1Qr/rgq37GB3Of90t+p4RWXCrDZrFCa1k/03jX+2JvttzgvACX3L4xiWov9pV1rB1MZ3uUdN4H+mCo9AmWsvi6GF7Ni98uGoxOl3QNfLPTbB8vHfQjYhb6dQcGhUCiKbTYpNWvuweJdx5+aa5/FeQeoDSjDKLKQd/XoGAGb8a3dRK6q1Brqk8RiVo92K7dCUCPYfF5AoNnQp0vV6Lf67zn5/W4xpyvJZxLCz7QWnxWNt+1ZF0Grzw88YK38QWDlBmMgDCFyivrYMq2NXwInFmp1bVjDt9Tzhext4ztgZd6Wd16Wdtp3NB75xtqe1Wv0F1X5Ba9sUM/bvJIT0aYVmVD0oLGyU4x+LbNh4oW2B9GRV3DNN/4fUmDJQ2JnGdAAAAAASUVORK5CYII=" class="iso" alt="">innit<span class="ec">English Center</span></div>
       <div class="who">${pill}<span>${user.email}</span><button class="btn-out" id="lang-toggle">${LANG==='en'?'ES':'EN'}</button><button class="btn-out" id="out">Salir</button></div></div>
-    <div class="wrap"><div class="tabs">${tabs.map((t,i)=>`<button class="tab ${i===0?'active':''}" data-v="${t[0]}">${t[1]}</button>`).join("")}</div><div id="view"></div></div>`;
+    <div class="wrap"><div class="tabs" id="toptabs">${tabs.map((t,i)=>`<button class="tab ${i===0?'active':''}" data-v="${t[0]}">${t[1]}</button>`).join("")}</div><div id="subtabs"></div><div id="view"></div></div>`;
   document.getElementById("out").onclick=async()=>{ await db.auth.signOut(); renderLogin(); };
   document.getElementById("lang-toggle").onclick=()=>toggleLang(renderShell);
-  const go={grupos:viewGrupos, home:viewHome, fichas:viewFichas, gestion:viewGestion, lista:viewListaAsis, temas:viewTemas, obs:viewObs, reportes:viewReportes, seguimiento:viewSeguimiento};
-  document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
-    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active")); t.classList.add("active");
+  const go={home:viewHome, fichas:viewFichas, lista:viewListaAsis, consultar:()=>viewSection('consultar'), gestionar:()=>viewSection('gestionar')};
+  document.querySelectorAll("#toptabs .tab").forEach(t=>t.onclick=()=>{
+    document.querySelectorAll("#toptabs .tab").forEach(x=>x.classList.remove("active")); t.classList.add("active");
+    document.getElementById("subtabs").innerHTML='';
     (go[t.dataset.v]||viewFichas)();
   });
   (go[first]||viewFichas)();
@@ -602,7 +623,7 @@ async function viewHome(){
     ${nInas>0?`<div class="section" style="border-left:4px solid var(--orange)"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><b>⚠️ ${nInas} estudiante(s) con faltas sin justificar seguidas</b><div class="sub" style="margin:4px 0 0">Revisá el seguimiento y, si hace falta, mandá el mail.</div></div><button class="btn-primary btn-sm" id="ir-seg">Ver seguimiento</button></div></div>`:''}${chartsHTML}`+(ctx.rol==='profesora'?`
     <div class="section"><h2>Copia de seguridad</h2><div class="sub">Descargá toda la base (estudiantes, asistencia, observaciones, temas, grupos) en un Excel. Guardala en tu Drive cada tanto — es tu red de seguridad.</div><button class="btn-primary" id="h-backup">⬇ Descargar backup completo</button></div>`:'');
   const irSeg=document.getElementById("ir-seg");
-  if(irSeg) irSeg.onclick=()=>{ const t=document.querySelector('.tab[data-v="seguimiento"]'); if(t) t.click(); };
+  if(irSeg) irSeg.onclick=()=>goTo(ctx.rol==='profesora'?'gestionar':'consultar','seguimiento');
   const bkBtn=document.getElementById("h-backup");
   if(bkBtn) bkBtn.onclick=async()=>{
     toast("Preparando backup…");
@@ -897,23 +918,51 @@ function viewGestion(){
 }
 
 /* ---------- GESTIONAR ASISTENCIA ---------- */
+function renderResumenGrupo(gid,fecha){
+  const box=document.getElementById('l-resumen'); if(!box) return;
+  const g=ctx.grupoById[gid]; if(!g){ box.innerHTML=''; return; }
+  const ym=fecha.slice(0,7), y=fecha.slice(0,4);
+  const calc=rs=>{const t=rs.length,p=rs.filter(r=>r.presente).length;return {t,p,pct:t?Math.round(p/t*100):null};};
+  const rowsG=ctx.asis.filter(a=>a.grupo_id===gid);
+  const mesG=calc(rowsG.filter(a=>a.fecha.slice(0,7)===ym)), anioG=calc(rowsG.filter(a=>a.fecha.slice(0,4)===y));
+  const mesNom=MESES_L[parseInt(ym.slice(5,7))-1];
+  const chip=c=>c.pct===null?'<span class="state" style="background:#EFEADD;color:var(--ink-soft)">—</span>':`<span class="state ${c.pct>=85?'on':'off'}">${c.pct}%</span>`;
+  const mem=ctx.alumnos.filter(a=>a.grupo_id===gid&&a.activo).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  const lista=mem.map(a=>{
+    const rr=ctx.asis.filter(x=>x.alumno_id===a.id);
+    return `<div class="lrow" style="grid-template-columns:1fr 70px 70px"><span class="an">${a.nombre}</span>${chip(calc(rr.filter(x=>x.fecha.slice(0,7)===ym)))}${chip(calc(rr.filter(x=>x.fecha.slice(0,4)===y)))}</div>`;
+  }).join('');
+  const bars=aggPct(rowsG.filter(a=>a.fecha.slice(0,4)===y));
+  box.innerHTML=`<div class="section">
+    <h2>Cómo viene ${g.nombre}</h2>
+    <div class="sub">${[g.profesora,[g.dias,g.horario].filter(Boolean).join(' ')].filter(Boolean).join(' · ')}</div>
+    <div class="stat-grid" style="margin-bottom:6px">
+      <div class="stat"><div class="n">${mesG.pct===null?'—':mesG.pct+'%'}</div><div class="l">Asistencia de ${mesNom}</div></div>
+      <div class="stat"><div class="n">${anioG.pct===null?'—':anioG.pct+'%'}</div><div class="l">Asistencia del año</div></div>
+    </div>
+    ${bars.length?barsPct(bars):''}
+    <div style="margin-top:22px"><div class="lrow" style="grid-template-columns:1fr 70px 70px;border-bottom:1px solid var(--line)"><span class="eyebrow">Estudiante</span><span class="eyebrow" style="text-align:right">${mesNom.slice(0,3)}</span><span class="eyebrow" style="text-align:right">Año</span></div>
+    <div class="alist">${lista||'<div class="empty" style="padding:14px">Sin estudiantes activos.</div>'}</div></div>
+  </div>`;
+}
 function viewListaAsis(){
   const {grupos}=ctx, view=document.getElementById("view");
   const hoy=new Date().toISOString().slice(0,10);
   view.innerHTML=`
     <div class="section" style="max-width:680px">
-      <h2>Gestionar asistencia</h2>
+      <h2>Pasar lista</h2>
       <div class="sub">Elegí grupo y fecha, marcá quién vino y guardá. A cada ausente podés ponerle la causa.</div>
       <div class="grid2">
         <div class="field"><label class="lab">Grupo</label><select id="l-grupo"><option value="">— elegí un grupo —</option>${grupos.map(g=>`<option value="${g.id}">${g.nombre}</option>`).join("")}</select></div>
         <div class="field"><label class="lab">Fecha</label><input id="l-fecha" type="date" value="${hoy}"></div>
       </div><div id="l-list"></div>
-    </div>`;
+    </div><div id="l-resumen" style="max-width:680px"></div>`;
   const gsel=document.getElementById("l-grupo"), fsel=document.getElementById("l-fecha"), listEl=document.getElementById("l-list");
   let marks={};
   async function loadList(){
     const gid=gsel.value, fecha=fsel.value;
-    if(!gid||!fecha){ listEl.innerHTML=''; return; }
+    if(!gid||!fecha){ listEl.innerHTML=''; document.getElementById('l-resumen').innerHTML=''; return; }
+    renderResumenGrupo(gid,fecha);
     listEl.innerHTML='<div class="empty">Cargando…</div>';
     const roster=ctx.alumnos.filter(a=>a.grupo_id===gid&&a.activo);
     const {data:ex}=await db.from("asistencia").select("alumno_id, presente, nota").eq("grupo_id",gid).eq("fecha",fecha);
@@ -947,7 +996,7 @@ function viewListaAsis(){
     const rows=roster.map(a=>({alumno_id:a.id,grupo_id:gid,fecha,presente:marks[a.id].presente,nota:marks[a.id].presente?null:(marks[a.id].nota||null)}));
     const {error}=await db.from("asistencia").insert(rows);
     if(error){ msg.className="msg err"; msg.textContent="No se pudo guardar: "+error.message; return; }
-    await loadData(); msg.className="msg ok"; msg.textContent="Lista guardada ✓"; toast("Lista guardada");
+    await loadData(); msg.className="msg ok"; msg.textContent="Lista guardada ✓"; toast("Lista guardada"); renderResumenGrupo(gid,fecha);
   }
   gsel.onchange=loadList; fsel.onchange=loadList;
 }

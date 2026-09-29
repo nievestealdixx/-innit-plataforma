@@ -39,7 +39,7 @@
   label.lab{display:block; font-size:12px; color:var(--ink-soft); margin-bottom:5px; font-weight:600}
 
   .login-wrap{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px}
-  .login-card{background:var(--card); border-radius:20px; box-shadow:var(--shadow); width:100%; max-width:400px; overflow:hidden}
+  .login-card{background:var(--card); border-radius:20px; box-shadow:var(--shadow); width:100%; max-width:400px; overflow:hidden; position:relative}
   .lang-mini{position:absolute; top:12px; right:12px; z-index:2; background:transparent; border:1px solid var(--line); color:var(--ink-soft); padding:5px 10px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; width:auto}
   .lang-mini:hover{border-color:var(--ink); color:var(--ink)}
   .login-band{height:10px; background:var(--yellow)}
@@ -372,7 +372,7 @@ function renderLogin(){
   document.getElementById("forgot").onclick=(e)=>{ e.preventDefault(); renderForgot(email.value.trim()); };
 }
 function authCard(inner){
-  return `<div class="login-wrap"><div class="login-card"><div class="login-band"></div><div class="login-body"><div class="brandmark" style="color:var(--ink)">innit<span class="ec" style="color:var(--ink-soft);opacity:1">English Center</span></div>${inner}</div></div></div>`;
+  return `<div class="login-wrap"><div class="login-card" style="position:relative"><button class="lang-mini" id="lang-auth">${LANG==='en'?'ES':'EN'}</button><div class="login-band"></div><div class="login-body"><div class="brandmark" style="color:var(--ink)">innit<span class="ec" style="color:var(--ink-soft);opacity:1">English Center</span></div>${inner}</div></div></div>`;
 }
 function renderForgot(pref){
   root.innerHTML=authCard(`
@@ -383,6 +383,7 @@ function renderForgot(pref){
     <div class="msg" id="fg-msg"></div></form>`);
   const msg=document.getElementById("fg-msg"), btn=document.getElementById("fg-send");
   document.getElementById("fg-back").onclick=renderLogin;
+  document.getElementById("lang-auth").onclick=()=>toggleLang(()=>renderForgot(document.getElementById("fg-email").value));
   document.getElementById("fg-form").onsubmit=async(ev)=>{
     ev.preventDefault();
     const em=document.getElementById("fg-email").value.trim();
@@ -405,6 +406,7 @@ function renderNewPassword(){
       <div class="msg" id="np-msg"></div></form>`);
   const p1=document.getElementById("np1"), p2=document.getElementById("np2"), msg=document.getElementById("np-msg"), tg=document.getElementById("np-tgl");
   tg.onclick=()=>{ const sh=p1.type==="text"; p1.type=p2.type=sh?"password":"text"; tg.textContent=sh?"Mostrar":"Ocultar"; };
+  document.getElementById("lang-auth").onclick=()=>toggleLang(renderNewPassword);
   document.getElementById("np-form").onsubmit=async(ev)=>{
     ev.preventDefault();
     if(p1.value.length<6){ msg.className="msg err"; msg.textContent="La contraseña tiene que tener al menos 6 caracteres."; return; }

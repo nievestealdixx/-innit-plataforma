@@ -130,10 +130,10 @@
   .switch{display:inline-flex; align-items:center; gap:7px; font-size:13px; color:var(--ink-soft); cursor:pointer; user-select:none}
   .switch input{width:auto}
   .alist{background:var(--card); border-radius:16px; box-shadow:var(--shadow); overflow:hidden}
-  .grow{display:grid; grid-template-columns:1fr 56px 1.1fr auto; align-items:center; gap:12px; padding:13px 18px; border-bottom:1px solid var(--line); cursor:pointer}
+  .grow{display:grid; grid-template-columns:1fr 120px 1.1fr auto; align-items:center; gap:12px; padding:13px 18px; border-bottom:1px solid var(--line); cursor:pointer}
   .grow:last-child{border-bottom:none} .grow:hover{background:#FBF9F2}
   .grow .an{font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .grow .ag{font-size:13px; color:var(--ink-soft); text-align:center}
+  .grow .ag{font-size:13px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .grow .anv{font-size:12px; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .state{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:3px 9px; border-radius:20px; justify-self:end; white-space:nowrap}
   .state.on{background:var(--green-bg); color:var(--green)} .state.off{background:var(--red-bg); color:var(--red)}
@@ -145,12 +145,12 @@
   .grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
   .form-actions{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; align-items:center}
 
-  .irow{display:grid; grid-template-columns:1fr 46px 70px auto 16px; gap:10px; align-items:center; padding:12px 16px; border-bottom:1px solid var(--line); cursor:pointer}
+  .irow{display:grid; grid-template-columns:1fr 110px 70px auto 16px; gap:10px; align-items:center; padding:12px 16px; border-bottom:1px solid var(--line); cursor:pointer}
   .irow:hover, .irow-wrap.open .irow{background:#FBF9F2}
   .irow-wrap:last-child .irow{border-bottom:none}
   .irow-wrap.open .irow{border-bottom:none}
   .irow .an{font-weight:600; display:flex; align-items:center; gap:7px; min-width:0}
-  .irow .ag, .irow .ic{font-size:12.5px; color:var(--ink-soft)}
+  .irow .ag, .irow .ic{font-size:12.5px; color:var(--ink-soft)} .irow .ag{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .irow .chev{color:var(--ink-soft); font-size:12px}
   .est{font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px; white-space:nowrap; justify-self:end}
   .est-pend{background:var(--yellow-bg); color:var(--orange)} .est-env{background:var(--cyan-bg); color:var(--cyan)} .est-sin{background:var(--red-bg); color:var(--red)} .est-ok{background:var(--green-bg); color:var(--green)} .est-des{background:#EFEADD; color:var(--ink-soft)}
@@ -159,7 +159,7 @@
   .idet-line{margin:4px 0}
   .idet-acts{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
   .idet-form{margin-top:6px}
-  @media (max-width:620px){ .irow{grid-template-columns:1fr 40px auto 14px} .irow .ic{display:none} }
+  @media (max-width:620px){ .irow{grid-template-columns:1fr 80px auto 14px} .irow .ic{display:none} }
   .aus-det{margin-top:12px}
   .aus-det summary{cursor:pointer; font-size:13px; font-weight:600; color:var(--ink-soft); padding:6px 0; list-style:none}
   .aus-det summary::-webkit-details-marker{display:none}
@@ -170,7 +170,7 @@
   .subtabs .tab.active{background:var(--yellow); color:var(--ink); border-color:var(--yellow)}
   .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 20px; border-radius:12px; font-size:14px; box-shadow:var(--shadow); opacity:0; transition:opacity .2s; z-index:50}
   .toast.show{opacity:1}
-  @media (max-width:620px){ .grid2{grid-template-columns:1fr} .stat-grid{grid-template-columns:1fr} .grow{grid-template-columns:1fr 46px auto} .grow .anv{display:none} }
+  @media (max-width:620px){ .grid2{grid-template-columns:1fr} .stat-grid{grid-template-columns:1fr} .grow{grid-template-columns:1fr 90px auto} .grow .anv{display:none} }
 </style>
 </head>
 <body>
@@ -230,6 +230,7 @@ Object.assign(DICT,{"Ver fechas":"See dates"});
 Object.assign(DICT,{"Inicio":"Home","Consultar":"View","Gestionar":"Manage","Fichas":"Records","Estudiantes":"Students","Pasar lista":"Take attendance","Asistencia del año":"Attendance this year","Año":"Year","Sin estudiantes activos.":"No active students."});
 RE_RULES.push([/^Cómo viene (.+)$/,function(m,a){return "How "+a+" is doing";}]);
 RE_RULES.push([/^Asistencia de ([a-záéíóú]+)$/,function(m,a){const M={enero:"January",febrero:"February",marzo:"March",abril:"April",mayo:"May",junio:"June",julio:"July",agosto:"August",septiembre:"September",octubre:"October",noviembre:"November",diciembre:"December"};return "Attendance in "+(M[a]||a);}]);
+Object.assign(DICT,{"Particular":"Private"});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -457,6 +458,12 @@ function renderShell(){
 /* ---------- HOME ---------- */
 // El seguimiento de inasistencias cuenta solo faltas desde esta fecha (el historial anterior queda para reportes)
 const SEGUIMIENTO_DESDE='2026-10-01';
+function grupoLabel(g){
+  if(!g) return '—';
+  const emp=(ctx.empresas.find(e=>e.id===g.empresa_id)||{}).nombre||'';
+  if(emp.toLowerCase()==='particulares') return 'Particular';
+  return g.nombre.replace('Avenga ','');
+}
 function rachaSinJustificar(alumnoId){
   const rows=ctx.asis.filter(x=>x.alumno_id===alumnoId && x.fecha>=SEGUIMIENTO_DESDE).slice().sort((p,q)=>p.fecha.localeCompare(q.fecha));
   let runs=[], cur=[];
@@ -517,7 +524,7 @@ async function renderInasistencias(cont){
     const est=EST[i.s.estado]||EST.pendiente;
     const late=(i.s.estado==='enviado'&&i.s.fecha_envio&&dias(i.s.fecha_envio)>=7);
     const op=openId===i.a.id;
-    return `<div class="irow-wrap${op?' open':''}"><div class="irow" data-row="${i.a.id}"><span class="an">${late?'<span class="late-dot" title="7+ días sin respuesta"></span>':''}${i.a.nombre}</span><span class="ag">${g?g.nombre.replace('Avenga ',''):'—'}</span><span class="ic">${i.r.count} faltas</span><span class="est ${est[1]}">${est[0]}</span><span class="chev">${op?'▴':'▾'}</span></div>${op?`<div class="idet">${detail(i)}</div>`:''}</div>`;
+    return `<div class="irow-wrap${op?' open':''}"><div class="irow" data-row="${i.a.id}"><span class="an">${late?'<span class="late-dot" title="7+ días sin respuesta"></span>':''}${i.a.nombre}</span><span class="ag" title="${g?g.nombre:''}">${grupoLabel(g)}</span><span class="ic">${i.r.count} faltas</span><span class="est ${est[1]}">${est[0]}</span><span class="chev">${op?'▴':'▾'}</span></div>${op?`<div class="idet">${detail(i)}</div>`:''}</div>`;
   }
   cont.innerHTML=`<div class="section"><h2>Consulta de inasistencias</h2><div class="sub">Estudiantes con 3 faltas sin justificar seguidas. Tocá un caso para ver el detalle.</div>
     <div class="seg" id="inas-tabs" style="margin-bottom:14px"><button data-t="pend" class="${tab==='pend'?'active':''}">Pendientes (${counts.pend})</button><button data-t="env" class="${tab==='env'?'active':''}">Mail enviado (${counts.env})</button><button data-t="arch" class="${tab==='arch'?'active':''}">Archivados (${counts.arch})</button></div>
@@ -866,7 +873,7 @@ function viewGestion(){
   function matchQ(a){ return !q || a.nombre.toLowerCase().includes(q.toLowerCase()) || (a.email||"").toLowerCase().includes(q.toLowerCase()); }
   function rowHTML(a){
     const g=a.grupo_id?ctx.grupoById[a.grupo_id]:null;
-    return `<div class="grow" data-id="${a.id}"><span class="an">${a.nombre}</span><span class="ag">${g?g.nombre.replace('Avenga ',''):'—'}</span><span class="anv">${a.nivel_sel||'—'}</span><span class="state ${a.activo?'on':'off'}">${a.activo?'activo':'baja'}</span></div>`;
+    return `<div class="grow" data-id="${a.id}"><span class="an">${a.nombre}</span><span class="ag" title="${g?g.nombre:''}">${grupoLabel(g)}</span><span class="anv">${a.nivel_sel||'—'}</span><span class="state ${a.activo?'on':'off'}">${a.activo?'activo':'baja'}</span></div>`;
   }
   function form(id){
     const a=id?ctx.alumnoById[id]:{nombre:"",email:"",nivel_sel:"",grupo_id:"",activo:true};

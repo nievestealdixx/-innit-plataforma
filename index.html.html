@@ -97,7 +97,7 @@
   .bars{display:flex; align-items:flex-end; gap:8px; height:150px; margin-top:16px; padding-top:10px}
   .bar-col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:0}
   .bar-fill{width:100%; max-width:44px; background:var(--green); border-radius:5px 5px 2px 2px; min-height:3px}
-  .bar-fill.low{background:var(--orange)} .bar-fill.abs{background:var(--red)}
+  .bar-fill.low{background:var(--red)} .bar-fill.abs{background:var(--red)}
   .bar-val{font-size:10px; color:var(--ink); margin-bottom:4px; font-weight:600}
   .bar-lab{font-size:10px; color:var(--ink-soft); margin-top:6px; text-align:center; white-space:nowrap}
 
@@ -190,6 +190,7 @@
     .tabs{gap:6px} .tab{padding:8px 12px; font-size:13px}
   }
   .mail-prev{border:1px solid var(--line); border-radius:12px; overflow:hidden; margin:6px 0 4px; max-width:540px}
+  .asis-min{margin-top:10px; font-size:12.5px; color:var(--ink-soft); background:var(--yellow-bg); border-radius:8px; padding:7px 11px; display:inline-block}
   .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 20px; border-radius:12px; font-size:14px; box-shadow:var(--shadow); opacity:0; transition:opacity .2s; z-index:50}
   .toast.show{opacity:1}
   @media (max-width:620px){ .grid2{grid-template-columns:1fr} .stat-grid{grid-template-columns:1fr} .grow{grid-template-columns:minmax(0,1fr) 90px 76px} .grow .anv{display:none} }
@@ -278,6 +279,9 @@ Object.assign(DICT,{"¡Bienvenido/a a Innit! 👋":"Welcome to Innit! 👋","Par
 Object.assign(DICT,{"Eliminar estudiante":"Delete student","Estudiante eliminado":"Student deleted"});
 Object.assign(DICT,{"Horario de su grupo":"Group schedule"});
 Object.assign(DICT,{"1. Copiar mail":"1. Copy email","2. Abrir Gmail":"2. Open Gmail","Mail copiado ✓":"Email copied ✓"});
+RE_RULES.push([/^📌 Asistencia mínima requerida:\s*$/,function(){return "📌 Minimum attendance required: ";}]);
+Object.assign(DICT,{"📌 Asistencia mínima requerida:":"📌 Minimum attendance required:"});
+RE_RULES.push([/^(\d+)% mensual$/,function(m,a){return a+"% per month";}]);
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -522,6 +526,8 @@ function tipoTag(o){
   const cls={examen:'examen','cambio de grupo':'cambio',final:'tri'}[o.tipo]||'general';
   return `<span class="tag ${cls}">${lab}</span>`;
 }
+// Asistencia mínima requerida: 70% mensual. Verde desde 69%, rojo 68% o menos.
+const ASIS_MIN=70, ASIS_VERDE=69;
 function rachaSinJustificar(alumnoId){
   const rows=ctx.asis.filter(x=>x.alumno_id===alumnoId && x.fecha>=SEGUIMIENTO_DESDE).slice().sort((p,q)=>p.fecha.localeCompare(q.fecha));
   let runs=[], cur=[];
@@ -791,6 +797,10 @@ async function renderFicha(alumnoId){
   const total=rows.length, pres=rows.filter(a=>a.presente).length, pct=total?Math.round(pres/total*100):0;
   const buckets=aggPct(rows);
   const bars=buckets.length?barsPct(buckets):'<div class="empty">Sin asistencia cargada.</div>';
+  const _hoy=new Date().toISOString().slice(0,7);
+  const _ms=[...new Set(rows.map(r=>r.fecha.slice(0,7)))].filter(m=>m<=_hoy).sort(), _ym=_ms[_ms.length-1]||'';
+  const _mr=rows.filter(r=>r.fecha.slice(0,7)===_ym), _mesPct=_mr.length?Math.round(_mr.filter(r=>r.presente).length/_mr.length*100):null;
+  const _mesNom=_ym?(LANG==='en'?MESES_EN:MESES_ES)[parseInt(_ym.slice(5,7))-1]:'';
   const aus=rows.filter(a=>!a.presente).sort((x,y)=>y.fecha.localeCompare(x.fecha));
   const _ausBy={}; aus.forEach(a=>{const c=causaDe(a.nota); _ausBy[c]=(_ausBy[c]||0)+1;});
   const _ausRes=Object.entries(_ausBy).sort((x,y)=>y[1]-x[1]).map(([c,n])=>`<span class="cause-chip">${c}: ${n}</span>`).join('');
@@ -814,7 +824,8 @@ async function renderFicha(alumnoId){
         <div><div class="k">Horario</div><div class="v">${horario}</div></div>
         ${(!al.activo&&al.motivo_baja)?`<div><div class="k">Motivo de baja</div><div class="v" style="color:var(--red)">${al.motivo_baja}</div></div>`:''}
       </div></div></div>
-    <div class="tile"><div class="big">${pct}<small>%</small></div><div class="lab">Asistencia · ${pres} de ${total} clases</div>${bars}</div>
+    <div class="tile"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div><div class="big">${pct}<small>%</small></div><div class="lab">Asistencia · ${pres} de ${total} clases</div></div>${_mesPct===null?'':`<div style="text-align:right"><span class="state ${_mesPct>=ASIS_VERDE?'on':'off'}" style="font-size:13px;padding:5px 12px">${_mesPct}% ${_mesNom}</span></div>`}</div>
+    <div class="asis-min">📌 Asistencia mínima requerida: <b>${ASIS_MIN}% mensual</b></div>${bars}</div>
     <div class="section"><h2>Ausencias${aus.length?` <span style="font-family:Inter;font-weight:600;font-size:13px;color:var(--ink-soft)">(${aus.length})</span>`:''}</h2><div class="sub">Días que faltó, con el motivo si quedó registrado.</div>${ausHTML}</div>
     <div class="section"><h2>Temas dictados en el grupo</h2><div class="sub">${g?`Contenidos cubiertos con ${g.nombre}.`:'Sin grupo asignado.'}</div>${temasHTML}</div>
     <div class="section"><h2>Observaciones</h2><div class="sub">${rol==="profesora"?'Trimestrales. Ves todas, incluidas las internas.':'Observaciones compartidas.'}</div>${obsHTML}</div>`;
@@ -1147,7 +1158,7 @@ function renderResumenGrupo(gid,fecha){
   const rowsG=ctx.asis.filter(a=>a.grupo_id===gid);
   const mesG=calc(rowsG.filter(a=>a.fecha.slice(0,7)===ym)), anioG=calc(rowsG.filter(a=>a.fecha.slice(0,4)===y));
   const mesNom=MESES_L[parseInt(ym.slice(5,7))-1];
-  const chip=c=>c.pct===null?'<span class="state" style="background:#EFEADD;color:var(--ink-soft)">—</span>':`<span class="state ${c.pct>=85?'on':'off'}">${c.pct}%</span>`;
+  const chip=c=>c.pct===null?'<span class="state" style="background:#EFEADD;color:var(--ink-soft)">—</span>':`<span class="state ${c.pct>=ASIS_VERDE?'on':'off'}">${c.pct}%</span>`;
   const mem=ctx.alumnos.filter(a=>a.grupo_id===gid&&a.activo).sort((a,b)=>a.nombre.localeCompare(b.nombre));
   const lista=mem.map(a=>{
     const rr=ctx.asis.filter(x=>x.alumno_id===a.id);
@@ -1375,7 +1386,7 @@ function viewReportes(){
       if(scope==="grupo"){
         const mem=ctx.alumnos.filter(a=>a.grupo_id===id).sort((a,b)=>a.nombre.localeCompare(b.nombre));
         extra=`<div style="margin-top:24px"><div class="eyebrow" style="margin-bottom:10px">Asistencia por estudiante del grupo (${mem.length})</div>`+
-          (mem.length?'<div class="alist">'+mem.map(a=>{const rr=ctx.asis.filter(x=>x.alumno_id===a.id);const t=rr.length,p=rr.filter(x=>x.presente).length,pc=t?Math.round(p/t*100):0;return `<div class="lrow"><span class="an">${a.nombre}${a.activo?'':' · baja'}</span><span class="anv" style="font-size:12px;color:var(--ink-soft)">${p}/${t} clases</span><span class="state ${pc>=85?'on':'off'}">${t?pc+'%':'sin datos'}</span></div>`;}).join('')+'</div>':'<div class="empty">Este grupo no tiene estudiantes.</div>')+'</div>';
+          (mem.length?'<div class="alist">'+mem.map(a=>{const rr=ctx.asis.filter(x=>x.alumno_id===a.id);const t=rr.length,p=rr.filter(x=>x.presente).length,pc=t?Math.round(p/t*100):0;return `<div class="lrow"><span class="an">${a.nombre}${a.activo?'':' · baja'}</span><span class="anv" style="font-size:12px;color:var(--ink-soft)">${p}/${t} clases</span><span class="state ${pc>=ASIS_VERDE?'on':'off'}">${t?pc+'%':'sin datos'}</span></div>`;}).join('')+'</div>':'<div class="empty">Este grupo no tiene estudiantes.</div>')+'</div>';
       }
       document.getElementById("extra").innerHTML=extra;
     } else {
@@ -1456,7 +1467,7 @@ function aggCount(rows){
   return keys.map(k=>({lab:MESES[parseInt(k.slice(5,7))-1]+" "+k.slice(2,4),n:map[k]}));
 }
 function barsPct(buckets){
-  return `<div class="bars">${buckets.map(b=>`<div class="bar-col" title="${b.p} de ${b.t}"><div class="bar-val">${b.pct}%</div><div class="bar-fill ${b.pct<85?'low':''}" style="height:${Math.max(b.pct,3)}%"></div><div class="bar-lab">${b.lab}</div></div>`).join("")}</div>`;
+  return `<div class="bars">${buckets.map(b=>`<div class="bar-col" title="${b.p} de ${b.t}"><div class="bar-val">${b.pct}%</div><div class="bar-fill ${b.pct<ASIS_VERDE?'low':''}" style="height:${Math.max(b.pct,3)}%"></div><div class="bar-lab">${b.lab}</div></div>`).join("")}</div>`;
 }
 function barsCount(buckets){
   const max=Math.max(1,...buckets.map(b=>b.n));

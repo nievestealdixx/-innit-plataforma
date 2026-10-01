@@ -193,6 +193,11 @@
   .asis-min{margin-top:10px; font-size:12.5px; color:var(--ink-soft); background:var(--yellow-bg); border-radius:8px; padding:7px 11px; display:inline-block}
   .pend-row{grid-template-columns:1fr auto auto}
   @media (max-width:620px){ .pend-row{grid-template-columns:1fr 1fr} .pend-row .an{grid-column:1/-1} }
+  .cpill{display:inline-block; padding:4px 9px; border-radius:14px; font-size:12.5px; font-weight:700; margin:3px 4px 3px 0; cursor:pointer; border:1px solid transparent}
+  .cp-ok{background:var(--green-bg); color:var(--green)} .cp-pend{background:var(--yellow-bg); color:var(--orange)}
+  .cp-sin{background:#EFEADD; color:var(--ink-soft)} .cp-fut{background:#fff; color:var(--ink-soft); border-color:var(--line); cursor:default}
+  .cp-old{background:#fff; color:#B9B2A4; border-color:var(--line); border-style:dashed}
+  .cnt{font-size:12.5px; font-weight:700; padding:5px 10px; border-radius:8px}
   .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 20px; border-radius:12px; font-size:14px; box-shadow:var(--shadow); opacity:0; transition:opacity .2s; z-index:50}
   .toast.show{opacity:1}
   @media (max-width:620px){ .grid2{grid-template-columns:1fr} .stat-grid{grid-template-columns:1fr} .grow{grid-template-columns:minmax(0,1fr) 90px 76px} .grow .anv{display:none} }
@@ -288,6 +293,11 @@ Object.assign(DICT,{"Fecha de baja":"Leaving date","Baja":"Inactive"});
 Object.assign(DICT,{"Clases que ya pasaron y todavía no tienen la asistencia cargada.":"Classes that already happened and don't have attendance yet.","No hubo clase":"No class","✓ Todas las listas al día":"✓ All attendance up to date"});
 RE_RULES.push([/^Listas pendientes \((\d+)\)$/,function(m,a){return "Pending attendance ("+a+")";}]);
 RE_RULES.push([/^y (\d+) más…$/,function(m,a){return "and "+a+" more…";}]);
+Object.assign(DICT,{"Clases":"Classes","Clases del mes":"Classes this month","Tocá una clase pendiente o dictada para cargar o revisar la asistencia. Tocá una \"sin clase\" para deshacerla.":"Tap a pending or taught class to take or review attendance. Tap a \"no class\" one to undo it.","Mis grupos":"My groups","Todos":"All","No hay grupos para mostrar.":"No groups to show.","— primero elegí un grupo —":"— choose a group first —"});
+RE_RULES.push([/^✓ (\d+) dictadas$/,function(m,a){return "✓ "+a+" taught";}]);
+RE_RULES.push([/^⏳ (\d+) pendientes$/,function(m,a){return "⏳ "+a+" pending";}]);
+RE_RULES.push([/^✕ (\d+) sin clase$/,function(m,a){return "✕ "+a+" no class";}]);
+RE_RULES.push([/^○ (\d+) por dictar$/,function(m,a){return "○ "+a+" upcoming";}]);
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -460,7 +470,7 @@ async function loadData(){
     fetchAllAsis(),
     db.from("temas").select("grupo_id, tema, mes").then(r=>r.data||[]),
     db.from("staff").select("id, nombre, email, rol, empresa_id").then(r=>r.data||[]),
-    db.from("clases_sin_dictar").select("grupo_id, fecha").then(r=>r.data||[])
+    db.from("clases_sin_dictar").select("grupo_id, fecha, motivo").then(r=>r.data||[])
   ]);
   const profeEmail={}, rrhhEmailByEmp={};
   (staff||[]).forEach(s=>{ if(s.rol==='profesora'&&s.email) profeEmail[(s.nombre||'').trim()]=s.email; if(s.rol==='rrhh'&&s.email&&s.empresa_id) rrhhEmailByEmp[s.empresa_id]=s.email; });
@@ -478,7 +488,7 @@ async function enterApp(user){
 const SECCIONES={
   consultar:()=> ctx.rol==='rrhh'
     ? [["fichas","Fichas",viewFichas],["reportes","Reportes",viewReportes],["seguimiento","Seguimiento",viewSeguimiento]]
-    : [["fichas","Fichas",viewFichas],["reportes","Reportes",viewReportes]],
+    : [["fichas","Fichas",viewFichas],["reportes","Reportes",viewReportes],["clases","Clases",viewClases]],
   gestionar:()=>[["gestion","Estudiantes",viewGestion],["grupos","Grupos y empresas",viewGrupos],["temas","Temas",viewTemas],["obs","Observaciones",viewObs],["seguimiento","Seguimiento",viewSeguimiento]]
 };
 function viewSection(key,sub){
@@ -536,6 +546,10 @@ function tipoTag(o){
 // Asistencia mínima requerida: 70% mensual. Verde desde 69%, rojo 68% o menos.
 const ASIS_MIN=70, ASIS_VERDE=69;
 function _hoyLocal(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+const DOW_MAP={lunes:1,martes:2,miercoles:3,jueves:4,viernes:5,sabado:6};
+function diasDeGrupo(g){ return new Set(Object.keys(DOW_MAP).filter(k=>_sinTilde(g&&g.dias).includes(k)).map(k=>DOW_MAP[k])); }
+function _fstr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function fechaCorta(f){ const ds=LANG==='en'?['Sun','Mon','Tue','Wed','Thu','Fri','Sat']:['dom','lun','mar','mié','jue','vie','sáb']; const d=new Date(f+'T12:00:00'); return ds[d.getDay()]+' '+d.getDate()+' '+MESES[d.getMonth()]; }
 function listasPendientes(soloMias){
   const pruebasId=(ctx.empresas.find(e=>e.nombre.toLowerCase()==='pruebas')||{}).id;
   const me=(ctx.staff||[]).find(s=>(s.email||'').toLowerCase()===ctx.email);
@@ -595,6 +609,69 @@ function renderPendientes(box,soloMias,compacto){
     if(error){ toast("No se pudo guardar"); return; }
     ctx.sinDictar=(ctx.sinDictar||[]).concat([{grupo_id:gid,fecha}]);
     toast(LANG==='en'?'Marked as no class':'Marcada como sin clase'); renderPendientes(box,soloMias,compacto);
+  });
+}
+function viewClases(){
+  const view=document.getElementById("view");
+  const hoy=_hoyLocal(), ymHoy=hoy.slice(0,7);
+  if(!window._clasesYm) window._clasesYm=ymHoy;
+  if(window._clasesMias===undefined) window._clasesMias=true;
+  const meses=[]; { const d=new Date('2026-03-01T12:00:00'); const fin=new Date(ymHoy+'-01T12:00:00'); fin.setMonth(fin.getMonth()+1); while(d<=fin){ meses.push(_fstr(d).slice(0,7)); d.setMonth(d.getMonth()+1);} }
+  const ML=LANG==='en'?["January","February","March","April","May","June","July","August","September","October","November","December"]:MESES_L;
+  const mesLab=ym=>{const n=ML[parseInt(ym.slice(5,7))-1];return n.charAt(0).toUpperCase()+n.slice(1)+' '+ym.slice(0,4);};
+  const ym=window._clasesYm, mias=window._clasesMias;
+  const pruebasId=(ctx.empresas.find(e=>e.nombre.toLowerCase()==='pruebas')||{}).id;
+  const me=(ctx.staff||[]).find(s=>(s.email||'').toLowerCase()===ctx.email);
+  const miNombre=(me&&ctx.grupos.some(g=>g.profesora===me.nombre))?me.nombre:null;
+  const ahora=new Date(), hhmm=String(ahora.getHours()).padStart(2,'0')+':'+String(ahora.getMinutes()).padStart(2,'0');
+  const hechas=new Set(ctx.asis.map(a=>a.grupo_id+'|'+a.fecha));
+  const nodict={}; (ctx.sinDictar||[]).forEach(s=>nodict[s.grupo_id+'|'+s.fecha]=s.motivo||'');
+  const grupos=ctx.grupos.filter(g=>g.empresa_id!==pruebasId && ctx.alumnos.some(a=>a.grupo_id===g.id&&a.activo) && (!mias||!miNombre||g.profesora===miNombre)).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  const tot={ok:0,pend:0,sin:0,fut:0};
+  const bloques=grupos.map(g=>{
+    const ds=diasDeGrupo(g), ini=_parseHor(g.horario)[0];
+    const fechas=new Set();
+    const d=new Date(ym+'-01T12:00:00');
+    while(_fstr(d).slice(0,7)===ym){ if(ds.has(d.getDay())) fechas.add(_fstr(d)); d.setDate(d.getDate()+1); }
+    ctx.asis.forEach(a=>{ if(a.grupo_id===g.id&&a.fecha.slice(0,7)===ym) fechas.add(a.fecha); });
+    const items=[...fechas].sort().map(f=>{
+      const k=g.id+'|'+f;
+      let st= hechas.has(k)?'ok' : (k in nodict)?'sin' : (f<hoy||(f===hoy&&(!ini||hhmm>=ini)))?'pend':'fut';
+      if(st==='pend'&&f<SEGUIMIENTO_DESDE) st='old';
+      return {f,st,mot:nodict[k]};
+    });
+    const c={ok:0,pend:0,sin:0,fut:0}; items.forEach(i=>{ if(c[i.st]!==undefined) c[i.st]++; });
+    Object.keys(c).forEach(k=>tot[k]+=c[k]);
+    const pill=i=>{ const n=new Date(i.f+'T12:00:00').getDate();
+      const t={ok:'✓',pend:'⏳',sin:'✕',fut:'',old:'·'}[i.st];
+      return `<span class="cpill cp-${i.st}" data-g="${g.id}" data-f="${i.f}" data-st="${i.st}" title="${fechaCorta(i.f)}${i.mot?' · '+i.mot.replace(/"/g,'&quot;'):''}">${n} ${t}${i.st==='sin'&&i.mot?' <span style="font-weight:400">'+i.mot.replace(/</g,'&lt;')+'</span>':''}</span>`; };
+    if(!items.length) return '';
+    return `<div class="section" style="padding:16px 20px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline"><b>${g.nombre}</b><span style="font-size:12.5px;color:var(--ink-soft)">${[g.profesora,fmtDH(g.dias,g.horario)].filter(Boolean).join(' · ')}</span></div>
+      <div class="chips" style="margin:10px 0 8px;font-size:12.5px">${c.ok?`<span class="cnt cp-ok">✓ ${c.ok} dictadas</span>`:''}${c.pend?`<span class="cnt cp-pend">⏳ ${c.pend} pendientes</span>`:''}${c.sin?`<span class="cnt cp-sin">✕ ${c.sin} sin clase</span>`:''}${c.fut?`<span class="cnt cp-fut">○ ${c.fut} por dictar</span>`:''}</div>
+      <div>${items.map(pill).join('')}</div></div>`;
+  }).join('');
+  view.innerHTML=`<div class="section">
+      <h2>Clases del mes</h2>
+      <div class="sub">Tocá una clase pendiente o dictada para cargar o revisar la asistencia. Tocá una "sin clase" para deshacerla.</div>
+      <div class="toolbar"><select id="cl-mes" style="max-width:200px">${meses.map(m=>`<option value="${m}"${m===ym?' selected':''}>${mesLab(m)}</option>`).join('')}</select>
+      ${miNombre?`<div class="seg" id="cl-quien"><button data-m="1" class="${mias?'active':''}">Mis grupos</button><button data-m="0" class="${!mias?'active':''}">Todos</button></div>`:''}</div>
+      <div class="chips"><span class="cnt cp-ok">✓ ${tot.ok} dictadas</span><span class="cnt cp-pend">⏳ ${tot.pend} pendientes</span><span class="cnt cp-sin">✕ ${tot.sin} sin clase</span><span class="cnt cp-fut">○ ${tot.fut} por dictar</span></div>
+    </div>${bloques||'<div class="empty">No hay grupos para mostrar.</div>'}`;
+  document.getElementById("cl-mes").onchange=e=>{ window._clasesYm=e.target.value; viewClases(); };
+  document.querySelectorAll("#cl-quien button").forEach(b=>b.onclick=()=>{ window._clasesMias=b.dataset.m==='1'; viewClases(); });
+  view.querySelectorAll(".cpill").forEach(p=>p.onclick=async()=>{
+    const gid=p.dataset.g, f=p.dataset.f, st=p.dataset.st;
+    if(st==='ok'||st==='pend'||st==='old'){
+      window._prefillLista={gid,fecha:f};
+      const t=document.querySelector('#toptabs .tab[data-v="lista"]');
+      document.querySelectorAll('#toptabs .tab').forEach(x=>x.classList.toggle('active',x===t));
+      document.getElementById('subtabs').innerHTML=''; viewListaAsis();
+    } else if(st==='sin'){
+      if(!confirm(LANG==='en'?'Undo "no class" for this date?':'¿Deshacer "no hubo clase" en esta fecha?')) return;
+      const {error}=await db.from("clases_sin_dictar").delete().eq("grupo_id",gid).eq("fecha",f);
+      if(error){ toast("No se pudo guardar"); return; }
+      ctx.sinDictar=(ctx.sinDictar||[]).filter(s=>!(s.grupo_id===gid&&s.fecha===f)); viewClases();
+    }
   });
 }
 function rachaSinJustificar(alumnoId){
@@ -1266,10 +1343,30 @@ function viewListaAsis(){
       <div class="sub">Elegí grupo y fecha, marcá quién vino y guardá. A cada ausente podés ponerle la causa.</div>
       <div class="grid2">
         <div class="field"><label class="lab">Grupo</label><select id="l-grupo"><option value="">— elegí un grupo —</option>${grupos.map(g=>`<option value="${g.id}">${g.nombre}</option>`).join("")}</select></div>
-        <div class="field"><label class="lab">Fecha</label><input id="l-fecha" type="date" value="${hoy}"></div>
+        <div class="field"><label class="lab">Fecha</label><select id="l-fecha-sel"><option value="">— primero elegí un grupo —</option></select><input id="l-fecha" type="date" value="${hoy}" style="display:none">
+          <a href="#" id="l-otra" style="display:none;font-size:12.5px;color:var(--ink-soft);margin-top:6px">Otra fecha (clase de recuperación)</a></div>
       </div><div id="l-list"></div>
     </div><div id="l-resumen" style="max-width:680px"></div>`;
   const gsel=document.getElementById("l-grupo"), fsel=document.getElementById("l-fecha"), listEl=document.getElementById("l-list");
+  const fdSel=document.getElementById("l-fecha-sel"), otra=document.getElementById("l-otra");
+  let modoLibre=false;
+  function armarFechas(pref){
+    const g=ctx.grupoById[gsel.value]; modoLibre=false;
+    if(!g){ fdSel.innerHTML='<option value="">— primero elegí un grupo —</option>'; fdSel.style.display=''; fsel.style.display='none'; otra.style.display='none'; fsel.value=''; return; }
+    const ds=diasDeGrupo(g);
+    if(!ds.size){ fdSel.style.display='none'; fsel.style.display=''; otra.style.display='none'; fsel.value=pref||_hoyLocal(); return; }
+    const hoyL=_hoyLocal(), out=[]; const d=new Date(hoyL+'T12:00:00');
+    for(let i=0;i<120;i++){ if(ds.has(d.getDay())) out.push(_fstr(d)); d.setDate(d.getDate()-1); }
+    if(pref&&!out.includes(pref)) out.unshift(pref);
+    fdSel.innerHTML=out.map(f=>`<option value="${f}">${fechaCorta(f)}${f===hoyL?(LANG==='en'?' (today)':' (hoy)'):''}</option>`).join('');
+    fdSel.value=pref||out[0]||''; fsel.value=fdSel.value;
+    fdSel.style.display=''; fsel.style.display='none'; otra.style.display='';
+    otra.textContent=LANG==='en'?'Other date (make-up class)':'Otra fecha (clase de recuperación)';
+  }
+  fdSel.onchange=()=>{ fsel.value=fdSel.value; loadList(); };
+  otra.onclick=(e)=>{ e.preventDefault(); modoLibre=!modoLibre; fdSel.style.display=modoLibre?'none':''; fsel.style.display=modoLibre?'':'none';
+    otra.textContent=modoLibre?(LANG==='en'?'Back to class days':'Volver a los días de clase'):(LANG==='en'?'Other date (make-up class)':'Otra fecha (clase de recuperación)');
+    if(!modoLibre){ fsel.value=fdSel.value; } loadList(); };
   let marks={};
   async function loadList(){
     const gid=gsel.value, fecha=fsel.value;
@@ -1310,9 +1407,9 @@ function viewListaAsis(){
     if(error){ msg.className="msg err"; msg.textContent="No se pudo guardar: "+error.message; return; }
     await loadData(); msg.className="msg ok"; msg.textContent="Lista guardada ✓"; toast("Lista guardada"); renderResumenGrupo(gid,fecha);
   }
-  gsel.onchange=loadList; fsel.onchange=loadList;
+  gsel.onchange=()=>{ armarFechas(); loadList(); }; fsel.onchange=loadList;
   renderPendientes(document.getElementById("l-pend"),true,true);
-  if(window._prefillLista){ const p=window._prefillLista; window._prefillLista=null; gsel.value=p.gid; fsel.value=p.fecha; loadList(); }
+  if(window._prefillLista){ const p=window._prefillLista; window._prefillLista=null; gsel.value=p.gid; armarFechas(p.fecha); loadList(); }
 }
 
 /* ---------- TEMAS POR GRUPO ---------- */

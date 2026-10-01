@@ -298,6 +298,7 @@ RE_RULES.push([/^✓ (\d+) dictadas$/,function(m,a){return "✓ "+a+" taught";}]
 RE_RULES.push([/^⏳ (\d+) pendientes$/,function(m,a){return "⏳ "+a+" pending";}]);
 RE_RULES.push([/^✕ (\d+) sin clase$/,function(m,a){return "✕ "+a+" no class";}]);
 RE_RULES.push([/^○ (\d+) por dictar$/,function(m,a){return "○ "+a+" upcoming";}]);
+Object.assign(DICT,{"Grupos y segmentos":"Groups & segments","Segmentos":"Segments","Cada segmento puede tener su contacto de HR, que va a ver solo los datos de ese segmento.":"Each segment can have an HR contact, who will only see that segment's data.","Nombre del segmento nuevo":"New segment name","Agregar segmento":"Add segment","Todos los segmentos":"All segments","Ese segmento ya existe":"That segment already exists","Segmento agregado":"Segment added","Poné nombre y segmento.":"Enter a name and segment.","¡Te damos la bienvenida a Innit! 👋":"Welcome to Innit! 👋","Bajas":"Inactive","Cambios de grupo":"Group changes","✓ Sin inasistencias para revisar":"✓ No absences to review"});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -419,7 +420,7 @@ function renderForgot(pref){
 }
 function renderNewPassword(){
   root.innerHTML=authCard(`
-    <h1>${IS_INVITE?'¡Bienvenido/a a Innit! 👋':'Nueva contraseña'}</h1>
+    <h1>${IS_INVITE?'¡Te damos la bienvenida a Innit! 👋':'Nueva contraseña'}</h1>
     <p class="hint">${IS_INVITE?'Para terminar, creá tu contraseña (mínimo 6 caracteres). Con tu email y esta contraseña vas a ingresar de ahora en más.':'Elegí una contraseña nueva (mínimo 6 caracteres).'}</p>
     <form id="np-form">
       <div class="field"><label class="lab" for="np1">Nueva contraseña</label><div class="pass-wrap"><input id="np1" type="password" autocomplete="new-password" required><button type="button" class="pass-toggle" id="np-tgl">Mostrar</button></div></div>
@@ -487,9 +488,9 @@ async function enterApp(user){
 
 const SECCIONES={
   consultar:()=> ctx.rol==='rrhh'
-    ? [["fichas","Fichas",viewFichas],["reportes","Reportes",viewReportes],["seguimiento","Seguimiento",viewSeguimiento]]
-    : [["fichas","Fichas",viewFichas],["reportes","Reportes",viewReportes],["clases","Clases",viewClases]],
-  gestionar:()=>[["gestion","Estudiantes",viewGestion],["grupos","Grupos y empresas",viewGrupos],["temas","Temas",viewTemas],["obs","Observaciones",viewObs],["seguimiento","Seguimiento",viewSeguimiento]]
+    ? [["fichas","Fichas",viewFichas],["reportes","Reportes",viewReportes],["seguimiento","Seguimiento",viewSeguimiento],["bajas","Bajas",viewBajas],["cambios","Cambios de grupo",viewCambios]]
+    : [["fichas","Fichas",viewFichas],["reportes","Reportes",viewReportes],["clases","Clases",viewClases],["bajas","Bajas",viewBajas],["cambios","Cambios de grupo",viewCambios]],
+  gestionar:()=>[["gestion","Estudiantes",viewGestion],["grupos","Grupos y segmentos",viewGrupos],["temas","Temas",viewTemas],["obs","Observaciones",viewObs],["seguimiento","Seguimiento",viewSeguimiento]]
 };
 function viewSection(key,sub){
   const items=SECCIONES[key](), cur=(items.find(i=>i[0]===sub)||items[0])[0];
@@ -757,17 +758,19 @@ async function renderInasistencias(cont){
     const bcc=(g&&g.profesora&&ctx.profeEmail[g.profesora])||'';
     const nom=(a.nombre||'').replace(/</g,'&lt;');
     const primer=nom.split(' ')[0]||nom;
-    const profe=(g&&g.profesora)?g.profesora:'';
     const clases=grupo?`las últimas clases del grupo <b>${grupo}</b>`:'las últimas clases';
-    const plain=`¡Hola, ${(a.nombre||'').split(' ')[0]}!\n\nTe escribimos porque notamos que no te sumaste a las últimas clases${grupo?' del grupo '+grupo:''}. Queríamos saber a qué se debió y si te podemos ayudar de alguna manera para que puedas retomar.\n\nSi pasó algo o necesitás reorganizar tus horarios, contanos: buscamos la mejor forma de que sigas.\n\nUn abrazo,\nEquipo de Innit English Center`;
-    const bar=['#F5C70F','#D96A32','#CC3333','#18AACD','#189B83'].map(c=>`<td style="background:${c};height:4px;font-size:0;line-height:0;">&nbsp;</td>`).join('');
+    const plain=`¡Hola, ${(a.nombre||'').split(' ')[0]}!\n\nTe escribimos porque notamos que no te sumaste a las últimas clases${grupo?' del grupo '+grupo:''}. Es importante que puedas retomar para no perderte el contenido del curso.\n\nQueríamos saber cuáles eran los motivos y si te podemos ayudar de alguna manera para que puedas reincorporarte.\n\nQuedamos a la espera de tu respuesta.\n\nSaludos,\nEquipo de Innit English Center`;
+    const bar=['#F5C70F','#CC3333','#18AACD','#189B83'].map(c=>`<td style="background:${c};height:4px;font-size:0;line-height:0;">&nbsp;</td>`).join('');
     const F='font-family:Arial,Helvetica,sans-serif;color:#1B1A17;';
+    const P=`${F}font-size:15px;line-height:1.65;padding:0 0 14px;`;
     const html=`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;${F}">
-<tr><td style="padding:0 0 18px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${bar}</tr></table></td></tr>
-<tr><td style="padding:0 0 18px;${F}"><span style="font-size:22px;font-weight:800;background:#F5C70F;padding:0 6px;">innit</span><span style="font-size:10px;letter-spacing:3px;color:#6A6459;margin-left:8px;">ENGLISH CENTER</span></td></tr>
-<tr><td style="${F}font-size:15px;line-height:1.65;padding:0 0 14px;"><b style="font-size:17px;">¡Hola, ${primer}! 👋</b><br><br>Te escribimos porque notamos que no te sumaste a ${clases}. Queríamos saber a qué se debió y si te podemos ayudar de alguna manera para que puedas retomar.</td></tr>
-<tr><td style="padding:0 0 18px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="background:#E4F0F5;border-left:4px solid #18AACD;padding:12px 16px;${F}font-size:15px;line-height:1.55;">Si pasó algo o necesitás reorganizar tus horarios, contanos: buscamos la mejor forma de que sigas.</td></tr></table></td></tr>
-<tr><td style="${F}font-size:15px;line-height:1.5;padding:0 0 18px;">Un abrazo,<br><b style="color:#D96A32;">Equipo de Innit English Center</b></td></tr>
+<tr><td style="background:#F5C70F;padding:16px 22px;font-family:Arial,Helvetica,sans-serif;"><span style="font-size:26px;font-weight:800;color:#ffffff;">innit</span><span style="font-size:10px;letter-spacing:3px;color:#ffffff;font-weight:700;margin-left:8px;">ENGLISH CENTER</span></td></tr>
+<tr><td style="padding:0 0 22px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${bar}</tr></table></td></tr>
+<tr><td style="${P}"><b style="font-size:17px;">¡Hola, ${primer}!</b></td></tr>
+<tr><td style="${P}">Te escribimos porque notamos que no te sumaste a ${clases}. Es importante que puedas retomar para no perderte el contenido del curso.</td></tr>
+<tr><td style="${P}">Queríamos saber cuáles eran los motivos y si te podemos ayudar de alguna manera para que puedas reincorporarte.</td></tr>
+<tr><td style="${P}">Quedamos a la espera de tu respuesta.</td></tr>
+<tr><td style="${F}font-size:15px;line-height:1.5;padding:0 0 18px;">Saludos,<br><b>Equipo de Innit English Center</b></td></tr>
 <tr><td style="border-top:1px solid #E7E1D2;padding:10px 0 0;${F}font-size:12px;color:#6A6459;">innitenglish.com.ar</td></tr>
 </table>`;
     return {a,cc,bcc,plain,html};
@@ -832,16 +835,14 @@ async function renderCambios(cont){
 }
 function viewSeguimiento(){
   const view=document.getElementById("view");
-  view.innerHTML=`<div class="tabs" id="seg-sub"><button class="tab active" data-s="inas">Inasistencias</button><button class="tab" data-s="bajas">Bajas</button><button class="tab" data-s="cambios">Cambios de grupo</button></div><div id="seg-body"></div>`;
-  const body=document.getElementById("seg-body");
-  function sub(which){
-    document.querySelectorAll('#seg-sub .tab').forEach(t=>t.classList.toggle('active',t.dataset.s===which));
-    if(which==='inas'){ body.innerHTML='<div id="seg-inas"><div class="empty">Cargando…</div></div>'; renderInasistencias(document.getElementById('seg-inas')); }
-    else if(which==='bajas'){ body.innerHTML=renderBajasHTML(); }
-    else { body.innerHTML='<div class="section"><h2>Cambios de grupo recientes</h2><div class="sub">Últimos movimientos registrados.</div><div id="seg-cambios"><div class="empty">Cargando…</div></div></div>'; renderCambios(document.getElementById('seg-cambios')); }
-  }
-  document.querySelectorAll('#seg-sub .tab').forEach(t=>t.onclick=()=>sub(t.dataset.s));
-  sub('inas');
+  view.innerHTML='<div id="seg-inas"><div class="empty">Cargando…</div></div>';
+  renderInasistencias(document.getElementById('seg-inas'));
+}
+function viewBajas(){ document.getElementById("view").innerHTML=renderBajasHTML(); }
+function viewCambios(){
+  const view=document.getElementById("view");
+  view.innerHTML='<div class="section"><h2>Cambios de grupo recientes</h2><div class="sub">Últimos movimientos registrados.</div><div id="seg-cambios"><div class="empty">Cargando…</div></div></div>';
+  renderCambios(document.getElementById('seg-cambios'));
 }
 async function viewHome(segArg){
   const view=document.getElementById("view");
@@ -898,7 +899,7 @@ async function viewHome(segArg){
       <div class="stat"><div class="n" style="color:${nInas>0?'var(--orange)':'var(--ink)'}">${nInas}</div><div class="l">Inasistencias pendientes</div></div>
       <div class="stat"><div class="n">${grupos.length}</div><div class="l">Grupos</div></div>
     </div>`}
-    ${(nInas>0&&ctx.rol==='profesora')?`<div class="section" style="border-left:4px solid var(--orange)"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><b>⚠️ ${nInas} estudiante(s) con faltas sin justificar seguidas</b><div class="sub" style="margin:4px 0 0">Revisá el seguimiento y, si hace falta, mandá el mail.</div></div><button class="btn-primary btn-sm" id="ir-seg">Ver seguimiento</button></div></div>`:''}${esProf?segsHTML:chartsHTML}`+(ctx.rol==='profesora'?`
+    ${(nInas>0&&ctx.rol==='profesora')?`<div class="section" style="border-left:4px solid var(--orange)"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><b>⚠️ ${nInas} estudiante(s) con faltas sin justificar seguidas</b><div class="sub" style="margin:4px 0 0">Revisá el seguimiento y, si hace falta, mandá el mail.</div></div><button class="btn-primary btn-sm" id="ir-seg">Ver seguimiento</button></div></div>`:(ctx.rol==='profesora'?`<div class="section" style="padding:14px 20px;border-left:4px solid var(--green)"><b style="color:var(--green)">✓ Sin inasistencias para revisar</b></div>`:'')}${esProf?segsHTML:chartsHTML}`+(ctx.rol==='profesora'?`
     <div class="section"><h2>Copia de seguridad</h2><div class="sub">Descargá toda la base (estudiantes, asistencia, observaciones, temas, grupos) en un Excel. Guardala en tu Drive cada tanto — es tu red de seguridad.</div><button class="btn-primary" id="h-backup">⬇ Descargar backup completo</button></div>`:'');
   if(esProf) renderPendientes(document.getElementById("h-pend"),true,false);
   const hSeg=document.getElementById("h-seg"); if(hSeg) hSeg.onchange=()=>viewHome(hSeg.value);
@@ -1054,8 +1055,8 @@ function viewGrupos(){
     const grps=ctx.grupos.filter(g=>!filtro||g.empresa_id===filtro);
     view.innerHTML=`
       <div class="section">
-        <h2>Empresas</h2>
-        <div class="sub">Cada empresa puede tener su contacto de HR, que va a ver solo los datos de esa empresa.</div>
+        <h2>Segmentos</h2>
+        <div class="sub">Cada segmento puede tener su contacto de HR, que va a ver solo los datos de ese segmento.</div>
         <div class="alist" style="margin-bottom:14px">${emps.map(e=>{
           const hr=(ctx.staff||[]).filter(s=>s.rol==='rrhh'&&s.empresa_id===e.id);
           const nG=ctx.grupos.filter(g=>g.empresa_id===e.id).length;
@@ -1063,11 +1064,11 @@ function viewGrupos(){
             hr.map(h=>`<div class="lrow" style="grid-template-columns:1fr auto auto;padding-left:34px;background:#FBF9F2"><span style="font-size:13px"><span class="tag tri">HR</span> ${h.nombre} · <span style="color:var(--ink-soft)">${h.email}</span></span><button class="btn-ghost btn-sm" data-hredit="${h.id}">Editar</button><button class="btn-ghost btn-sm" data-hrdel="${h.id}" style="color:var(--red)">Quitar</button></div>`).join('')+
             `<div data-hrform="${e.id}"></div>`;
         }).join('')}</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap"><input id="emp-nueva" placeholder="Nombre de la empresa nueva" style="flex:1;min-width:200px"><button class="btn-primary" id="emp-add">Agregar empresa</button></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><input id="emp-nueva" placeholder="Nombre del segmento nuevo" style="flex:1;min-width:200px"><button class="btn-primary" id="emp-add">Agregar segmento</button></div>
       </div>
       <div class="section">
         <h2>Grupos</h2>
-        <div class="toolbar"><select id="g-filtro" style="max-width:240px"><option value="">Todas las empresas</option>${emps.map(e=>`<option value="${e.id}"${filtro===e.id?' selected':''}>${e.nombre}</option>`).join('')}</select><div style="flex:1"></div><button class="btn-primary btn-sm" id="g-nuevo">＋ Nuevo grupo</button></div>
+        <div class="toolbar"><select id="g-filtro" style="max-width:240px"><option value="">Todos los segmentos</option>${emps.map(e=>`<option value="${e.id}"${filtro===e.id?' selected':''}>${e.nombre}</option>`).join('')}</select><div style="flex:1"></div><button class="btn-primary btn-sm" id="g-nuevo">＋ Nuevo grupo</button></div>
         <div class="alist">${grps.map(g=>`<div class="lrow" data-g="${g.id}" style="grid-template-columns:1fr auto auto;cursor:pointer"><span class="an">${g.nombre} <span style="font-weight:400;color:var(--ink-soft);font-size:12.5px">· ${empN(g.empresa_id)}</span></span><span style="font-size:12.5px;color:var(--ink-soft)">${fmtDH(g.dias,g.horario)}</span><span class="tag general">${g.profesora||'—'}</span></div>`).join('')||'<div class="empty" style="padding:16px">No hay grupos.</div>'}</div>
       </div>`;
     document.getElementById("g-filtro").onchange=e=>{ filtro=e.target.value; render(); };
@@ -1075,10 +1076,10 @@ function viewGrupos(){
     view.querySelectorAll("[data-g]").forEach(r=>r.onclick=()=>grupoForm(r.dataset.g));
     document.getElementById("emp-add").onclick=async()=>{
       const n=document.getElementById("emp-nueva").value.trim(); if(!n) return;
-      if(ctx.empresas.some(e=>e.nombre.toLowerCase()===n.toLowerCase())){ toast("Esa empresa ya existe"); return; }
+      if(ctx.empresas.some(e=>e.nombre.toLowerCase()===n.toLowerCase())){ toast("Ese segmento ya existe"); return; }
       const {error}=await db.from("empresas").insert({nombre:n});
       if(error){ toast("No se pudo guardar"); return; }
-      await loadData(); toast("Empresa agregada"); render();
+      await loadData(); toast("Segmento agregado"); render();
     };
     view.querySelectorAll("[data-hrdel]").forEach(b=>b.onclick=async()=>{
       const h=(ctx.staff||[]).find(s=>s.id===b.dataset.hrdel); if(!h) return;
@@ -1091,7 +1092,7 @@ function viewGrupos(){
       const h=(ctx.staff||[]).find(s=>s.id===b.dataset.hredit); if(!h) return;
       const box=view.querySelector(`[data-hrform="${h.empresa_id}"]`);
       const eopts=ctx.empresas.map(e=>`<option value="${e.id}"${e.id===h.empresa_id?' selected':''}>${e.nombre}</option>`).join('');
-      box.innerHTML=`<div style="padding:12px 18px;background:#FBF9F2;border-bottom:1px solid var(--line)"><div class="grid2"><input class="hr-n" value="${(h.nombre||'').replace(/"/g,'&quot;')}" placeholder="Nombre"><input class="hr-e" type="email" value="${h.email||''}" placeholder="Email de HR"></div><div class="field" style="margin-top:10px"><label class="lab">Empresa</label><select class="hr-emp">${eopts}</select></div><div class="idet-acts"><button class="btn-primary btn-sm" data-ok>Guardar</button><button class="btn-ghost btn-sm" data-cancel>Cancelar</button></div></div>`;
+      box.innerHTML=`<div style="padding:12px 18px;background:#FBF9F2;border-bottom:1px solid var(--line)"><div class="grid2"><input class="hr-n" value="${(h.nombre||'').replace(/"/g,'&quot;')}" placeholder="Nombre"><input class="hr-e" type="email" value="${h.email||''}" placeholder="Email de HR"></div><div class="field" style="margin-top:10px"><label class="lab">Segmento</label><select class="hr-emp">${eopts}</select></div><div class="idet-acts"><button class="btn-primary btn-sm" data-ok>Guardar</button><button class="btn-ghost btn-sm" data-cancel>Cancelar</button></div></div>`;
       box.querySelector("[data-cancel]").onclick=render;
       box.querySelector("[data-ok]").onclick=async()=>{
         const nombre=box.querySelector(".hr-n").value.trim(), email=box.querySelector(".hr-e").value.trim().toLowerCase(), empresa_id=box.querySelector(".hr-emp").value;
@@ -1122,7 +1123,7 @@ function viewGrupos(){
       <h2>${id?'Editar grupo':'Nuevo grupo'}</h2>
       <div class="field"><label class="lab">Nombre del grupo</label><input id="gf-n" value="${esc(g.nombre)}" placeholder="Ej: Avenga 6A, o el nombre del estudiante particular"></div>
       <div class="grid2">
-        <div class="field"><label class="lab">Empresa</label><select id="gf-e"><option value="">— elegí —</option>${eopts}</select></div>
+        <div class="field"><label class="lab">Segmento</label><select id="gf-e"><option value="">— elegí —</option>${eopts}</select></div>
         <div class="field"><label class="lab">Profesora</label><select id="gf-p">${popts}</select></div>
       </div>
       ${dhHTML('gf',g.dias,g.horario)}
@@ -1144,7 +1145,7 @@ function viewGrupos(){
     document.getElementById("gf-save").onclick=async()=>{
       const msg=document.getElementById("gf-msg");
       const payload={nombre:document.getElementById("gf-n").value.trim(),empresa_id:document.getElementById("gf-e").value||null,profesora:document.getElementById("gf-p").value||null,...dhRead('gf')};
-      if(!payload.nombre||!payload.empresa_id){ msg.className="msg err"; msg.textContent="Poné nombre y empresa."; return; }
+      if(!payload.nombre||!payload.empresa_id){ msg.className="msg err"; msg.textContent="Poné nombre y segmento."; return; }
       const {error}= id? await db.from("grupos").update(payload).eq("id",id) : await db.from("grupos").insert(payload);
       if(error){ msg.className="msg err"; msg.textContent="No se pudo guardar: "+error.message; return; }
       await loadData(); toast(id?"Grupo actualizado":"Grupo creado"); render();
@@ -1523,7 +1524,7 @@ function viewReportes(){
         <div class="seg" id="mode"><button data-m="asis" class="active">Asistencia</button><button data-m="causa">Inasistencias por causa</button></div>
       </div>
       <div class="ana-controls">
-        <div class="seg" id="scope"><button data-s="alumno" class="active">Estudiante</button><button data-s="grupo">Grupo</button><button data-s="empresa">Empresa</button></div>
+        <div class="seg" id="scope"><button data-s="alumno" class="active">Estudiante</button><button data-s="grupo">Grupo</button><button data-s="empresa">${ctx.rol==='rrhh'?'Empresa':'Segmento'}</button></div>
         <select id="target" style="max-width:280px"></select>
         <select id="causa" style="max-width:170px;display:none"></select>
         <button class="btn-ghost btn-sm" id="dl-excel">⬇ Descargar Excel</button>

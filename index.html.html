@@ -198,6 +198,7 @@
   .cp-sin{background:#EFEADD; color:var(--ink-soft)} .cp-fut{background:#fff; color:var(--ink-soft); border-color:var(--line); cursor:default}
   .cp-old{background:#fff; color:#B9B2A4; border-color:var(--line); border-style:dashed}
   .cnt{font-size:12.5px; font-weight:700; padding:5px 10px; border-radius:8px}
+  .mail-aviso{background:var(--yellow-bg); color:var(--ink); border-left:4px solid var(--yellow); border-radius:8px; padding:10px 14px; font-size:13.5px; margin:6px 0 8px; max-width:540px}
   .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 20px; border-radius:12px; font-size:14px; box-shadow:var(--shadow); opacity:0; transition:opacity .2s; z-index:50}
   .toast.show{opacity:1}
   @media (max-width:620px){ .grid2{grid-template-columns:1fr} .stat-grid{grid-template-columns:1fr} .grow{grid-template-columns:minmax(0,1fr) 90px 76px} .grow .anv{display:none} }
@@ -299,6 +300,7 @@ RE_RULES.push([/^⏳ (\d+) pendientes$/,function(m,a){return "⏳ "+a+" pending"
 RE_RULES.push([/^✕ (\d+) sin clase$/,function(m,a){return "✕ "+a+" no class";}]);
 RE_RULES.push([/^○ (\d+) por dictar$/,function(m,a){return "○ "+a+" upcoming";}]);
 Object.assign(DICT,{"Grupos y segmentos":"Groups & segments","Segmentos":"Segments","Cada segmento puede tener su contacto de HR, que va a ver solo los datos de ese segmento.":"Each segment can have an HR contact, who will only see that segment's data.","Nombre del segmento nuevo":"New segment name","Agregar segmento":"Add segment","Todos los segmentos":"All segments","Ese segmento ya existe":"That segment already exists","Segmento agregado":"Segment added","Poné nombre y segmento.":"Enter a name and segment.","¡Te damos la bienvenida a Innit! 👋":"Welcome to Innit! 👋","Bajas":"Inactive","Cambios de grupo":"Group changes","✓ Sin inasistencias para revisar":"✓ No absences to review"});
+Object.assign(DICT,{"⚠️ Este mail tiene que salir desde":"⚠️ This email must be sent from",", no desde tu cuenta personal.":", not from your personal account."});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -689,7 +691,7 @@ function gmailCompose(o){
   const p=new URLSearchParams(); p.set('view','cm'); p.set('fs','1');
   if(o.to)p.set('to',o.to); if(o.cc)p.set('cc',o.cc); if(o.bcc)p.set('bcc',o.bcc);
   if(o.subject)p.set('su',o.subject); if(o.body)p.set('body',o.body);
-  return 'https://mail.google.com/mail/?'+p.toString();
+  return 'https://mail.google.com/mail/?authuser=innit.english%40gmail.com&'+p.toString();
 }
 function flaggedInasistencias(){
   const out=[];
@@ -781,7 +783,7 @@ async function renderInasistencias(cont){
     const id=b.dataset.id, act=b.dataset.act, formBox=cont.querySelector(`[data-form="${id}"]`);
     if(act==='mail'){
       const d=datosMail(id);
-      formBox.innerHTML=`<div class="mail-prev" contenteditable="false">${d.html}</div>
+      formBox.innerHTML=`<div class="mail-aviso">⚠️ Este mail tiene que salir desde <b>innit.english@gmail.com</b>, no desde tu cuenta personal.</div><div class="mail-prev" contenteditable="false">${d.html}</div>
         <div class="idet-acts"><button class="btn-primary btn-sm" data-copy>1. Copiar mail</button><button class="btn-ghost btn-sm" data-open>2. Abrir Gmail</button></div>
         <div style="font-size:12.5px;color:var(--ink-soft);margin-top:8px">Después, en el cuerpo del mail de Gmail, pegá con <b>Ctrl+V</b> (en Mac, Cmd+V).</div>`;
       formBox.querySelector('[data-copy]').onclick=async()=>{
@@ -791,6 +793,7 @@ async function renderInasistencias(cont){
         toast(ok?'Mail copiado ✓':'No se pudo copiar: seleccioná la vista previa y copiala a mano');
       };
       formBox.querySelector('[data-open]').onclick=()=>{
+        if(!confirm(LANG==='en'?'This email must be sent from innit.english@gmail.com.\n\nIf this browser doesn\'t have that account signed in, Gmail will ask you to sign in with it.\n\nBefore sending, check that the "From" field says innit.english@gmail.com.':'Este mail tiene que salir desde innit.english@gmail.com.\n\nSi este navegador no tiene abierta esa cuenta, Gmail te va a pedir que entres con ella.\n\nAntes de enviar, revisá que en "De:" diga innit.english@gmail.com.')) return;
         window.open(gmailCompose({to:d.a.email||'',cc:d.cc,bcc:d.bcc,subject:'Consulta de inasistencias'}),'_blank');
         setTimeout(()=>{ if(confirm(LANG==='en'?'Did you send the email?':'¿Enviaste el mail?')) upd(id,{estado:'enviado',fecha_envio:hoyStr}); },1500);
       };

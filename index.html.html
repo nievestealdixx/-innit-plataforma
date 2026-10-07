@@ -117,6 +117,39 @@
   .quote{border-left:4px solid var(--c); padding:4px 0 4px 20px; margin:0}
   .quote blockquote{margin:0; font-size:17px; line-height:1.55}
   @media (max-width:900px){ .quotes{grid-template-columns:1fr} }
+  /* juegos */
+  .games{margin-top:40px}
+  .g-tabs{display:flex; flex-wrap:wrap; gap:10px}
+  .g-tabs button{font:inherit; font-weight:700; font-size:15px; padding:10px 18px; border-radius:999px; border:2px solid var(--line); background:var(--white); cursor:pointer; transition:border-color .2s, background .2s}
+  .g-tabs button:hover{border-color:var(--c)}
+  .g-tabs button[aria-selected="true"]{background:var(--c); border-color:var(--c); color:var(--ink)}
+  .g-tabs button[data-g="card"][aria-selected="true"],.g-tabs button[data-g="weekly"][aria-selected="true"]{color:var(--white)}
+  .g-card{margin-top:22px; border:2px solid var(--ink); border-radius:22px; padding:34px; background:var(--white); min-height:320px}
+  .g-top{display:flex; justify-content:space-between; gap:12px; font-size:14px; color:var(--ink-soft); margin-bottom:18px}
+  .g-bar{height:6px; background:var(--line); border-radius:6px; overflow:hidden; margin-bottom:24px}
+  .g-bar i{display:block; height:100%; background:var(--ink); transition:width .4s ease}
+  .g-q{font-family:"Bricolage Grotesque"; font-size:clamp(22px,2.6vw,30px); font-weight:700; line-height:1.25; letter-spacing:-.01em}
+  .g-hint{color:var(--ink-soft); font-size:15.5px; margin-top:8px}
+  .g-opts{display:grid; gap:10px; margin-top:22px}
+  .g-opts button{font:inherit; font-size:17px; text-align:left; padding:14px 18px; border-radius:14px; border:2px solid var(--line); background:var(--white); cursor:pointer; transition:border-color .15s, background .15s, transform .15s}
+  .g-opts button:hover:not(:disabled){border-color:var(--ink); transform:translateX(3px)}
+  .g-opts button.ok{border-color:var(--green); background:#E1F1ED}
+  .g-opts button.bad{border-color:var(--red); background:#F8E3E3}
+  .g-opts button:disabled{cursor:default}
+  .g-cards{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:22px}
+  .g-cards button{font:inherit; font-weight:700; font-size:16px; padding:22px 10px; border-radius:14px; border:3px solid transparent; cursor:pointer; color:var(--ink); transition:transform .15s}
+  .g-cards button:hover:not(:disabled){transform:translateY(-3px) rotate(-1deg)}
+  .g-cards .c-green{background:#BFE5DA} .g-cards .c-yellow{background:var(--yellow)} .g-cards .c-red{background:#F2B3B3}
+  .g-cards button.ok{border-color:var(--green)} .g-cards button.bad{border-color:var(--red); opacity:.75}
+  .g-fb{margin-top:18px; padding:14px 16px; border-radius:12px; font-size:15.5px; line-height:1.5}
+  .g-fb.ok{background:#E1F1ED} .g-fb.bad{background:#F8E3E3}
+  .g-next{margin-top:18px}
+  .g-end{text-align:center; padding:12px 0}
+  .g-end .score{font-family:"Bricolage Grotesque"; font-weight:800; font-size:clamp(56px,8vw,96px); line-height:1}
+  .g-end .lvl{display:inline-block; margin-top:12px; font-weight:800; font-size:20px; background:var(--yellow); padding:6px 16px; border-radius:999px}
+  .g-end p{color:var(--ink-soft); margin:14px auto 0; max-width:30em; font-size:17px}
+  .g-end .ctas{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:24px}
+  @media (max-width:700px){ .g-card{padding:22px} .g-cards{grid-template-columns:1fr} }
   /* equipo */
   .team{display:grid; grid-template-columns:repeat(4,1fr); gap:28px; margin-top:52px}
   .person .photo{aspect-ratio:1; border-radius:20px; overflow:hidden; background:var(--yellow)}
@@ -209,6 +242,7 @@
       <a href="#empresas">Empresas</a>
       <a href="#propuestas">Propuestas</a>
       <a href="#clases">Las clases</a>
+      <a href="#juegos">Test</a>
       <a href="#equipo">Quiénes somos</a>
       <a href="#contacto">Contacto</a>
     </nav>
@@ -349,6 +383,22 @@
     </div>
   </section>
 
+  <section id="juegos" aria-labelledby="ju-title">
+    <div class="wrap">
+      <h2 id="ju-title">Poné a prueba tu inglés</h2>
+      <p class="intro">Cuatro desafíos cortos para ver cómo estás. Elegí uno y empezá.</p>
+      <div class="games">
+        <div class="g-tabs" role="tablist" aria-label="Juegos">
+          <button role="tab" data-g="nivel" style="--c:var(--yellow)">Test de nivel</button>
+          <button role="tab" data-g="card" style="--c:var(--red)">Yellow card or red card?</button>
+          <button role="tab" data-g="innit" style="--c:var(--cyan)">…innit?</button>
+          <button role="tab" data-g="weekly" style="--c:var(--green)">Survive the weekly</button>
+        </div>
+        <div class="g-card" id="g-card" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+
   <section id="equipo" aria-labelledby="eq-title">
     <div class="wrap">
       <h2 id="eq-title">Quiénes somos</h2>
@@ -415,6 +465,145 @@
   </div>
 </footer>
 
+<script>
+(function(){
+  // [frase, opciones, índice correcto, explicación]  ·  en "card": [frase, color, explicación]
+  const G={
+    nivel:{titulo:'Test de nivel', tipo:'mc', n:10, intro:'10 preguntas, de más fácil a más difícil. Elegí la opción correcta.',
+      tiers:[
+        [ ['Hi! I ___ Laura. I work in HR.',['am','is','are'],0,'Con "I" se usa "am".'],
+          ['She ___ to the office on Mondays.',['go','goes','going'],1,'Con "she" en presente simple se agrega -s: "goes".'],
+          ['There ___ two meetings today.',['is','are','have'],1,'"There are" con plural.'],
+          ["I ___ like working on weekends.",["don't","doesn't","am not"],0,'Presente simple negativo con "I": "don\'t".'] ],
+        [ ['We ___ a meeting yesterday at 10.',['have','had','have had'],1,'"Yesterday" pide pasado simple: "had".'],
+          ['Could you send ___ the report, please?',['me','to me','for me'],0,'"Send someone something": "send me the report".'],
+          ["I've worked here ___ 2022.",['for','since','from'],1,'"Since" + el momento en que empezó; "for" + duración.'] ],
+        [ ['If the client calls, I ___ you know.',['let','will let','would let'],1,'Primer condicional: if + presente, will + verbo.'],
+          ['How long ___ you been working on this project?',['have','did','are'],0,'Presente perfecto continuo: "have you been working".'],
+          ["I'm used to ___ up early for meetings.",['get','getting','got'],1,'"Be used to" + verbo con -ing: "getting".'],
+          ['She suggested ___ the meeting to Thursday.',['moving','to move','we moving'],0,'"Suggest" + verbo con -ing (o "suggest that we move").'] ],
+        [ ['The new system ___ by the end of the month.',['will finish','will be finished','is finishing'],1,'Es algo que se termina (pasiva): "will be finished".'],
+          ['I wish I ___ more time to prepare the presentation.',['had','have','will have'],0,'"I wish" + pasado para un deseo sobre el presente.'],
+          ['Had I known about the delay, I ___ the team earlier.',['would warn','would have warned','will have warned'],1,'Tercer condicional invertido: "would have + participio".'],
+          ["Before we wrap up, let's ___ the main points.",['go over','get over','go off'],0,'"Go over" = repasar. "Get over" = superar algo.'],
+          ['Not only ___ the deadline, but we also went over budget.',['did we miss','we missed','we did miss'],0,'Con "not only" al principio se invierte el orden: "did we miss".'] ]
+      ], cuantos:[2,3,2,3]},
+    card:{titulo:'Yellow card or red card?', tipo:'card', n:8, intro:'¿La frase está bien (verde), tiene un error leve que igual se entiende (amarilla) o uno que cambia el sentido (roja)?',
+      qs:[
+        ["I'm looking forward to hearing from you.",'green','Correcta: después de "look forward to" va el verbo con -ing.'],
+        ["She don't like coffee.",'yellow','Leve: con "she" es "doesn\'t". Se entiende igual.'],
+        ["Sorry, I can't drink wine. I'm embarrassed.",'red','Grave: "embarrassed" es "avergonzada". "Embarazada" es "pregnant".'],
+        ['We discussed about the budget.','yellow','Leve: "discuss" no lleva "about": "We discussed the budget".'],
+        ["I'll assist the meeting tomorrow.",'red','Grave: "assist" es "ayudar". Para "asistir a una reunión" se usa "attend".'],
+        ["I'll send you the file by Friday.",'green','Correcta: "by Friday" es "a más tardar el viernes".'],
+        ['He explained me the problem.','yellow','Leve: "He explained the problem to me".'],
+        ["My boss is very sensible, so be careful with what you say.",'red','Grave: "sensible" es "sensato". "Sensible" en español es "sensitive".'],
+        ["I'll call you when I will arrive.",'yellow','Leve: después de "when" va presente: "when I arrive".'],
+        ['Actually, I work in sales. Before, I was in marketing.','red','Grave: "actually" es "en realidad". "Actualmente" es "currently".'],
+        ["Can you borrow me your charger?",'yellow','Leve: "borrow" es pedir prestado; "prestar" es "lend": "Can you lend me…?".'],
+        ["I've been working here for three years.",'green','Correcta: presente perfecto continuo + "for" con duración.'],
+        ['I lost the bus, so I arrived late.','red','Grave: "lose" es perder algo que tenías. Un colectivo se "miss": "I missed the bus".'],
+        ["We'll have a meeting to discuss the next steps.",'green','Correcta y natural.']
+      ]},
+    innit:{titulo:'…innit?', tipo:'mc', n:8, intro:'Las question tags van al final de una frase para buscar confirmación. "Innit" es la forma informal británica de "isn\'t it". Elegí la correcta.',
+      qs:[
+        ["It's a nice day to start learning English, ___?",["isn't it","is it","doesn't it"],0,'Afirmativa con "is" → "isn\'t it?".'],
+        ['You work in sales, ___?',["aren't you","don't you","do you"],1,'Presente simple afirmativo → "don\'t you?".'],
+        ['She can speak French, ___?',["can't she","doesn't she","isn't she"],0,'Se repite el auxiliar en negativo: "can\'t she?".'],
+        ["They haven't arrived yet, ___?",['have they',"haven't they",'did they'],0,'Negativa → tag afirmativa: "have they?".'],
+        ['He went to the meeting, ___?',["wasn't he","didn't he","hasn't he"],1,'Pasado simple → "didn\'t he?".'],
+        ["We should start, ___?",["shouldn't we",'should we',"don't we"],0,'Se repite el modal en negativo: "shouldn\'t we?".'],
+        ["I'm late, ___?",["am I not","aren't I","isn't it"],1,'Con "I am" la tag habitual es "aren\'t I?".'],
+        ["Let's take a break, ___?",['shall we',"don't we","won't we"],0,'Con "let\'s" la tag es "shall we?".'],
+        ['Nobody called, ___?',['did they',"didn't they",'did he'],0,'"Nobody" ya es negativo → tag afirmativa, y se usa "they".'],
+        ["There's a meeting at 3, ___?",["isn't there","isn't it","is there"],0,'Con "there is" la tag repite "there": "isn\'t there?".'],
+        ["You'd like a coffee, ___?",["wouldn't you","didn't you","hadn't you"],0,'"You\'d like" = "you would like" → "wouldn\'t you?".'],
+        ['Close the door, ___?',['will you',"don't you",'do you'],0,'Con una orden, la tag más común es "will you?".']
+      ]},
+    weekly:{titulo:'Survive the weekly', tipo:'mc', n:6, intro:'Estás en una reunión de trabajo en inglés. Las tres opciones son correctas: elegí la que mejor funciona en esa situación.',
+      qs:[
+        ['Your manager asks: "Where are we with the migration?" You\'re two days behind.',["We're running a couple of days behind, but we should be done by Thursday.","Everything's under control, don't worry.","We're a bit late, sorry."],0,'Lo mejor es dar el estado real y una fecha concreta. Las otras evitan el tema o no dan un plan.'],
+        ["You didn't catch what a colleague just said.",["Sorry, could you repeat that?","Sorry, could you repeat that again?","Sorry, what did you mean?"],0,'"Repeat" ya significa "decir de nuevo", así que "again" sobra. Y "what did you mean?" pregunta por el sentido, no por lo que no escuchaste.'],
+        ["You already asked your colleague to repeat, and you still don't get the idea.",["Sorry, I'm still not sure I follow. Could you put it another way?","Could you repeat that, please?","Again, please."],0,'Si ya lo repitió, pedirle lo mismo no ayuda: mejor que lo explique de otra forma. "Again, please" suena seco.'],
+        ['Your manager is talking and you want to add something.',["Sorry to jump in, but could I add something here?","Can I say something?","Let me tell you something."],0,'"Sorry to jump in" suaviza la interrupción. "Let me tell you something" puede sonar a reto.'],
+        ["You don't agree with a colleague's proposal.",["I see where you're coming from, but I'm not sure it'll work with our timeline.","With all due respect, that's not a good idea.","I don't think so."],0,'Reconocer la otra postura y explicar el porqué. "With all due respect" suele sonar más duro de lo que parece.'],
+        ['You need more time for a task.',['Would it be possible to push the deadline to Monday?','I need until Monday.','Can we postpone the deadline?'],0,'Pedirlo como pregunta y con una fecha concreta. "I need until Monday" suena a exigencia.'],
+        ["Someone asks you something and you don't know the answer.",["Good question. Let me check and get back to you by tomorrow.","I'm not sure, sorry.","I'm not the right person to ask."],0,'Mostrar que vas a resolverlo, con un plazo, deja mejor impresión.'],
+        ['The meeting is going off topic.',["Shall we park that for now and get back to the agenda?","That's not what we're here to discuss.","Let's stop talking about this."],0,'"Park that for now" deja el tema para después sin descartarlo.'],
+        ['You join the meeting five minutes late.',["Sorry I'm late, I was caught up in another call.","Hi everyone! What did I miss?","Sorry, sorry, I had a problem."],0,'Una disculpa breve con motivo, sin pedir que repitan todo.'],
+        ["Your colleague's connection is bad and you lose part of what they say.",["Sorry, you're breaking up. Could you say the last part again?","Sorry, I can't listen to you.","Sorry, you're cutting."],0,'"You\'re breaking up" o "you\'re cutting out". "Listen" es prestar atención; para "no te escucho" se usa "I can\'t hear you".'],
+        ['You finished explaining an idea and want to check that everyone got it.',['Does that make sense?','Do you understand me?','Is everything clear for you?'],0,'"Does that make sense?" invita a preguntar. "Do you understand me?" puede sonar condescendiente.'],
+        ["It's time to close the meeting.",["Let's wrap up. So, the next steps are…","OK, I think that's all for today. Bye!","We're out of time, so let's finish here."],0,'Cerrar repasando los próximos pasos deja todo claro para todo el equipo.']
+      ]}
+  };
+  const card=document.getElementById('g-card'), tabs=[...document.querySelectorAll('.g-tabs button')];
+  let juego, ronda, i, pts;
+  const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const mezclar=a=>{ a=a.slice(); for(let k=a.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); [a[k],a[j]]=[a[j],a[k]]; } return a; };
+  function armarRonda(g){
+    if(g.tiers) return g.tiers.flatMap((t,k)=>mezclar(t).slice(0,g.cuantos[k]));
+    return mezclar(g.qs).slice(0,g.n);
+  }
+  function start(k){
+    juego=k; i=0; pts=0; ronda=armarRonda(G[k]);
+    tabs.forEach(t=>t.setAttribute('aria-selected',t.dataset.g===k?'true':'false'));
+    render();
+  }
+  function render(){
+    const g=G[juego], q=ronda[i];
+    let body;
+    if(g.tipo==='card'){
+      body=`<div class="g-q">“${esc(q[0])}”</div><div class="g-cards">
+        <button class="c-green" data-v="green">Verde<br><small>Está bien</small></button>
+        <button class="c-yellow" data-v="yellow">Amarilla<br><small>Error leve</small></button>
+        <button class="c-red" data-v="red">Roja<br><small>Error grave</small></button></div>`;
+    } else {
+      const orden=mezclar(q[1].map((o,k)=>k));
+      body=`<div class="g-q">${esc(q[0])}</div><div class="g-opts">${orden.map(k=>`<button data-v="${k}">${esc(q[1][k])}</button>`).join('')}</div>`;
+    }
+    card.innerHTML=`<div class="g-top"><span>${i===0?esc(g.intro):g.titulo}</span><span>${i+1} / ${ronda.length}</span></div>
+      <div class="g-bar"><i style="width:${i/ronda.length*100}%"></i></div>${body}<div id="g-fb"></div>`;
+    card.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>answer(b));
+  }
+  function answer(b){
+    const g=G[juego], q=ronda[i];
+    const correcta = g.tipo==='card' ? q[1] : String(q[2]);
+    const ok = b.dataset.v===correcta;
+    if(ok) pts++;
+    card.querySelectorAll('[data-v]').forEach(x=>{ x.disabled=true; if(x.dataset.v===correcta) x.classList.add('ok'); });
+    if(!ok) b.classList.add('bad');
+    const exp = g.tipo==='card' ? q[2] : q[3];
+    const ult = i===ronda.length-1;
+    document.getElementById('g-fb').innerHTML=`<div class="g-fb ${ok?'ok':'bad'}"><b>${ok?'¡Bien!':'Casi.'}</b> ${esc(exp)}</div>
+      <button class="btn btn-ink g-next" type="button">${ult?'Ver resultado':'Siguiente'}</button>`;
+    const nx=card.querySelector('.g-next'); nx.focus({preventScroll:true});
+    nx.onclick=()=>{ if(ult) end(); else { i++; render(); } };
+  }
+  function end(){
+    const g=G[juego], n=ronda.length;
+    let extra='', msg, nivel='';
+    if(juego==='nivel'){
+      nivel = pts<=3?'Inicial':pts<=7?'Intermedio':'Avanzado';
+      extra=`<div class="lvl">Nivel aproximado: ${nivel}</div>`;
+      msg='Es una orientación rápida. Antes de empezar, hacemos una nivelación completa para asignarte el grupo adecuado.';
+    } else if(juego==='weekly'){
+      msg = pts===n ? '¡Sobreviviste a la weekly con honores!' : pts>=n-2 ? 'Sobreviviste a la weekly. Con un poco de práctica, la próxima es perfecta.' : 'Las reuniones en inglés se practican. En nuestras clases simulamos weeklies con role-plays.';
+    } else {
+      msg = pts>=n-1 ? '¡Excelente!' : pts>=n/2 ? 'Muy bien. Hay algunos detalles para pulir.' : 'Son errores muy comunes. En clase trabajamos justamente sobre ellos.';
+    }
+    card.innerHTML=`<div class="g-end"><div class="score">${pts}/${n}</div>${extra}<p>${msg}</p>
+      <div class="ctas"><a class="btn btn-ink" href="#contacto" id="g-cta">Quiero más información</a><button class="btn btn-ghost" type="button" id="g-again">Jugar de nuevo</button></div></div>`;
+    document.getElementById('g-again').onclick=()=>start(juego);
+    document.getElementById('g-cta').onclick=()=>{
+      const m=document.getElementById('f-mensaje'), s=document.getElementById('f-interes');
+      if(m) m.value = juego==='nivel' ? `Hice el test de nivel de la web: ${nivel} (${pts}/${n}).` : `Jugué a "${g.titulo}" en la web (${pts}/${n}) y quiero más información.`;
+      if(s) s.value='Cursos del año';
+    };
+  }
+  tabs.forEach(t=>t.onclick=()=>start(t.dataset.g));
+  start('nivel');
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   const modal=document.getElementById('modal'), closeBtn=document.getElementById('modal-close');
@@ -458,6 +647,7 @@
   add('.biz-grid > div:first-child','from-l'); add('.biz-grid > div:last-child','from-r');
   add('.wins-head','from-b'); add('.wins','from-b');
   add('#op-title, #op-title + .intro','from-b'); add('.quotes','from-b');
+  add('#juegos h2, #juegos .intro','from-b'); add('.games','from-b');
   add('#equipo h2, #equipo .intro','from-b'); add('.team','from-b');
   add('.contact-grid > div:first-child','from-l'); add('.contact-grid > form','from-r');
   const angosto=window.innerWidth<700;

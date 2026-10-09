@@ -43,7 +43,7 @@
 
   /* hero */
   .hero{background:var(--yellow); overflow:hidden}
-  .hero .wrap{display:grid; grid-template-columns:1.1fr .9fr; gap:56px; align-items:center; padding-top:64px; padding-bottom:80px; min-height:min(calc(100vh - 76px), 720px)}
+  .hero .wrap{display:grid; grid-template-columns:1.1fr .9fr; gap:56px; align-items:center; padding-top:72px; padding-bottom:72px; min-height:min(calc(100vh - 68px), 760px)}
   .hero h1{font-size:clamp(42px,6vw,78px); font-weight:800}
   .hero p.lead{font-size:clamp(18px,2vw,21px); max-width:28em; margin-top:22px}
   .hero .ctas{display:flex; gap:12px; flex-wrap:wrap; margin-top:34px}
@@ -216,8 +216,7 @@
   .btn:hover{transform:translateY(-2px); box-shadow:0 6px 0 rgba(27,26,23,.15)}
   .btn:active{transform:translateY(0); box-shadow:none}
   .js .reveal{opacity:0; transform:translateY(18px); transition:opacity .8s ease, transform .9s cubic-bezier(.2,.7,.2,1); transition-delay:var(--d,0s)}
-  .js .reveal.from-l{transform:translateX(-32px)}
-  .js .reveal.from-r{transform:translateX(32px)}
+  .js .reveal.from-l,.js .reveal.from-r{transform:translateY(18px)}
   .js .reveal.in{opacity:1; transform:none}
   .hero h1 .w{display:inline-block; opacity:0; transform:translateY(.4em); animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards; animation-delay:var(--d)}
   @keyframes rise{to{opacity:1; transform:none}}
@@ -723,7 +722,9 @@
   // Navegación interna sin "#" en la dirección
   function irA(id, suave){
     const el=document.getElementById(id); if(!el) return false;
-    const y=el.getBoundingClientRect().top+window.scrollY-(id==='top'?0:72);
+    const nav=document.querySelector('.nav'), navH=nav?nav.offsetHeight:68;
+    const destino=(id==='top')?el:(el.querySelector('h2')||el);
+    const y=destino.getBoundingClientRect().top+window.scrollY-(id==='top'?0:navH+40);
     window.scrollTo({top:Math.max(0,y), behavior:suave?'smooth':'auto'});
     return true;
   }

@@ -74,7 +74,7 @@
   .offer{padding:22px 0 22px 22px; margin-bottom:28px; border-left:4px solid var(--c)}
   .offer p{color:var(--ink-soft); font-size:16.5px; margin-top:8px}
   .offer .meta{margin-top:12px; display:flex; flex-wrap:wrap; gap:8px}
-  .offer .meta span{font-size:13px; font-weight:600; background:var(--yellow-soft); border-radius:6px; padding:3px 9px}
+  .offer .meta span{font-size:13px; font-weight:600; background:var(--white); border:1px solid #EADFB4; border-radius:6px; padding:3px 9px}
 
   /* clases */
   .method{background:var(--yellow-soft)}
@@ -108,7 +108,7 @@
   .report-cap{font-size:14.5px; color:#CFC9BC; margin-top:14px}
 
   /* logros */
-  .wins-head{display:flex; align-items:baseline; gap:24px; flex-wrap:wrap}
+  .wins-head{display:flex; align-items:baseline; gap:12px 24px; flex-wrap:wrap; justify-content:center; text-align:center}
   .wins-head .num{font-family:"Bricolage Grotesque"; font-weight:800; font-size:clamp(64px,9vw,120px); line-height:.9; color:var(--yellow); -webkit-text-stroke:1px #E2B50A}
   .wins{display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:40px; list-style:none; padding:0}
   .wins li{border-radius:16px; padding:22px; font-size:17px; font-weight:500; line-height:1.4; background:var(--bg)}
@@ -119,7 +119,7 @@
   @media (max-width:900px){ .quotes{grid-template-columns:1fr} }
   /* juegos */
   .games{margin-top:40px}
-  .g-tabs{display:flex; flex-wrap:wrap; gap:10px}
+  .g-tabs{display:flex; flex-wrap:wrap; gap:10px; justify-content:center}
   .g-tabs button{font:inherit; font-weight:700; font-size:15px; padding:10px 18px; border-radius:999px; border:2px solid var(--line); background:var(--white); cursor:pointer; transition:border-color .2s, background .2s}
   .g-tabs button:hover{border-color:var(--c)}
   .g-tabs button[aria-selected="true"]{background:var(--c); border-color:var(--c); color:var(--ink)}
@@ -153,14 +153,14 @@
   .utn{display:grid; grid-template-columns:.8fr 1.2fr; gap:56px; align-items:center}
   .utn-logo{width:100%; max-width:340px; height:auto; justify-self:center}
   @media (max-width:900px){ .utn{grid-template-columns:1fr; gap:28px} .utn-logo{max-width:240px; justify-self:start} }
-  .sec-head{display:grid; grid-template-columns:1fr 1fr; gap:24px 56px; align-items:end}
-  .sec-head .intro{margin-top:0; max-width:none}
+  .sec-head{text-align:center; max-width:760px; margin:0 auto}
+  .sec-head .intro{margin:16px auto 0; max-width:40em}
   .nav-links a{position:relative; padding:6px 0; transition:color .2s}
   .nav-links a::after{content:""; position:absolute; left:0; right:0; bottom:-2px; height:3px; border-radius:2px; background:var(--yellow); transform:scaleX(0); transition:transform .25s ease}
   .nav-links a.active{color:var(--ink); font-weight:600}
   .nav-links a.active::after{transform:scaleX(1)}
   section[id]{scroll-margin-top:72px}
-  @media (max-width:900px){ .sec-head{grid-template-columns:1fr} .sec-head .intro{margin-top:4px} }
+
   /* equipo */
   .team{display:grid; grid-template-columns:repeat(4,1fr); gap:28px; margin-top:52px}
   .person .photo{aspect-ratio:1; border-radius:20px; overflow:hidden; background:var(--yellow)}

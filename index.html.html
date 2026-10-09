@@ -718,5 +718,26 @@
   window.addEventListener('scroll',marcar,{passive:true}); window.addEventListener('resize',marcar); marcar();
 })();
 </script>
+<script>
+(function(){
+  // Navegación interna sin "#" en la dirección
+  function irA(id, suave){
+    const el=document.getElementById(id); if(!el) return false;
+    const y=el.getBoundingClientRect().top+window.scrollY-(id==='top'?0:72);
+    window.scrollTo({top:Math.max(0,y), behavior:suave?'smooth':'auto'});
+    return true;
+  }
+  document.addEventListener('click',e=>{
+    const a=e.target.closest('a[href^="#"]'); if(!a) return;
+    const id=a.getAttribute('href').slice(1); if(!id) return;
+    if(irA(id,true)){ e.preventDefault(); history.replaceState(null,'',location.pathname+location.search); }
+  });
+  if(location.hash){
+    const id=decodeURIComponent(location.hash.slice(1));
+    history.replaceState(null,'',location.pathname+location.search);
+    window.addEventListener('load',()=>setTimeout(()=>irA(id,false),60));
+  }
+})();
+</script>
 </body>
 </html>

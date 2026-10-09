@@ -503,15 +503,30 @@ async function fetchAllObs(){
   const vistos=new Set();
   return all.filter(r=>{ if(vistos.has(r.id)) return false; vistos.add(r.id); return true; });
 }
+// Trae TODAS las filas de una tabla, en tandas de 1000, con un orden estable
+// (siempre termina en una columna única) para que no se repitan ni se pierdan filas.
+async function traerTodo(tabla, cols, orden){
+  const all=[]; const size=1000;
+  for(let from=0;;from+=size){
+    let q=db.from(tabla).select(cols);
+    orden.forEach(o=>{ const [c,dir]=o.split(' '); q=q.order(c,{ascending:dir!=='desc'}); });
+    const {data,error}=await q.range(from, from+size-1);
+    if(error){ console.warn('traerTodo '+tabla, error.message); break; }
+    if(!data||!data.length) break;
+    all.push(...data);
+    if(data.length<size) break;
+  }
+  return all;
+}
 async function loadData(){
   const [alumnos,grupos,empresas,asis,temas,staff,sinDictar]=await Promise.all([
-    db.from("alumnos").select("id, nombre, email, nivel_sel, grupo_id, empresa_id, activo, motivo_baja, fecha_baja").order("nombre").then(r=>r.data||[]),
-    db.from("grupos").select("id, nombre, profesora, dias, horario, empresa_id, fecha_inicio").order("nombre").then(r=>r.data||[]),
-    db.from("empresas").select("id, nombre").then(r=>r.data||[]),
+    traerTodo("alumnos","id, nombre, email, nivel_sel, grupo_id, empresa_id, activo, motivo_baja, fecha_baja",["nombre","id"]),
+    traerTodo("grupos","id, nombre, profesora, dias, horario, empresa_id, fecha_inicio",["nombre","id"]),
+    traerTodo("empresas","id, nombre",["nombre","id"]),
     fetchAllAsis(),
-    db.from("temas").select("grupo_id, tema, mes").then(r=>r.data||[]),
-    db.from("staff").select("id, nombre, email, rol, empresa_id").then(r=>r.data||[]),
-    db.from("clases_sin_dictar").select("grupo_id, fecha, motivo").then(r=>r.data||[])
+    traerTodo("temas","id, grupo_id, tema, mes",["id"]),
+    traerTodo("staff","id, nombre, email, rol, empresa_id",["id"]),
+    traerTodo("clases_sin_dictar","grupo_id, fecha, motivo",["grupo_id","fecha"])
   ]);
   const profeEmail={}, rrhhEmailByEmp={};
   (staff||[]).forEach(s=>{ if(s.rol==='profesora'&&s.email) profeEmail[(s.nombre||'').trim()]=s.email; if(s.rol==='rrhh'&&s.email&&s.empresa_id){ const prev=rrhhEmailByEmp[s.empresa_id]; rrhhEmailByEmp[s.empresa_id]=prev?prev+','+s.email:s.email; } });
@@ -737,7 +752,8 @@ async function viewConsultas(){
   const view=document.getElementById("view");
   if(!window._consTab) window._consTab='nuevas';
   view.innerHTML='<div class="empty">Cargando…</div>';
-  const {data,error}=await db.from("consultas").select("*").order("creado_en",{ascending:false});
+  let data=null, error=null;
+  try{ data=await traerTodo("consultas","*",["creado_en desc","id"]); }catch(e){ error=e; }
   if(error){ view.innerHTML='<div class="empty">No se pudieron cargar las consultas.</div>'; return; }
   const todas=data||[], nuevas=todas.filter(c=>!c.atendida), aten=todas.filter(c=>c.atendida);
   const lista=window._consTab==='nuevas'?nuevas:aten;

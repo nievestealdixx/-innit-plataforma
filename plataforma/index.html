@@ -486,7 +486,7 @@ async function loadData(){
     db.from("clases_sin_dictar").select("grupo_id, fecha, motivo").then(r=>r.data||[])
   ]);
   const profeEmail={}, rrhhEmailByEmp={};
-  (staff||[]).forEach(s=>{ if(s.rol==='profesora'&&s.email) profeEmail[(s.nombre||'').trim()]=s.email; if(s.rol==='rrhh'&&s.email&&s.empresa_id) rrhhEmailByEmp[s.empresa_id]=s.email; });
+  (staff||[]).forEach(s=>{ if(s.rol==='profesora'&&s.email) profeEmail[(s.nombre||'').trim()]=s.email; if(s.rol==='rrhh'&&s.email&&s.empresa_id){ const prev=rrhhEmailByEmp[s.empresa_id]; rrhhEmailByEmp[s.empresa_id]=prev?prev+','+s.email:s.email; } });
   Object.assign(ctx,{sinDictar,alumnos,grupos,empresas,asis,temas,staff,profeEmail,rrhhEmailByEmp,
     grupoById:Object.fromEntries(grupos.map(g=>[g.id,g])),
     alumnoById:Object.fromEntries(alumnos.map(a=>[a.id,a]))});

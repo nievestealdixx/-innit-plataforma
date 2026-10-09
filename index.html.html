@@ -48,6 +48,12 @@
   .hero h1{font-size:clamp(42px,6vw,78px); font-weight:800}
   .hero p.lead{font-size:clamp(18px,2vw,21px); max-width:28em; margin-top:22px}
   .hero .ctas{display:flex; gap:12px; flex-wrap:wrap; margin-top:34px}
+  .typer{margin-top:20px; min-height:1.5em; font-size:clamp(19px,2.1vw,24px); font-weight:500; font-style:italic; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:clip}
+  .typer #typer-text{background:rgba(255,255,255,.55); padding:2px 6px; border-radius:6px; box-decoration-break:clone; -webkit-box-decoration-break:clone}
+  .typer #typer-text:empty{padding:0; background:none}
+  .caret{display:inline-block; width:3px; height:1.1em; background:var(--ink); margin-left:3px; vertical-align:-0.15em; animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  @media (max-width:600px){ .typer{white-space:normal; min-height:3em} }
   .utn-badge{display:inline-flex; align-items:center; gap:12px; margin-top:26px; background:var(--white); border-radius:14px; padding:8px 16px 8px 10px; text-decoration:none; font-size:14px; font-weight:600; line-height:1.3; max-width:100%}
   .utn-badge img{height:34px; width:auto; flex:none}
   .utn-badge:hover{box-shadow:0 4px 0 var(--ink)}
@@ -225,7 +231,7 @@
   .js .reveal.in{opacity:1; transform:none}
   .hero h1 .w{display:inline-block; opacity:0; transform:translateY(.4em); animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards; animation-delay:var(--d)}
   @keyframes rise{to{opacity:1; transform:none}}
-  .hero .lead,.hero .ctas,.hero .utn-badge{opacity:0; animation:fade .8s ease forwards} .hero .lead{animation-delay:.55s} .hero .ctas{animation-delay:.75s} .hero .utn-badge{animation-delay:.95s}
+  .hero .typer,.hero .lead,.hero .ctas,.hero .utn-badge{opacity:0; animation:fade .8s ease forwards} .hero .typer{animation-delay:.45s} .hero .lead{animation-delay:.55s} .hero .ctas{animation-delay:.75s} .hero .utn-badge{animation-delay:.95s}
   @keyframes fade{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:none}}
   .dict{animation:fade .9s ease .3s both}
   @keyframes float{0%,100%{transform:rotate(1.5deg) translateY(0)} 50%{transform:rotate(-.5deg) translateY(-10px)}}
@@ -242,7 +248,7 @@
 
   @media (prefers-reduced-motion:reduce){
     .js .reveal,.js .reveal.from-l,.js .reveal.from-r{opacity:1; transform:none}
-    .hero h1 .w,.hero .lead,.hero .ctas,.hero .utn-badge,.dict,.stripe span{animation:none!important; opacity:1; transform:none}
+    .hero h1 .w,.hero .typer,.hero .lead,.hero .ctas,.hero .utn-badge,.dict,.stripe span{animation:none!important; opacity:1; transform:none}
     .offer:hover,.wins li:hover,.quote:hover,.btn:hover{transform:none}
     .person:hover .photo img{transform:none}
   }
@@ -270,6 +276,7 @@
     <div class="wrap">
       <div>
         <h1 id="hero-title">Inglés para comunicarte con confianza.</h1>
+        <p class="typer" aria-hidden="true"><span id="typer-text"></span><span class="caret"></span></p>
         <p class="lead">Clases online para equipos de trabajo y profesionales, en grupos reducidos y con foco en la conversación.</p>
         <div class="ctas">
           <a class="btn btn-ink" href="#contacto">Solicitar información</a>
@@ -703,6 +710,22 @@
     history.replaceState(null,'',location.pathname+location.search);
     window.addEventListener('load',()=>setTimeout(()=>irA(id,false),60));
   }
+})();
+</script>
+<script>
+(function(){
+  const el=document.getElementById('typer-text'); if(!el) return;
+  const frases=["Could we move the meeting to Friday?","Let me walk you through the numbers.","Sorry, could you say that again?","I'd love to hear your thoughts on this.","Let's touch base next week.","Great, we're on the same page.","Let's not reinvent the wheel.","I'll keep you in the loop.","This could be a game changer!","OK, let's call it a day."];
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){ el.textContent=frases[0]; return; }
+  let f=0, c=0, borrando=false;
+  function paso(){
+    const t=frases[f];
+    if(!borrando){ c++; el.textContent=t.slice(0,c); if(c===t.length){ borrando=true; return setTimeout(paso,1900); } return setTimeout(paso,45+Math.random()*45); }
+    c--; el.textContent=t.slice(0,c);
+    if(c===0){ borrando=false; f=(f+1)%frases.length; return setTimeout(paso,350); }
+    setTimeout(paso,22);
+  }
+  setTimeout(paso,1100);
 })();
 </script>
 </body>

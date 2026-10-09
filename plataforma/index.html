@@ -208,6 +208,22 @@
   .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 20px; border-radius:12px; font-size:14px; box-shadow:var(--shadow); opacity:0; transition:opacity .2s; z-index:50}
   .toast.show{opacity:1}
   @media (max-width:620px){ .grid2{grid-template-columns:1fr} .stat-grid{grid-template-columns:1fr} .grow{grid-template-columns:minmax(0,1fr) 90px 76px} .grow .anv{display:none} }
+
+  /* ===== botones estilo sello (igual que la web) ===== */
+  .btn-primary,.btn-ghost{border-radius:9px; transition:transform .15s ease, box-shadow .15s ease, background .15s ease}
+  .btn-primary{background:var(--yellow); color:var(--ink); border:2px solid var(--ink); box-shadow:3px 3px 0 var(--ink)}
+  .btn-primary:hover{filter:none; transform:translate(-1px,-1px); box-shadow:4px 4px 0 var(--ink)}
+  .btn-primary:active{transform:translate(2px,2px); box-shadow:1px 1px 0 var(--ink)}
+  .btn-ghost{background:#fff; border:1.5px solid var(--ink); box-shadow:2px 2px 0 var(--ink)}
+  .btn-ghost:hover{transform:translate(-1px,-1px); box-shadow:3px 3px 0 var(--ink)}
+  .btn-ghost:active{transform:translate(1px,1px); box-shadow:1px 1px 0 var(--ink)}
+  .btn-primary:disabled,.btn-ghost:disabled{transform:none; box-shadow:none; opacity:.55}
+  #toptabs .tab{border:2px solid var(--ink); border-radius:10px; color:var(--ink); background:#fff; box-shadow:3px 3px 0 var(--ink); transition:transform .15s ease, box-shadow .15s ease}
+  #toptabs .tab:hover{transform:translate(-1px,-1px); box-shadow:4px 4px 0 var(--ink)}
+  #toptabs .tab.active{background:var(--ink); color:#fff; transform:translate(2px,2px); box-shadow:1px 1px 0 var(--ink)}
+  .subtabs .tab{border:1.5px solid var(--ink); border-radius:8px; color:var(--ink); box-shadow:2px 2px 0 var(--ink)}
+  .subtabs .tab.active{background:var(--yellow); border-color:var(--ink); transform:translate(1px,1px); box-shadow:1px 1px 0 var(--ink)}
+  @media (prefers-reduced-motion:reduce){ .btn-primary:hover,.btn-primary:active,.btn-ghost:hover,.btn-ghost:active,#toptabs .tab:hover{transform:none} }
 </style>
 </head>
 <body>

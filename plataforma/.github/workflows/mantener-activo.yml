@@ -1,0 +1,20 @@
+name: Mantener activa la base de datos
+
+# Todos los días le hace una consulta chiquita a Supabase
+# para que el proyecto no se pause por falta de actividad.
+on:
+  schedule:
+    - cron: "0 12 * * *"   # todos los días a las 9:00 de Argentina
+  workflow_dispatch:        # permite correrlo a mano desde la pestaña Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consultar la base
+        run: |
+          curl -fsS "https://ornlicmealhanmldnpwo.supabase.co/rest/v1/empresas?select=id&limit=1" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ybmxpY21lYWxoYW5tbGRucHdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4NDAxNTcsImV4cCI6MjEwMzQxNjE1N30.eGT7e0RVlqf4hQiv4pJ8WEqokDw22S5mWFlfObDku5g" \
+            -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ybmxpY21lYWxoYW5tbGRucHdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4NDAxNTcsImV4cCI6MjEwMzQxNjE1N30.eGT7e0RVlqf4hQiv4pJ8WEqokDw22S5mWFlfObDku5g"
+          echo ""
+          echo "Listo: la base respondió."

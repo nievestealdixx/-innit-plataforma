@@ -331,6 +331,7 @@ Object.assign(DICT,{"Consultas":"Inquiries","Consultas desde la web":"Website in
 RE_RULES.push([/^Nuevas \((\d+)\)$/,function(m,a){return "New ("+a+")";}]);
 RE_RULES.push([/^Atendidas \((\d+)\)$/,function(m,a){return "Handled ("+a+")";}]);
 Object.assign(DICT,{"Todavía no se les mandó el mail de consulta.":"The follow-up email hasn't been sent yet."});
+Object.assign(DICT,{"Editar":"Edit","Sin mes":"No month","Tema actualizado":"Topic updated"});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -1094,7 +1095,7 @@ async function renderFicha(alumnoId){
     `<div class="chips">${_ausRes}</div><details class="aus-det"><summary>Ver fechas</summary>`+
     aus.map(a=>`<div class="obs" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span class="obs-date">${fmtFecha(a.fecha)}</span><span class="tag ${a.nota?'examen':'general'}">${a.nota?causaDe(a.nota):'sin motivo'}</span></div>`).join("")+`</details>`;
   const misTemas=g?temas.filter(t=>t.grupo_id===g.id):[];
-  const temasHTML=misTemas.length?`<div class="chips">${misTemas.map(t=>`<span class="chip">${t.tema}${t.mes?` <span style="color:var(--ink-soft)">· ${t.mes}</span>`:''}</span>`).join("")}</div>`:'<div class="empty">Todavía no hay temas cargados para este grupo.</div>';
+  const temasHTML=misTemas.length?`<div class="chips">${ordenarTemas(misTemas).map(t=>`<span class="chip">${t.tema}${t.mes?` <span style="color:var(--ink-soft)">· ${mesLabel(t.mes)}</span>`:''}</span>`).join("")}</div>`:'<div class="empty">Todavía no hay temas cargados para este grupo.</div>';
   const {data:obs}=await db.from("observaciones").select("fecha, tipo, texto, compartida, trimestre").eq("alumno_id",al.id).order("fecha",{ascending:false});
   const tagCls=t=>t==="examen"?"examen":t==="cambio de grupo"?"cambio":"general";
   const obsHTML=(obs&&obs.length)?obs.map(o=>`<div class="obs"><div class="obs-head"><span class="obs-date">${fmtFecha(o.fecha)}</span>${o.trimestre?`<span class="tag tri">${o.trimestre}</span>`:''}${tipoTag(o)}${(rol==="profesora"&&!o.compartida)?'<span class="tag interna">interna</span>':''}</div><div class="obs-body">${o.texto}</div></div>`).join(""):'<div class="empty">Sin observaciones visibles.</div>';
@@ -1553,6 +1554,11 @@ function viewListaAsis(){
 }
 
 /* ---------- TEMAS POR GRUPO ---------- */
+function opcMeses(sel){ return ['<option value="">'+(LANG==='en'?'Month…':'Mes…')+'</option>'].concat(MESES_L.map(m=>{ const v=m.charAt(0).toUpperCase()+m.slice(1); return `<option value="${v}"${mesIdx(sel)===mesIdx(v)?' selected':''}>${mesLabel(v)}</option>`; })).join(''); }
+const MESES_EN_L=["January","February","March","April","May","June","July","August","September","October","November","December"];
+function mesIdx(m){ if(!m) return 99; const s=_sinTilde(String(m)).trim(); const i=MESES_L.findIndex(x=>_sinTilde(x)===s); return i<0?98:i; }
+function mesLabel(m){ if(!m) return ''; const i=mesIdx(m); if(i>11) return m; const es=MESES_L[i]; return LANG==='en'?MESES_EN_L[i]:es.charAt(0).toUpperCase()+es.slice(1); }
+function ordenarTemas(ts){ return ts.slice().sort((a,b)=>mesIdx(a.mes)-mesIdx(b.mes)||String(a.creado_en||a.id).localeCompare(String(b.creado_en||b.id))); }
 function viewTemas(){
   const {grupos}=ctx, view=document.getElementById("view");
   view.innerHTML=`
@@ -1571,14 +1577,16 @@ function viewTemas(){
         <div class="sub">Los temas que cargues acá se ven en la ficha de todos los estudiantes del grupo.</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <input id="tm-nuevo" placeholder="Ej: Present perfect, Phrasal verbs…" style="flex:1;min-width:200px">
-          <select id="tm-mes" style="max-width:150px">${['<option value="">Mes…</option>'].concat(MESES_L.map(m=>`<option>${m.charAt(0).toUpperCase()+m.slice(1)}</option>`)).join('')}</select>
+          <select id="tm-mes" style="max-width:150px">${opcMeses('')}</select>
           <button class="btn-primary" id="tm-add">Agregar</button>
         </div>
         <span class="msg" id="tm-msg" style="margin-top:12px"></span>
       </div>
       <div class="section">
         <h2>Temas del grupo${temas&&temas.length?` <span style="font-family:Inter;font-weight:600;font-size:13px;color:var(--ink-soft)">(${temas.length})</span>`:''}</h2>
-        ${(temas&&temas.length)?'<div>'+temas.map(t=>`<div class="obs" style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span>${t.tema}${t.mes?` <span style="color:var(--ink-soft);font-size:12.5px">· ${t.mes}</span>`:''}</span><button class="btn-ghost btn-sm" data-del="${t.id}">Borrar</button></div>`).join('')+'</div>':'<div class="empty">Todavía no hay temas cargados para este grupo.</div>'}
+        ${(temas&&temas.length)?(()=>{ let out='', ult=null; ordenarTemas(temas).forEach(t=>{ const k=mesIdx(t.mes); if(k!==ult){ out+=`<div class="eyebrow" style="margin:18px 0 6px">${t.mes?mesLabel(t.mes):(LANG==='en'?'No month':'Sin mes')}</div>`; ult=k; }
+          out+=`<div class="obs tm-row" data-id="${t.id}" style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span>${(t.tema||'').replace(/</g,'&lt;')}</span><span style="display:flex;gap:6px;flex:none"><button class="btn-ghost btn-sm" data-edit="${t.id}">Editar</button><button class="btn-ghost btn-sm" data-del="${t.id}">Borrar</button></span></div>`; });
+          return out; })():'<div class="empty">Todavía no hay temas cargados para este grupo.</div>'}
       </div>`;
     const inp=document.getElementById("tm-nuevo"), msg=document.getElementById("tm-msg");
     async function add(){
@@ -1590,7 +1598,17 @@ function viewTemas(){
     }
     document.getElementById("tm-add").onclick=add;
     inp.onkeydown=e=>{ if(e.key==="Enter") add(); };
-    body.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{ await db.from("temas").delete().eq("id",b.dataset.del); toast("Tema borrado"); load(gid); });
+    body.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{ if(!confirm(LANG==='en'?'Delete this topic?':'¿Borrar este tema?')) return; await db.from("temas").delete().eq("id",b.dataset.del); toast("Tema borrado"); load(gid); });
+    body.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{
+      const t=temas.find(x=>String(x.id)===b.dataset.edit); const row=body.querySelector(`.tm-row[data-id="${b.dataset.edit}"]`); if(!t||!row) return;
+      row.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;align-items:center"><input class="tm-e-txt" value="${(t.tema||'').replace(/"/g,'&quot;')}" style="flex:1;min-width:180px"><select class="tm-e-mes" style="max-width:150px">${opcMeses(t.mes)}</select><button class="btn-primary btn-sm tm-e-ok">Guardar</button><button class="btn-ghost btn-sm tm-e-no">Cancelar</button></div>`;
+      const inpE=row.querySelector('.tm-e-txt'); inpE.focus();
+      row.querySelector('.tm-e-no').onclick=()=>load(gid);
+      const guardar=async()=>{ const tema=inpE.value.trim(); if(!tema){ toast(LANG==='en'?'Write a topic':'Escribí un tema'); return; }
+        const {error}=await db.from("temas").update({tema, mes:row.querySelector('.tm-e-mes').value||null}).eq("id",t.id);
+        if(error){ toast("No se pudo guardar"); return; } toast(LANG==='en'?'Topic updated':'Tema actualizado'); load(gid); };
+      row.querySelector('.tm-e-ok').onclick=guardar; inpE.onkeydown=e=>{ if(e.key==='Enter') guardar(); if(e.key==='Escape') load(gid); };
+    });
   }
 }
 

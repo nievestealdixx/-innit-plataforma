@@ -227,6 +227,16 @@
     .btn-primary:hover,.btn-ghost:hover,.btn-primary:active,.btn-ghost:active{transform:none}
     .toast,.toast.show{transform:translateX(-50%)}
   }
+
+  /* ventanas propias */
+  .ui-ov{position:fixed; inset:0; background:rgba(27,26,23,.45); display:flex; align-items:center; justify-content:center; padding:20px; z-index:100; animation:uiF .15s ease}
+  .ui-dlg{background:#fff; border-radius:18px; max-width:440px; width:100%; padding:24px; box-shadow:0 20px 50px rgba(0,0,0,.25); animation:uiU .2s cubic-bezier(.2,.7,.2,1)}
+  .ui-txt{margin:0 0 18px; font-size:15.5px; line-height:1.55; white-space:pre-line; color:var(--ink)}
+  .ui-in{width:100%; margin:-4px 0 18px}
+  .ui-acts{display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap}
+  .ui-danger{background:var(--red)!important; color:#fff!important; border-color:var(--red)!important}
+  @keyframes uiF{from{opacity:0}} @keyframes uiU{from{opacity:0; transform:translateY(8px) scale(.98)}}
+  @media (prefers-reduced-motion:reduce){ .ui-ov,.ui-dlg{animation:none} }
 </style>
 </head>
 <body>
@@ -259,7 +269,7 @@ let db=null, ctx={};
 
 /* ---------- i18n (ES/EN) ---------- */
 let LANG=localStorage.getItem('innit_lang')||'en';
-const DICT={"¡Hola! 👋": "Hi! 👋", "Entrá con tu email. Si es tu primera vez, creá tu cuenta.": "Log in with your email. First time? Create your account.", "Email": "Email", "Contraseña": "Password", "Entrar": "Log in", "Crear cuenta": "Sign up", "Mostrar": "Show", "Ocultar": "Hide", "Tu contraseña": "Your password", "tu@email.com": "you@email.com", "Completá tu email y tu contraseña.": "Enter your email and password.", "Entrando…": "Signing in…", "Creando tu cuenta…": "Creating your account…", "Poné tu email y una contraseña de al menos 6 caracteres.": "Enter your email and a password of at least 6 characters.", "Home": "Home", "Fichas de estudiantes": "Student records", "Gestionar estudiantes": "Manage students", "Gestionar asistencia": "Manage attendance", "Temas": "Topics", "Observaciones": "Observations", "Reportes": "Reports", "Mi ficha": "My record", "Profesora": "Teacher", "RRHH": "HR", "Estudiante": "Student", "Alumno": "Student", "Salir": "Log out", "Plataforma de seguimiento · estudiantes, asistencia y observaciones": "Tracking platform · students, attendance and observations", "Estudiantes activos": "Active students", "Bajas": "Inactive", "Grupos": "Groups", "Cambios de grupo recientes": "Recent group changes", "Últimos movimientos registrados.": "Latest recorded changes.", "Estudiantes dados de baja": "Inactive students", "Los que ya no están cursando.": "Those no longer attending.", "No hay bajas registradas.": "No inactive students.", "Sin cambios de grupo registrados.": "No group changes recorded.", "Copia de seguridad": "Backup", "Descargá toda la base (estudiantes, asistencia, observaciones, temas, grupos) en un Excel. Guardala en tu Drive cada tanto — es tu red de seguridad.": "Download the whole database (students, attendance, observations, topics, groups) as an Excel file. Save it to your Drive every so often — it's your safety net.", "⬇ Descargar backup completo": "⬇ Download full backup", "Preparando backup…": "Preparing backup…", "Backup descargado ✓": "Backup downloaded ✓", "Ficha de estudiante": "Student record", "Empresa": "Company", "Grupo": "Group", "Horario": "Schedule", "Motivo de baja": "Reason for leaving", "Baja": "Inactive", "Ausencias": "Absences", "Días que faltó, con el motivo si quedó registrado.": "Days missed, with the reason if recorded.", "Sin asistencia cargada.": "No attendance recorded.", "Asistencia perfecta en el período. 🎉": "Perfect attendance for the period. 🎉", "Temas dictados en el grupo": "Topics covered in the group", "Sin grupo asignado.": "No group assigned.", "Todavía no hay temas cargados para este grupo.": "No topics loaded for this group yet.", "Trimestrales. Ves todas, incluidas las internas.": "Quarterly. You see all of them, including internal ones.", "Observaciones compartidas.": "Shared observations.", "Sin observaciones visibles.": "No visible observations.", "Cargando ficha…": "Loading record…", "Cargando…": "Loading…", "No hay estudiantes para mostrar con tu acceso.": "No students to show for your access.", "sin motivo": "no reason", "sin datos": "no data", "examen": "exam", "general": "general", "cambio de grupo": "group change", "compartida": "shared", "interna": "internal", "activo": "active", "baja": "inactive", "Buscar por nombre o email…": "Search by name or email…", "Por estudiante": "By student", "Por grupo": "By group", "Ocultar bajas": "Hide inactive", "＋ Nuevo estudiante": "＋ New student", "Nuevo estudiante": "New student", "Editar estudiante": "Edit student", "Nombre": "Name", "Nivel": "Level", "— sin grupo —": "— no group —", "— sin nivel —": "— no level —", "Estudiante activo (destildá para dar de baja)": "Active student (untick to deactivate)", "Cambiá lo que necesites. Si cambiás el grupo, se guarda sola una nota de \"cambio de grupo\".": "Change whatever you need. If you change the group, a \"group change\" note is saved automatically.", "Completá los datos del nuevo estudiante.": "Fill in the new student's details.", "Motivo de la baja": "Reason for leaving", "Ej: dejó la empresa, cambió de horario…": "E.g. left the company, changed schedule…", "Guardar": "Save", "Cancelar": "Cancel", "Nada que mostrar.": "Nothing to show.", "Poné un nombre.": "Enter a name.", "Estudiante actualizado": "Student updated", "Estudiante creado": "Student created", "Editar": "Edit", "Borrar": "Delete", "Elegí grupo y fecha, marcá quién vino y guardá. A cada ausente podés ponerle la causa.": "Pick a group and date, mark who attended and save. You can add a reason for each absence.", "— elegí un grupo —": "— pick a group —", "Fecha": "Date", "Ese grupo no tiene estudiantes activos.": "That group has no active students.", "Presente": "Present", "Ausente": "Absent", "causa…": "reason…", "Guardar lista": "Save list", "Lista guardada": "List saved", "Ya había lista para esta fecha — la cargué para que la edites.": "This date already had a list — I loaded it for you to edit.", "Trabajo": "Work", "Reunión": "Meeting", "Vacaciones": "Vacation", "Personal": "Personal", "Sin justificar": "Unjustified", "Agregar tema": "Add topic", "Los temas que cargues acá se ven en la ficha de todos los estudiantes del grupo.": "Topics you add here appear on every student's record in the group.", "Ej: Present perfect, Phrasal verbs…": "E.g. Present perfect, Phrasal verbs…", "Mes…": "Month…", "Agregar": "Add", "Temas del grupo": "Group topics", "Tema agregado": "Topic added", "Tema borrado": "Topic removed", "Escribí un tema.": "Type a topic.", "Elegí un grupo para ver y cargar sus temas.": "Pick a group to view and add its topics.", "Enero": "January", "Febrero": "February", "Marzo": "March", "Abril": "April", "Mayo": "May", "Junio": "June", "Julio": "July", "Agosto": "August", "Septiembre": "September", "Octubre": "October", "Noviembre": "November", "Diciembre": "December", "Nueva observación": "New observation", "Editar observación": "Edit observation", "Tipo": "Type", "Trimestre": "Quarter", "Texto": "Text", "Escribí la observación…": "Write the observation…", "Compartida — la ven el estudiante y RRHH. Sin tildar queda interna (solo profesoras).": "Shared — visible to the student and HR. Leave unticked to keep it internal (teachers only).", "Guardar observación": "Save observation", "Guardar cambios": "Save changes", "Observaciones cargadas": "Saved observations", "Todavía no hay observaciones para este estudiante.": "No observations for this student yet.", "Observación guardada": "Observation saved", "Observación actualizada": "Observation updated", "Observación borrada": "Observation removed", "Escribí algo antes de guardar.": "Write something before saving.", "— sin trimestre —": "— no quarter —", "Asistencia e inasistencias por estudiante, grupo o empresa.": "Attendance and absences by student, group or company.", "Asistencia": "Attendance", "Inasistencias por causa": "Absences by reason", "Todas las causas": "All reasons", "Sin datos para esta selección.": "No data for this selection.", "Sin inasistencias para esta selección.": "No absences for this selection.", "No hay estudiantes para descargar": "No students to download", "Este grupo no tiene estudiantes.": "This group has no students.", "⬇ Descargar Excel": "⬇ Download Excel", "Bajas: ": "Inactive: "};
+const DICT={"¡Hola! 👋": "Hi! 👋", "Entrá con tu email. Si es tu primera vez, creá tu cuenta.": "Log in with your email. First time? Create your account.", "Email": "Email", "Contraseña": "Password", "Entrar": "Log in", "Crear cuenta": "Sign up", "Mostrar": "Show", "Ocultar": "Hide", "Tu contraseña": "Your password", "tu@email.com": "you@email.com", "Completá tu email y tu contraseña.": "Enter your email and password.", "Entrando…": "Signing in…", "Creando tu cuenta…": "Creating your account…", "Poné tu email y una contraseña de al menos 6 caracteres.": "Enter your email and a password of at least 6 characters.", "Home": "Home", "Fichas de estudiantes": "Student records", "Gestionar estudiantes": "Manage students", "Gestionar asistencia": "Manage attendance", "Temas": "Topics", "Observaciones": "Observations", "Reportes": "Reports", "Mi ficha": "My record", "Profesora": "Teacher", "RRHH": "HR", "Estudiante": "Student", "Alumno": "Student", "Salir": "Log out", "Plataforma de seguimiento · estudiantes, asistencia y observaciones": "Tracking platform · students, attendance and observations", "Estudiantes cursando": "Active students", "Bajas": "Inactive", "Grupos": "Groups", "Cambios de grupo recientes": "Recent group changes", "Últimos movimientos registrados.": "Latest recorded changes.", "Estudiantes que dejaron de cursar": "Inactive students", "Quienes ya no están cursando.": "Those no longer attending.", "No hay bajas registradas.": "No inactive students.", "Sin cambios de grupo registrados.": "No group changes recorded.", "Copia de seguridad": "Backup", "Descargá toda la base (estudiantes, asistencia, observaciones, temas, grupos) en un Excel. Guardala en tu Drive cada tanto — es tu red de seguridad.": "Download the whole database (students, attendance, observations, topics, groups) as an Excel file. Save it to your Drive every so often — it's your safety net.", "⬇ Descargar backup completo": "⬇ Download full backup", "Preparando backup…": "Preparing backup…", "Backup descargado ✓": "Backup downloaded ✓", "Ficha de estudiante": "Student record", "Empresa": "Company", "Grupo": "Group", "Horario": "Schedule", "Motivo de baja": "Reason for leaving", "Baja": "Inactive", "Ausencias": "Absences", "Días que faltó, con el motivo si quedó registrado.": "Days missed, with the reason if recorded.", "Sin asistencia cargada.": "No attendance recorded.", "Asistencia perfecta en el período. 🎉": "Perfect attendance for the period. 🎉", "Temas dictados en el grupo": "Topics covered in the group", "Sin grupo asignado.": "No group assigned.", "Todavía no hay temas cargados para este grupo.": "No topics loaded for this group yet.", "Trimestrales. Ves todas, incluidas las internas.": "Quarterly. You see all of them, including internal ones.", "Observaciones compartidas.": "Shared observations.", "Sin observaciones visibles.": "No visible observations.", "Cargando ficha…": "Loading record…", "Cargando…": "Loading…", "No hay estudiantes para mostrar con tu acceso.": "No students to show for your access.", "sin motivo": "no reason", "sin datos": "no data", "examen": "exam", "general": "general", "cambio de grupo": "group change", "compartida": "shared", "interna": "internal", "activo": "active", "baja": "inactive", "Buscar por nombre o email…": "Search by name or email…", "Por estudiante": "By student", "Por grupo": "By group", "Ocultar bajas": "Hide inactive", "＋ Agregar estudiante": "＋ New student", "Agregar estudiante": "New student", "Editar estudiante": "Edit student", "Nombre": "Name", "Nivel": "Level", "— sin grupo —": "— no group —", "— sin nivel —": "— no level —", "Cursa actualmente (destildá para registrar la baja)": "Active student (untick to deactivate)", "Cambiá lo que necesites. Si cambiás el grupo, se guarda sola una nota de \"cambio de grupo\".": "Change whatever you need. If you change the group, a \"group change\" note is saved automatically.", "Completá los datos del nuevo estudiante.": "Fill in the new student's details.", "Motivo de la baja": "Reason for leaving", "Ej: dejó la empresa, cambió de horario…": "E.g. left the company, changed schedule…", "Guardar": "Save", "Cancelar": "Cancel", "Nada que mostrar.": "Nothing to show.", "Poné un nombre.": "Enter a name.", "Estudiante actualizado": "Student updated", "Estudiante creado": "Student created", "Editar": "Edit", "Borrar": "Delete", "Elegí grupo y fecha, marcá quién vino y guardá. A cada ausente podés ponerle la causa.": "Pick a group and date, mark who attended and save. You can add a reason for each absence.", "— elegí un grupo —": "— pick a group —", "Fecha": "Date", "Ese grupo no tiene estudiantes activos.": "That group has no active students.", "Presente": "Present", "Ausente": "Absent", "causa…": "reason…", "Guardar lista": "Save list", "Lista guardada": "List saved", "Ya había lista para esta fecha — la cargué para que la edites.": "This date already had a list — I loaded it for you to edit.", "Trabajo": "Work", "Reunión": "Meeting", "Vacaciones": "Vacation", "Personal": "Personal", "Sin justificar": "Unjustified", "Agregar tema": "Add topic", "Los temas que cargues acá se ven en la ficha de cada estudiante del grupo.": "Topics you add here appear on every student's record in the group.", "Ej: Present perfect, Phrasal verbs…": "E.g. Present perfect, Phrasal verbs…", "Mes…": "Month…", "Agregar": "Add", "Temas del grupo": "Group topics", "Tema agregado": "Topic added", "Tema borrado": "Topic removed", "Escribí un tema.": "Type a topic.", "Elegí un grupo para ver y cargar sus temas.": "Pick a group to view and add its topics.", "Enero": "January", "Febrero": "February", "Marzo": "March", "Abril": "April", "Mayo": "May", "Junio": "June", "Julio": "July", "Agosto": "August", "Septiembre": "September", "Octubre": "October", "Noviembre": "November", "Diciembre": "December", "Nueva observación": "New observation", "Editar observación": "Edit observation", "Tipo": "Type", "Trimestre": "Quarter", "Texto": "Text", "Escribí la observación…": "Write the observation…", "Compartida — la ven el estudiante y RRHH. Sin tildar queda interna (solo profesoras).": "Shared — visible to the student and HR. Leave unticked to keep it internal (teachers only).", "Guardar observación": "Save observation", "Guardar cambios": "Save changes", "Observaciones cargadas": "Saved observations", "Todavía no hay observaciones para este estudiante.": "No observations for this student yet.", "Observación guardada": "Observation saved", "Observación actualizada": "Observation updated", "Observación borrada": "Observation removed", "Escribí algo antes de guardar.": "Write something before saving.", "— sin trimestre —": "— no quarter —", "Asistencia e inasistencias por estudiante, grupo o empresa.": "Attendance and absences by student, group or company.", "Asistencia": "Attendance", "Inasistencias por causa": "Absences by reason", "Todas las causas": "All reasons", "Sin datos para esta selección.": "No data for this selection.", "Sin inasistencias para esta selección.": "No absences for this selection.", "No hay estudiantes para descargar": "No students to download", "Este grupo no tiene estudiantes.": "This group has no students.", "⬇ Descargar Excel": "⬇ Download Excel", "Bajas: ": "Inactive: "};
 const CAUSA_EN={"trabajo":"work","reunión":"meeting","reunion":"meeting","vacaciones":"vacation","personal":"personal","sin justificar":"unjustified"};
 const RE_RULES=[
   [/^Asistencia · (\d+) de (\d+) clases$/, function(m,a,b){return "Attendance · "+a+" of "+b+" classes";}],
@@ -507,6 +517,28 @@ async function fetchAllObs(){
 }
 // Trae TODAS las filas de una tabla, en tandas de 1000, con un orden estable
 // (siempre termina en una columna única) para que no se repitan ni se pierdan filas.
+// Ventanas propias (reemplazan confirm/prompt del navegador)
+function uiDialog(texto, opt){
+  opt=opt||{};
+  return new Promise(res=>{
+    const en=LANG==='en', danger=/borrar|eliminar|quitar|deshacer|delete|remove|undo/i.test(texto);
+    const ov=document.createElement('div'); ov.className='ui-ov';
+    ov.innerHTML=`<div class="ui-dlg" role="dialog" aria-modal="true"><p class="ui-txt"></p>${opt.input?'<input class="ui-in" type="text">':''}
+      <div class="ui-acts"><button class="btn-ghost ui-no" type="button">${en?'Cancel':'Cancelar'}</button><button class="btn-primary ui-ok${danger&&!opt.input?' ui-danger':''}" type="button">${opt.ok||(en?'Confirm':'Confirmar')}</button></div></div>`;
+    ov.querySelector('.ui-txt').textContent=texto;
+    const inp=ov.querySelector('.ui-in'); if(inp){ inp.placeholder=opt.placeholder||''; inp.value=opt.value||''; }
+    document.body.appendChild(ov);
+    const cerrar=v=>{ document.removeEventListener('keydown',tecla); ov.remove(); res(v); };
+    const tecla=e=>{ if(e.key==='Escape') cerrar(opt.input?null:false); if(e.key==='Enter'&&(inp||document.activeElement===ov.querySelector('.ui-ok'))){ e.preventDefault(); cerrar(opt.input?inp.value:true); } };
+    document.addEventListener('keydown',tecla);
+    ov.querySelector('.ui-no').onclick=()=>cerrar(opt.input?null:false);
+    ov.querySelector('.ui-ok').onclick=()=>cerrar(opt.input?inp.value:true);
+    ov.addEventListener('click',e=>{ if(e.target===ov) cerrar(opt.input?null:false); });
+    (inp||ov.querySelector('.ui-ok')).focus();
+  });
+}
+const uiConfirm=(t,o)=>uiDialog(t,o);
+const uiPrompt=(t,o)=>uiDialog(t,Object.assign({input:true,ok:LANG==='en'?'Save':'Guardar'},o||{}));
 async function traerTodo(tabla, cols, orden){
   const all=[]; const size=1000;
   for(let from=0;;from+=size){
@@ -679,7 +711,7 @@ function renderPendientes(box,soloMias,compacto){
   });
   box.querySelectorAll('[data-nd]').forEach(b=>b.onclick=async()=>{
     const [gid,fecha]=b.dataset.nd.split('|');
-    const motivo=prompt(LANG==='en'?'Reason (optional): holiday, cancelled, substitute…':'Motivo (opcional): feriado, cancelada, reemplazo…','');
+    const motivo=await uiPrompt(LANG==='en'?'Reason (optional): holiday, cancelled, substitute…':'Motivo (opcional): feriado, cancelada, reemplazo…','');
     if(motivo===null) return;
     const {error}=await db.from("clases_sin_dictar").insert({grupo_id:gid,fecha,motivo:motivo.trim()||null});
     if(error){ toast("No se pudo guardar"); return; }
@@ -743,7 +775,7 @@ function viewClases(){
       document.querySelectorAll('#toptabs .tab').forEach(x=>x.classList.toggle('active',x===t));
       document.getElementById('subtabs').innerHTML=''; viewListaAsis();
     } else if(st==='sin'){
-      if(!confirm(LANG==='en'?'Undo "no class" for this date?':'¿Deshacer "no hubo clase" en esta fecha?')) return;
+      if(!await uiConfirm(LANG==='en'?'Undo "no class" for this date?':'¿Deshacer "no hubo clase" en esta fecha?')) return;
       const {error}=await db.from("clases_sin_dictar").delete().eq("grupo_id",gid).eq("fecha",f);
       if(error){ toast("No se pudo guardar"); return; }
       ctx.sinDictar=(ctx.sinDictar||[]).filter(s=>!(s.grupo_id===gid&&s.fecha===f)); viewClases();
@@ -782,7 +814,7 @@ async function viewConsultas(){
     if(error){ toast("No se pudo guardar"); return; } viewConsultas();
   });
   view.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
-    if(!confirm(LANG==='en'?'Delete this inquiry?':'¿Borrar esta consulta?')) return;
+    if(!await uiConfirm(LANG==='en'?'Delete this inquiry?':'¿Borrar esta consulta?')) return;
     const {error}=await db.from("consultas").delete().eq("id",b.dataset.del);
     if(error){ toast("No se pudo borrar"); return; } viewConsultas();
   });
@@ -902,10 +934,10 @@ async function renderInasistencias(cont){
         if(!ok){ try{ const r=document.createRange(); r.selectNodeContents(formBox.querySelector('.mail-prev')); const s=getSelection(); s.removeAllRanges(); s.addRange(r); ok=document.execCommand('copy'); s.removeAllRanges(); }catch(e){} }
         toast(ok?'Mail copiado ✓':'No se pudo copiar: seleccioná la vista previa y copiala a mano');
       };
-      formBox.querySelector('[data-open]').onclick=()=>{
-        if(!confirm(LANG==='en'?'This email must be sent from innit.english@gmail.com.\n\nIf this browser doesn\'t have that account signed in, Gmail will ask you to sign in with it.\n\nBefore sending, check that the "From" field says innit.english@gmail.com.':'Este mail tiene que salir desde innit.english@gmail.com.\n\nSi este navegador no tiene abierta esa cuenta, Gmail te va a pedir que entres con ella.\n\nAntes de enviar, revisá que en "De:" diga innit.english@gmail.com.')) return;
+      formBox.querySelector('[data-open]').onclick=async()=>{
+        if(!await uiConfirm(LANG==='en'?'This email must be sent from innit.english@gmail.com.\n\nIf this browser doesn\'t have that account signed in, Gmail will ask you to sign in with it.\n\nBefore sending, check that the "From" field says innit.english@gmail.com.':'Este mail tiene que salir desde innit.english@gmail.com.\n\nSi este navegador no tiene abierta esa cuenta, Gmail te va a pedir que entres con ella.\n\nAntes de enviar, revisá que en "De:" diga innit.english@gmail.com.')) return;
         window.open(gmailCompose({to:d.a.email||'',cc:d.cc,bcc:d.bcc,subject:'Consulta de inasistencias'}),'_blank');
-        setTimeout(()=>{ if(confirm(LANG==='en'?'Did you send the email?':'¿Enviaste el mail?')) upd(id,{estado:'enviado',fecha_envio:hoyStr}); },1500);
+        setTimeout(async()=>{ if(await uiConfirm(LANG==='en'?'Did you send the email?':'¿Enviaste el mail?',{ok:LANG==='en'?'Yes, I sent it':'Sí, lo envié'})) upd(id,{estado:'enviado',fecha_envio:hoyStr}); },1500);
       };
     }
     else if(act==='enviado'){ upd(id,{estado:'enviado',fecha_envio:hoyStr}); }
@@ -939,7 +971,7 @@ async function renderInasistencias(cont){
 function renderBajasHTML(){
   const bajas=ctx.alumnos.filter(a=>!a.activo);
   const rows = bajas.length ? '<div>'+bajas.map(a=>{const g=a.grupo_id?ctx.grupoById[a.grupo_id]:null; return `<div class="obs"><div style="display:flex;justify-content:space-between;gap:10px"><span>${a.nombre}</span><span style="color:var(--ink-soft);font-size:13px">${g?g.nombre.replace('Avenga ',''):'—'}</span></div>${(a.motivo_baja||a.fecha_baja)?`<div style="font-size:12.5px;color:var(--ink-soft);margin-top:3px">${a.fecha_baja?fmtFecha(a.fecha_baja)+(a.motivo_baja?' · ':''):''}${a.motivo_baja?'Motivo: '+a.motivo_baja:''}</div>`:''}</div>`;}).join('')+'</div>' : '<div class="empty">No hay bajas registradas.</div>';
-  return `<div class="section"><h2>Estudiantes dados de baja</h2><div class="sub">Los que ya no están cursando.</div>${rows}</div>`;
+  return `<div class="section"><h2>Estudiantes que dejaron de cursar</h2><div class="sub">Quienes ya no están cursando.</div>${rows}</div>`;
 }
 async function renderCambios(cont){
   if(!cont) return;
@@ -1003,7 +1035,7 @@ async function viewHome(segArg){
     return `<div class="section"><h2>${e.nombre}</h2>
       <div class="stat-grid" style="margin:12px 0 4px">
         <div class="stat"><div class="n">${pm===null?'—':pm+'<small style="font-size:16px;color:var(--ink-soft)">%</small>'}</div><div class="l">Asistencia del mes</div></div>
-        <div class="stat"><div class="n">${act}</div><div class="l">Estudiantes activos</div></div>
+        <div class="stat"><div class="n">${act}</div><div class="l">Estudiantes cursando</div></div>
         <div class="stat"><div class="n" style="color:${ni>0?'var(--orange)':'var(--ink)'}">${ni}</div><div class="l">Inasistencias pendientes</div></div>
         <div class="stat"><div class="n">${gs}</div><div class="l">Grupos</div></div>
       </div>
@@ -1018,7 +1050,7 @@ async function viewHome(segArg){
     ${esProf?'<div id="h-cons"></div><div id="h-pend"></div>':''}
     ${esProf?'':`<div class="stat-grid">
       <div class="stat"><div class="n">${pctMes}<small style="font-size:16px;color:var(--ink-soft)">%</small></div><div class="l">Asistencia del mes</div></div>
-      <div class="stat"><div class="n">${activos}</div><div class="l">Estudiantes activos</div></div>
+      <div class="stat"><div class="n">${activos}</div><div class="l">Estudiantes cursando</div></div>
       <div class="stat"><div class="n" style="color:${nInas>0?'var(--orange)':'var(--ink)'}">${nInas}</div><div class="l">Inasistencias pendientes</div></div>
       <div class="stat"><div class="n">${grupos.length}</div><div class="l">Grupos</div></div>
     </div>`}
@@ -1222,7 +1254,7 @@ function viewGrupos(){
     };
     view.querySelectorAll("[data-hrdel]").forEach(b=>b.onclick=async()=>{
       const h=(ctx.staff||[]).find(s=>s.id===b.dataset.hrdel); if(!h) return;
-      if(!confirm((LANG==='en'?'Remove HR access for ':'¿Quitarle el acceso de HR a ')+h.email+'?')) return;
+      if(!await uiConfirm((LANG==='en'?'Remove HR access for ':'¿Quitarle el acceso de HR a ')+h.email+'?')) return;
       const {error}=await db.from("staff").delete().eq("id",h.id);
       if(error){ toast("No se pudo quitar"); return; }
       await loadData(); toast("HR quitado"); render();
@@ -1277,7 +1309,7 @@ function viewGrupos(){
       const nAsis=ctx.asis.filter(a=>a.grupo_id===id).length;
       if(nEst){ msg.className="msg err"; msg.textContent=`Este grupo tiene ${nEst} estudiante(s). Pasalos a otro grupo o dalos de baja antes de eliminarlo.`; return; }
       if(nAsis){ msg.className="msg err"; msg.textContent="Este grupo tiene asistencia registrada. Para no perder el historial, no se puede eliminar."; return; }
-      if(!confirm(LANG==='en'?'Delete this group? This cannot be undone.':'¿Eliminar este grupo? No se puede deshacer.')) return;
+      if(!await uiConfirm(LANG==='en'?'Delete this group? This cannot be undone.':'¿Eliminar este grupo? No se puede deshacer.')) return;
       const {error}=await db.from("grupos").delete().eq("id",id);
       if(error){ msg.className="msg err"; msg.textContent="No se pudo eliminar: "+error.message; return; }
       await loadData(); toast("Grupo eliminado"); render();
@@ -1318,7 +1350,7 @@ function viewGestion(){
         <label class="switch"><input type="checkbox" id="hb" ${hideBajas?'checked':''}> Ocultar bajas</label>
         <div style="flex:1"></div>
         <button class="btn-ghost btn-sm" id="bulk">Cargar varios</button>
-        <button class="btn-primary btn-sm" id="nuevo">＋ Nuevo estudiante</button>
+        <button class="btn-primary btn-sm" id="nuevo">＋ Agregar estudiante</button>
       </div>${inner}`;
     const qi=document.getElementById("q");
     qi.oninput=e=>{ q=e.target.value; const p=e.target.selectionStart; render(); const el=document.getElementById("q"); el.focus(); el.setSelectionRange(p,p); };
@@ -1341,7 +1373,7 @@ function viewGestion(){
     const nopts=['<option value="">— sin nivel —</option>'].concat(NIVELES.map(n=>`<option ${n===a.nivel_sel?'selected':''}>${n}</option>`)).join("");
     view.innerHTML=`
       <div class="section" style="max-width:560px">
-        <h2>${id?'Editar estudiante':'Nuevo estudiante'}</h2>
+        <h2>${id?'Editar estudiante':'Agregar estudiante'}</h2>
         <div class="sub">${id?'Cambiá lo que necesites. Si cambiás el grupo, se guarda sola una nota de "cambio de grupo".':'Completá los datos del nuevo estudiante.'}</div>
         <div class="field"><label class="lab">Nombre</label><input id="f-nombre" value="${(a.nombre||'').replace(/"/g,'&quot;')}"></div>
         <div class="field"><label class="lab">Email</label><input id="f-email" type="email" value="${a.email||''}"></div>
@@ -1353,7 +1385,7 @@ function viewGestion(){
 
         </div>
         <div class="field"><label class="lab">Nivel</label><select id="f-nivel">${nopts}</select></div>
-        <label class="switch" style="margin-top:4px"><input type="checkbox" id="f-activo" ${a.activo?'checked':''}> Estudiante activo (destildá para dar de baja)</label>
+        <label class="switch" style="margin-top:4px"><input type="checkbox" id="f-activo" ${a.activo?'checked':''}> Cursa actualmente (destildá para registrar la baja)</label>
         <div class="field" id="f-motivo-wrap" style="margin-top:12px;${a.activo?'display:none':''}"><label class="lab">Motivo de la baja</label><input id="f-motivo" value="${(a.motivo_baja||'').replace(/"/g,'&quot;')}" placeholder="Ej: dejó la empresa, cambió de horario…">
           <label class="lab" style="margin-top:10px">Fecha de baja</label><input id="f-fbaja" type="date" value="${a.fecha_baja||new Date().toISOString().slice(0,10)}">
           ${id?`<label class="switch" style="margin-top:10px"><input type="checkbox" id="f-borrar"> <span id="f-borrar-txt">Borrar la asistencia cargada después de la fecha de baja</span></label>`:''}</div>
@@ -1367,7 +1399,7 @@ function viewGestion(){
       const en=LANG==='en';
       let txt=en?`Delete ${a.nombre}? This cannot be undone.`:`¿Eliminar a ${a.nombre}? No se puede deshacer.`;
       if(nAs||nObs) txt=en?`${a.nombre} has ${nAs} attendance records and ${nObs||0} observations. They will ALL be deleted. If this person just stopped attending, better deactivate them instead. Delete anyway?`:`${a.nombre} tiene ${nAs} registros de asistencia y ${nObs||0} observaciones. Se van a borrar TODOS. Si la persona dejó de venir, conviene darla de baja en vez de eliminarla. ¿Eliminar igual?`;
-      if(!confirm(txt)) return;
+      if(!await uiConfirm(txt)) return;
       const gid=a.grupo_id, g=gid?ctx.grupoById[gid]:null;
       const {error}=await db.from("alumnos").delete().eq("id",id);
       const fmsg=document.getElementById("fmsg");
@@ -1574,7 +1606,7 @@ function viewTemas(){
     body.innerHTML=`
       <div class="section" style="max-width:640px">
         <h2>Agregar tema</h2>
-        <div class="sub">Los temas que cargues acá se ven en la ficha de todos los estudiantes del grupo.</div>
+        <div class="sub">Los temas que cargues acá se ven en la ficha de cada estudiante del grupo.</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <input id="tm-nuevo" placeholder="Ej: Present perfect, Phrasal verbs…" style="flex:1;min-width:200px">
           <select id="tm-mes" style="max-width:150px">${opcMeses('')}</select>
@@ -1598,7 +1630,7 @@ function viewTemas(){
     }
     document.getElementById("tm-add").onclick=add;
     inp.onkeydown=e=>{ if(e.key==="Enter") add(); };
-    body.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{ if(!confirm(LANG==='en'?'Delete this topic?':'¿Borrar este tema?')) return; await db.from("temas").delete().eq("id",b.dataset.del); toast("Tema borrado"); load(gid); });
+    body.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{ if(!await uiConfirm(LANG==='en'?'Delete this topic?':'¿Borrar este tema?')) return; await db.from("temas").delete().eq("id",b.dataset.del); toast("Tema borrado"); load(gid); });
     body.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{
       const t=temas.find(x=>String(x.id)===b.dataset.edit); const row=body.querySelector(`.tm-row[data-id="${b.dataset.edit}"]`); if(!t||!row) return;
       row.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;align-items:center"><input class="tm-e-txt" value="${(t.tema||'').replace(/"/g,'&quot;')}" style="flex:1;min-width:180px"><select class="tm-e-mes" style="max-width:150px">${opcMeses(t.mes)}</select><button class="btn-primary btn-sm tm-e-ok">Guardar</button><button class="btn-ghost btn-sm tm-e-no">Cancelar</button></div>`;
@@ -1666,7 +1698,7 @@ function viewObs(){
       toast(e?"Observación actualizada":"Observación guardada"); load(alId);
     };
     body.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{ load(alId, b.dataset.edit); window.scrollTo({top:0,behavior:'smooth'}); });
-    body.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{ if(!confirm("¿Borrar esta observación?"))return; await db.from("observaciones").delete().eq("id",b.dataset.del); toast("Observación borrada"); load(alId); });
+    body.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{ if(!await uiConfirm("¿Borrar esta observación?"))return; await db.from("observaciones").delete().eq("id",b.dataset.del); toast("Observación borrada"); load(alId); });
   }
 }
 

@@ -524,7 +524,7 @@ function uiDialog(texto, opt){
     const en=LANG==='en', danger=/borrar|eliminar|quitar|deshacer|delete|remove|undo/i.test(texto);
     const ov=document.createElement('div'); ov.className='ui-ov';
     ov.innerHTML=`<div class="ui-dlg" role="dialog" aria-modal="true"><p class="ui-txt"></p>${opt.input?'<input class="ui-in" type="text">':''}
-      <div class="ui-acts"><button class="btn-ghost ui-no" type="button">${en?'Cancel':'Cancelar'}</button><button class="btn-primary ui-ok${danger&&!opt.input?' ui-danger':''}" type="button">${opt.ok||(en?'Confirm':'Confirmar')}</button></div></div>`;
+      <div class="ui-acts"><button class="btn-ghost ui-no" type="button">${en?'Cancel':'Cancelar'}</button><button class="btn-primary ui-ok${danger&&!opt.input?' ui-danger':''}" type="button">${opt.ok||(()=>{ const m=texto.match(/borrar|eliminar|quitar|deshacer|delete|remove|undo/i); if(!m||opt.input) return en?'Confirm':'Confirmar'; const k=m[0].toLowerCase(); return ({borrar:'Borrar',eliminar:'Eliminar',quitar:'Quitar',deshacer:'Deshacer',delete:'Delete',remove:'Remove',undo:'Undo'})[k]; })()}</button></div></div>`;
     ov.querySelector('.ui-txt').textContent=texto;
     const inp=ov.querySelector('.ui-in'); if(inp){ inp.placeholder=opt.placeholder||''; inp.value=opt.value||''; }
     document.body.appendChild(ov);

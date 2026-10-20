@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Innit · Practice Corner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B1A17; --ink-soft:#6A6459; --paper:#F7F3E8; --card:#FFFFFF; --line:#E7E1D2;
+    --yellow:#F5C70F; --red:#CC3333; --green:#189B83; --cyan:#18AACD; --orange:#D96A32;
+    --green-bg:#E1F1ED; --red-bg:#F8E3E3; --yellow-bg:#FDF3CE; --cyan-bg:#E4F0F5;
+    --lv:#F5C70F; --lv-ink:#1B1A17; --lv-soft:#FDF3CE;
+    --shadow:0 1px 2px rgba(27,26,23,.04), 0 10px 30px rgba(27,26,23,.07);
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--paper); color:var(--ink); font-family:"Inter",system-ui,sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  button{font-family:inherit; cursor:pointer; border:none; border-radius:10px; font-weight:600; font-size:14px}
+  .btn-primary{background:var(--yellow); color:var(--ink); padding:11px 18px}
+  .btn-primary:hover{filter:brightness(.96)}
+  .btn-primary:disabled{opacity:.55; cursor:default}
+  .btn-ghost{background:#fff; color:var(--ink); padding:10px 15px; border:1px solid var(--line)}
+  .btn-ghost:hover{border-color:var(--ink)}
+  .btn-sm{padding:7px 12px; font-size:13px}
+  .danger{color:var(--red)!important; border-color:var(--red-bg)!important}
+  input,select,textarea{font-family:inherit; font-size:15px; padding:11px 13px; border:1px solid var(--line); border-radius:10px; width:100%; background:#fff; color:var(--ink)}
+  textarea{resize:vertical; min-height:90px}
+  input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--yellow); outline-offset:1px}
+  .lab{display:block; font-size:12px; color:var(--ink-soft); margin-bottom:5px; font-weight:600}
+  .field{margin-bottom:12px}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .empty{font-size:14px; color:var(--ink-soft); padding:10px 0}
+  .pad{padding:40px 20px; text-align:center}
+  .msg{font-size:13px; padding:8px 12px; border-radius:8px; display:inline-block}
+  .msg.err{background:var(--red-bg); color:var(--red)} .msg.ok{background:var(--green-bg); color:var(--green)}
+  .toast{position:fixed; bottom:20px; left:50%; transform:translate(-50%,12px); background:var(--ink); color:#fff; padding:12px 20px; border-radius:12px; font-size:14px; opacity:0; transition:opacity .25s, transform .25s; z-index:50; pointer-events:none}
+  .toast.show{opacity:1; transform:translate(-50%,0)}
+
+  .topnav{background:var(--ink); padding:12px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap}
+  .brand{font-family:"Bricolage Grotesque"; font-weight:800; font-size:22px; letter-spacing:-.02em; color:var(--yellow)}
+  .brand span{font-family:"Inter"; font-weight:600; font-size:13px; color:#fff; opacity:.75; margin-left:8px; letter-spacing:0}
+  .nav-r{display:flex; gap:8px; align-items:center}
+  .btn-out{background:transparent; color:#CFC9BC; border:1px solid #3A362E; padding:7px 12px; font-size:13px; text-decoration:none; border-radius:10px; font-weight:600}
+  .wrap{max-width:960px; margin:0 auto; padding:20px 20px 80px}
+  .tabs{display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap}
+  .tab{background:transparent; color:var(--ink-soft); border:1px solid var(--line); padding:9px 16px; border-radius:20px}
+  .tab.active{background:var(--ink); color:#fff; border-color:var(--ink)}
+  .section{background:var(--card); border-radius:18px; box-shadow:var(--shadow); padding:22px 24px; margin-bottom:18px}
+  .section h2{font-family:"Bricolage Grotesque"; font-weight:700; font-size:20px; margin:0 0 4px}
+  .sub{font-size:13px; color:var(--ink-soft); margin-bottom:16px}
+  .row-between{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap}
+  .form-actions{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; align-items:center}
+
+  /* listas (panel profes) */
+  .alist{border:1px solid var(--line); border-radius:14px; overflow:hidden}
+  .lrow{display:flex; align-items:center; gap:12px; padding:13px 16px; border-bottom:1px solid var(--line); background:#fff}
+  .lrow:last-child{border-bottom:none}
+  .lrow.click{cursor:pointer} .lrow.click:hover{background:#FBF9F2}
+  .lmain{flex:1; min-width:0; display:flex; flex-direction:column}
+  .lmain b{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .lsub{font-size:12.5px; color:var(--ink-soft)}
+  .dot{width:12px; height:12px; border-radius:4px; flex:none}
+  .fchips{display:flex; gap:6px; flex-wrap:wrap; margin:4px 0 14px}
+  .fchip{background:#fff; border:1px solid var(--line); color:var(--ink-soft); padding:6px 12px; border-radius:20px; font-size:13px}
+  .fchip.on{background:var(--yellow); border-color:var(--yellow); color:var(--ink)}
+  .pill{font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:20px; white-space:nowrap}
+  .st-new{background:#EFEADD; color:var(--ink-soft)} .st-opened{background:var(--cyan-bg); color:var(--cyan)}
+  .st-done{background:var(--green-bg); color:var(--green)} .st-submitted{background:var(--yellow-bg); color:var(--orange)}
+  .st-corrected{background:var(--green-bg); color:var(--green)}
+  .check{display:flex; align-items:center; gap:10px; padding:9px 14px; border-bottom:1px solid var(--line); cursor:pointer; font-size:14px}
+  .check:last-child{border-bottom:none} .check input{width:auto}
+
+  /* editor */
+  .bed{border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; background:#FDFBF6}
+  .bed-head{display:flex; align-items:center; gap:8px; margin-bottom:10px}
+  .bed-head b{flex:1; font-size:13.5px}
+  .bed-head button{background:#fff; border:1px solid var(--line); padding:4px 9px; font-size:13px}
+  .bed img{max-width:220px; border-radius:8px; display:block; margin-bottom:8px}
+  .addbar{display:flex; gap:6px; flex-wrap:wrap; align-items:center; padding:14px; border:1px dashed #D4CCB8; border-radius:14px}
+  .hint{font-size:12px; color:var(--ink-soft); margin-top:4px}
+  .preview-wrap{margin-top:22px; border-top:1px solid var(--line); padding-top:18px}
+
+  /* ===== vista del alumno ===== */
+  .pc-head{position:relative; background:var(--ink); color:#fff; border-radius:22px; padding:34px 30px 30px; margin-bottom:18px; overflow:hidden; box-shadow:var(--shadow)}
+  .pc-corner{position:absolute; top:0; right:0; width:150px; height:150px; background:linear-gradient(225deg, var(--lv) 50%, transparent 50%)}
+  .pc-corner::after{content:""; position:absolute; top:0; right:0; width:150px; height:150px; background:linear-gradient(45deg, rgba(0,0,0,.22) 0, transparent 22%); clip-path:polygon(0 0,100% 100%,0 100%); transform:translate(-0px,0)}
+  .pc-level{position:absolute; top:18px; right:20px; font-family:"Bricolage Grotesque"; font-weight:800; font-size:26px; color:var(--lv-ink); letter-spacing:-.02em}
+  .pc-kicker{font-size:13px; color:#CFC9BC; font-weight:600}
+  .pc-head h1{font-family:"Bricolage Grotesque"; font-weight:800; font-size:44px; line-height:1; letter-spacing:-.03em; margin:10px 0 10px; max-width:75%}
+  .pc-head p{margin:0; color:#CFC9BC; font-size:15px; max-width:60ch}
+  .teacher-banner{background:var(--yellow-bg); border-left:4px solid var(--yellow); border-radius:0; padding:12px 16px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; font-size:14px}
+  .next{border-top:6px solid var(--lv)}
+  .cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:12px}
+  .card{text-align:left; background:#fff; border:1px solid var(--line); border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:6px; font-weight:400; color:var(--ink); transition:border-color .15s, transform .15s}
+  .card:hover{border-color:var(--lv); transform:translateY(-1px)}
+  .card .csec{font-size:12px; font-weight:700; color:var(--ink-soft)}
+  .card b{font-family:"Bricolage Grotesque"; font-size:18px; font-weight:700; line-height:1.2}
+  .card .cdesc{font-size:13.5px; color:var(--ink-soft)}
+  .card .cfoot{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:auto; padding-top:8px; font-size:12.5px; color:var(--ink-soft)}
+  .sectabs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px}
+  .sectab{background:#fff; border:1px solid var(--line); color:var(--ink-soft); padding:7px 13px; border-radius:20px; font-size:13px}
+  .sectab.on{background:var(--lv); border-color:var(--lv); color:var(--lv-ink)}
+  .sectab small{opacity:.7; margin-left:3px}
+
+  .item-head h1{font-family:"Bricolage Grotesque"; font-weight:800; font-size:34px; line-height:1.05; letter-spacing:-.02em; margin:6px 0}
+  .back{background:transparent; color:var(--ink-soft); padding:0; margin-bottom:12px; font-size:14px}
+  .back:hover{color:var(--ink)}
+  .item-body{max-width:72ch}
+  .b-text{margin:0 0 18px; font-size:16px; line-height:1.65}
+  .b-note{background:var(--lv-soft); border-left:4px solid var(--lv); padding:14px 16px; margin:0 0 18px; font-size:15px}
+  .b-note-lab{display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:4px}
+  .b-img{margin:0 0 18px} .b-img img{max-width:100%; border-radius:12px; border:1px solid var(--line); display:block}
+  .b-img figcaption{font-size:13px; color:var(--ink-soft); margin-top:6px}
+  .b-vocab{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; margin:0 0 18px}
+  .vcard{background:#fff; border:1px solid var(--line); border-top:4px solid var(--lv); border-radius:4px 4px 12px 12px; padding:12px 14px; display:flex; flex-direction:column; gap:4px}
+  .vcard b{font-family:"Bricolage Grotesque"; font-size:18px}
+  .vcard span{font-size:14px} .vcard i{font-size:13.5px; color:var(--ink-soft)}
+  .b-q{margin:0 0 18px} .b-q label{display:block; font-weight:600; margin-bottom:8px; font-size:15.5px}
+  .b-q textarea[readonly]{background:#FBF9F2}
+  .b-choice{margin:0 0 18px} .b-choice-q{font-weight:600; margin-bottom:8px; font-size:15.5px}
+  .opt{display:block; width:100%; text-align:left; background:#fff; border:1px solid var(--line); padding:11px 14px; margin-bottom:6px; font-weight:500}
+  .opt:hover{border-color:var(--ink)}
+  .opt.right{background:var(--green-bg); border-color:var(--green); color:#0F5F50}
+  .opt.wrong{background:var(--red-bg); border-color:var(--red); color:#8E2323}
+  .b-video{position:relative; padding-top:56.25%; margin:0 0 18px; border-radius:12px; overflow:hidden; background:#000}
+  .b-video iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
+  .b-tool{margin:0 0 18px}
+  .b-tool iframe{width:100%; height:620px; border:1px solid var(--line); border-radius:12px; background:#fff}
+  .b-tool-open{display:inline-block; font-size:13px; margin-top:6px; color:var(--ink-soft)}
+  .b-link{display:inline-block; background:var(--lv); color:var(--lv-ink); text-decoration:none; font-weight:600; padding:10px 16px; border-radius:10px; margin:0 0 18px}
+  .feedback{background:var(--green-bg); border-left:4px solid var(--green); padding:16px 18px; margin:0 0 20px}
+  .feedback .fl{font-size:12.5px; font-weight:700; color:var(--green); margin-bottom:6px; display:block}
+  .feedback b{color:#0F5F50}
+  .sentbox{background:var(--yellow-bg); border-left:4px solid var(--yellow); padding:12px 16px; font-size:14px}
+  .rate{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+  .rate button{background:#fff; border:1px solid var(--line); padding:9px 14px}
+  .rate button.on{background:var(--lv); border-color:var(--lv); color:var(--lv-ink)}
+  .answer{white-space:pre-wrap; background:#FBF9F2; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:15px}
+
+  @media (max-width:640px){
+    .grid2{grid-template-columns:1fr}
+    .wrap{padding:14px 12px 70px}
+    .section{padding:18px 14px}
+    .pc-head{padding:28px 20px 24px}
+    .pc-head h1{font-size:34px}
+    .pc-corner,.pc-corner::after{width:110px; height:110px}
+    .b-tool iframe{height:520px}
+  }
+  @media (prefers-reduced-motion:reduce){ .card,.toast{transition:none} .card:hover{transform:none} }
+</style>
+</head>
+<body>
+<div id="root"><div class="empty pad">Loading…</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://ornlicmealhanmldnpwo.supabase.co";
+const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ybmxpY21lYWxoYW5tbGRucHdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4NDAxNTcsImV4cCI6MjEwMzQxNjE1N30.eGT7e0RVlqf4hQiv4pJ8WEqokDw22S5mWFlfObDku5g";
+const PLATAFORMA_URL="/plataforma/";
+const BUCKET="practice-media";
+
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const root=document.getElementById("root");
+const S={};
+
+const SECTIONS=[["next_class","For next class"],["vocabulary","Vocabulary"],["grammar","Grammar"],["speaking","Speaking"],["writing","Writing"],["reading","Reading"],["use_of_english","Use of English"],["video","Videos"]];
+const BLOCKS=[["text","Texto"],["note","Nota de la profe"],["image","Imagen / recorte"],["vocab","Vocabulario"],["question","Pregunta abierta"],["choice","Multiple choice"],["video","Video"],["tool","Tool HTML"],["link","Link / archivo"]];
+const ST_EN={new:"New",opened:"Started",done:"Done",submitted:"Sent",corrected:"Corrected"};
+const ST_ES={new:"Sin abrir",opened:"Abierta",done:"Hecha",submitted:"Entregada",corrected:"Corregida"};
+
+/* ---------- utilidades ---------- */
+const $=s=>document.querySelector(s);
+const secName=k=>(SECTIONS.find(s=>s[0]===k)||[k,k])[1];
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function md(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/\n/g,"<br>"); }
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function hoy(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+const MES_EN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MES_ES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+function fmtD(f,es){ if(!f) return ""; const d=new Date(String(f).slice(0,10)+"T12:00:00"); return d.getDate()+" "+(es?MES_ES:MES_EN)[d.getMonth()]; }
+function toast(t){ const el=$("#toast"); el.textContent=t; el.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove("show"),2400); }
+function levelCode(n){
+  if(!n) return null; const s=String(n).toUpperCase().trim();
+  if(/^PRE/.test(s)) return "PRE_A1";
+  const m=s.match(/^(A1|A2|B1|B2|C1)\s*(\+|PLUS)?/); return m?m[1]+(m[2]?"+":""):null;
+}
+function inkFor(hex){
+  const h=(hex||"#F5C70F").replace("#",""); const r=parseInt(h.substr(0,2),16), g=parseInt(h.substr(2,2),16), b=parseInt(h.substr(4,2),16);
+  return (0.299*r+0.587*g+0.114*b)/255>0.62?"#1B1A17":"#FFFFFF";
+}
+function applyLevel(code){
+  const lv=(S.levels||[]).find(l=>l.code===code); const c=lv?lv.color:"#F5C70F"; const st=document.documentElement.style;
+  st.setProperty("--lv",c); st.setProperty("--lv-ink",inkFor(c)); st.setProperty("--lv-soft","color-mix(in srgb, "+c+" 14%, #fff)");
+  return lv||null;
+}
+function parseVocab(raw){ return String(raw||"").split(/\n/).map(l=>l.trim()).filter(Boolean).map(l=>{ const p=l.split("|").map(x=>x.trim()); return {w:p[0]||"",m:p[1]||"",e:p[2]||""}; }); }
+function parseOpts(raw){ return String(raw||"").split(/\n/).map(l=>l.trim()).filter(Boolean).map(l=>({ok:l.startsWith("*"), t:l.replace(/^\*\s*/,"")})); }
+function embedUrl(u){
+  if(!u) return null; let m=u.match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/);
+  if(m) return "https://www.youtube.com/embed/"+m[1];
+  m=u.match(/drive\.google\.com\/file\/d\/([^/?#]+)/); if(m) return "https://drive.google.com/file/d/"+m[1]+"/preview";
+  m=u.match(/vimeo\.com\/(\d+)/); if(m) return "https://player.vimeo.com/video/"+m[1];
+  return null;
+}
+async function traerTodo(tabla,cols,orden){
+  const all=[]; const size=1000;
+  for(let from=0;;from+=size){
+    let q=db.from(tabla).select(cols);
+    orden.forEach(o=>{ const [c,dir]=o.split(" "); q=q.order(c,{ascending:dir!=="desc"}); });
+    const {data,error}=await q.range(from,from+size-1);
+    if(error){ console.warn(tabla,error.message); break; }
+    if(!data||!data.length) break; all.push(...data); if(data.length<size) break;
+  }
+  return all;
+}
+async function fillImages(box){
+  const imgs=[...box.querySelectorAll("img[data-path]")];
+  for(const img of imgs){
+    const {data}=await db.storage.from(BUCKET).createSignedUrl(img.dataset.path,3600);
+    if(data&&data.signedUrl) img.src=data.signedUrl;
+  }
+}
+function bindChoices(box){
+  box.querySelectorAll(".b-choice").forEach(c=>c.querySelectorAll(".opt").forEach(o=>o.onclick=()=>{
+    c.querySelectorAll(".opt").forEach(x=>x.classList.remove("right","wrong"));
+    if(o.dataset.ok==="1") o.classList.add("right");
+    else { o.classList.add("wrong"); c.querySelectorAll('.opt[data-ok="1"]').forEach(x=>x.classList.add("right")); }
+  }));
+}
+
+/* ---------- bloques (lo que ve el alumno) ---------- */
+function renderBlocks(blocks,o){
+  o=o||{};
+  return (blocks||[]).map(b=>{
+    switch(b.t){
+      case "text": return b.v?`<div class="b-text">${md(b.v)}</div>`:"";
+      case "note": return b.v?`<div class="b-note"><span class="b-note-lab">Teacher's note</span>${md(b.v)}</div>`:"";
+      case "image": return b.path?`<figure class="b-img"><img data-path="${esc(b.path)}" alt="${esc(b.caption||"")}">${b.caption?`<figcaption>${md(b.caption)}</figcaption>`:""}</figure>`:"";
+      case "vocab": { const ws=parseVocab(b.raw); return ws.length?`<div class="b-vocab">${ws.map(w=>`<div class="vcard"><b>${esc(w.w)}</b>${w.m?`<span>${esc(w.m)}</span>`:""}${w.e?`<i>${esc(w.e)}</i>`:""}</div>`).join("")}</div>`:""; }
+      case "question": { const ans=(o.answers||{})[b.id]||"";
+        if(o.readonlyAnswers) return `<div class="b-q"><label>${md(b.q)}</label><div class="answer">${ans?esc(ans):'<span style="color:var(--ink-soft)">Sin respuesta</span>'}</div></div>`;
+        return `<div class="b-q"><label for="q-${b.id}">${md(b.q)}</label><textarea id="q-${b.id}" data-q="${b.id}" ${o.locked?"readonly":""} placeholder="${o.locked?"":"Write your answer here…"}">${esc(ans)}</textarea></div>`; }
+      case "choice": { const ops=parseOpts(b.raw); return ops.length?`<div class="b-choice"><div class="b-choice-q">${md(b.q)}</div>${ops.map(op=>`<button type="button" class="opt" data-ok="${op.ok?1:0}">${esc(op.t)}</button>`).join("")}</div>`:""; }
+      case "video": { if(!b.url) return ""; const e=embedUrl(b.url); return e?`<div class="b-video"><iframe src="${esc(e)}" allowfullscreen loading="lazy" title="Video"></iframe></div>`:`<a class="b-link" href="${esc(b.url)}" target="_blank" rel="noopener">Watch the video</a>`; }
+      case "tool": return b.url?`<div class="b-tool"><iframe src="${esc(b.url)}" loading="lazy" title="Activity"></iframe><a href="${esc(b.url)}" target="_blank" rel="noopener" class="b-tool-open">Open it in a new tab</a></div>`:"";
+      case "link": return b.url?`<div><a class="b-link" href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.label||"Open")}</a></div>`:"";
+    }
+    return "";
+  }).join("");
+}
+const tienePreguntas=blocks=>(blocks||[]).some(b=>b.t==="question"&&b.q);
+
+/* ---------- inicio ---------- */
+init();
+async function init(){
+  const {data:{session}}=await db.auth.getSession();
+  if(!session){ renderNoSession(); return; }
+  S.email=session.user.email.toLowerCase();
+  const {data:st}=await db.from("staff").select("rol, nombre").eq("email",S.email).maybeSingle();
+  S.rol=st?st.rol:"alumno";
+  S.levels=(await db.from("practice_levels").select("*").order("position")).data||[];
+  const param=new URLSearchParams(location.search).get("alumno");
+  if(S.rol==="profesora"){
+    await loadTeacher();
+    if(param) renderStudent(param.toLowerCase(),true); else renderTeacher("biblioteca");
+  } else if(S.rol==="rrhh"){
+    root.innerHTML=`<div class="wrap"><div class="section pad"><h2>Practice Corner</h2><p class="sub">This space is for students and teachers.</p><a class="btn-primary" style="text-decoration:none;display:inline-block" href="${PLATAFORMA_URL}">Back to the platform</a></div></div>`;
+  } else {
+    renderStudent(S.email,false);
+  }
+}
+function renderNoSession(){
+  root.innerHTML=`<div class="wrap" style="max-width:460px;padding-top:12vh"><div class="section pad">
+    <div class="brand" style="color:var(--ink)">innit<span style="color:var(--ink-soft);opacity:1">Practice Corner</span></div>
+    <p style="margin:18px 0 22px">Log in to the Innit platform first, then come back here.</p>
+    <a class="btn-primary" style="text-decoration:none;display:inline-block" href="${PLATAFORMA_URL}">Go to log in</a></div></div>`;
+}
+function navHTML(extra){
+  return `<div class="topnav"><div class="brand">innit<span>Practice Corner</span></div>
+    <div class="nav-r">${extra||""}<a class="btn-out" href="${PLATAFORMA_URL}">${S.rol==="profesora"?"Plataforma":"My record"}</a><button class="btn-out" id="out">${S.rol==="profesora"?"Salir":"Log out"}</button></div></div>`;
+}
+function bindNav(){ const o=$("#out"); if(o) o.onclick=async()=>{ await db.auth.signOut(); location.href=PLATAFORMA_URL; }; }
+
+/* ================= PANEL DE PROFES ================= */
+async function loadTeacher(){
+  const [items,asg,subs,prog,alumnos,grupos]=await Promise.all([
+    traerTodo("practice_items","*",["created_at desc","id"]),
+    traerTodo("practice_assignments","*",["created_at desc","id"]),
+    traerTodo("practice_submissions","*",["submitted_at desc","id"]),
+    traerTodo("practice_progress","*",["assignment_id","student_email"]),
+    traerTodo("alumnos","id, nombre, email, nivel_sel, grupo_id, empresa_id, activo",["nombre","id"]),
+    traerTodo("grupos","id, nombre, profesora, empresa_id",["nombre","id"])
+  ]);
+  Object.assign(S,{items,asg,subs,prog,alumnos,grupos});
+  S.itemById=Object.fromEntries(items.map(i=>[i.id,i]));
+  S.alByEmail=Object.fromEntries(alumnos.filter(a=>a.email).map(a=>[a.email.toLowerCase(),a]));
+}
+function estadoDe(a,subs,prog){
+  const sub=subs.find(s=>s.assignment_id===a.id), p=prog.find(x=>x.assignment_id===a.id);
+  if(sub&&sub.status==="corrected") return "corrected";
+  if(sub) return "submitted";
+  if(p&&p.completed_at) return "done";
+  if(p&&p.opened_at) return "opened";
+  return "new";
+}
+function renderTeacher(tab){
+  S.tab=tab; applyLevel(null);
+  const nPend=S.subs.filter(s=>s.status==="submitted").length;
+  const tabs=[["biblioteca","Biblioteca"],["asignar","Asignar"],["correcciones","Correcciones"+(nPend?` (${nPend})`:"")],["estudiantes","Estudiantes"]];
+  root.innerHTML=navHTML()+`<div class="wrap"><div class="tabs">${tabs.map(t=>`<button class="tab ${t[0]===tab?"active":""}" data-t="${t[0]}">${t[1]}</button>`).join("")}</div><div id="view"></div></div>`;
+  bindNav();
+  document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>renderTeacher(b.dataset.t));
+  ({biblioteca:viewBiblioteca,asignar:()=>viewAsignar(),correcciones:viewCorrecciones,estudiantes:viewEstudiantes})[tab]();
+}
+
+/* ---------- Biblioteca ---------- */
+function viewBiblioteca(){
+  const f=S.bibFiltro||"", list=S.items.filter(i=>!f||i.section===f);
+  $("#view").innerHTML=`<div class="section">
+    <div class="row-between"><div><h2>Biblioteca</h2><div class="sub">Las actividades se crean acá una sola vez y después se asignan a quien quieras.</div></div><button class="btn-primary" id="nuevo">＋ Nueva actividad</button></div>
+    <div class="fchips">${[["","Todas"]].concat(SECTIONS).map(s=>`<button class="fchip ${s[0]===f?"on":""}" data-f="${s[0]}">${s[1]}</button>`).join("")}</div>
+    ${list.length?`<div class="alist">${list.map(i=>{ const n=S.asg.filter(a=>a.item_id===i.id).length, lv=S.levels.find(l=>l.code===i.level);
+      return `<div class="lrow click" data-id="${i.id}"><span class="dot" style="background:${lv?lv.color:"#D8D2C2"}"></span><div class="lmain"><b>${esc(i.title)}</b><span class="lsub">${secName(i.section)}${lv?" · "+esc(lv.code.replace("_"," ")):""}${i.needs_submission?" · con entrega":""}</span></div><span class="lsub">${n} ${n===1?"asignada":"asignadas"}</span><button class="btn-ghost btn-sm" data-asg="${i.id}">Asignar</button></div>`; }).join("")}</div>`
+      :`<div class="empty">${f?"No hay actividades en esta sección.":"Todavía no hay actividades. Creá la primera con \"Nueva actividad\"."}</div>`}
+  </div>`;
+  $("#nuevo").onclick=()=>editor(null);
+  document.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{ S.bibFiltro=b.dataset.f; viewBiblioteca(); });
+  document.querySelectorAll(".lrow[data-id]").forEach(r=>r.onclick=e=>{ if(e.target.closest("[data-asg]")) return; editor(r.dataset.id); });
+  document.querySelectorAll("[data-asg]").forEach(b=>b.onclick=()=>{ S.asgItem=b.dataset.asg; renderTeacher("asignar"); });
+}
+
+/* ---------- Editor por bloques ---------- */
+function editor(id){
+  const it=id?S.itemById[id]:null;
+  S.draft=it?{id:it.id,title:it.title,description:it.description||"",section:it.section,level:it.level||"",blocks:JSON.parse(JSON.stringify((it.content&&it.content.blocks)||[]))}
+            :{title:"",description:"",section:"grammar",level:"",blocks:[]};
+  drawEditor();
+}
+function blockEditor(b,i,n){
+  const nombre=(BLOCKS.find(x=>x[0]===b.t)||["",b.t])[1];
+  const ta=(k,ph,h)=>`<textarea data-b="${i}" data-k="${k}" placeholder="${esc(ph)}" style="min-height:${h||90}px">${esc(b[k]||"")}</textarea>`;
+  const inp=(k,ph)=>`<input data-b="${i}" data-k="${k}" placeholder="${esc(ph)}" value="${esc(b[k]||"")}">`;
+  let body="";
+  if(b.t==="text") body=ta("v","Explicación, consigna o lectura. Usá **así** para resaltar en negrita.",120);
+  if(b.t==="note") body=ta("v","Un tip, una aclaración o un \"ojo con esto\".");
+  if(b.t==="image") body=`${b.path?`<img data-path="${esc(b.path)}" alt="">`:""}<input type="file" accept="image/*" data-img="${i}" style="padding:8px"><div class="hint">${b.path?"Subí otra para reemplazarla.":"Captura del libro, foto o esquema."}</div><div style="margin-top:8px">${inp("caption","Epígrafe (opcional)")}</div>`;
+  if(b.t==="vocab") body=ta("raw","Una palabra por línea: palabra | significado | ejemplo\nfigure out | entender, resolver | I can't figure out this bug.",120)+`<div class="hint">El significado y el ejemplo son opcionales.</div>`;
+  if(b.t==="question") body=ta("q","La pregunta o consigna que el alumno responde por escrito.",70)+`<div class="hint">Con al menos una pregunta, la actividad pasa a ser "con entrega" y la corrigen desde Correcciones.</div>`;
+  if(b.t==="choice") body=inp("q","La pregunta")+`<div style="margin-top:8px">${ta("raw","Una opción por línea. Marcá la correcta con * al principio.\n*has lived\nlives\nis living",100)}</div><div class="hint">Se corrige solo, en el momento. No hace falta entregarlo.</div>`;
+  if(b.t==="video") body=inp("url","Link de YouTube, Vimeo o Google Drive");
+  if(b.t==="tool") body=inp("url","Link del tool (Netlify, Vercel…)")+`<div class="hint">Se ve adentro del Practice Corner, con un botón para abrirlo aparte.</div>`;
+  if(b.t==="link") body=`<div class="grid2">${inp("label","Texto del botón (ej: Download the worksheet)")}${inp("url","Link")}</div>`;
+  return `<div class="bed"><div class="bed-head"><b>${nombre}</b><button data-up="${i}" ${i===0?"disabled":""} aria-label="Subir">↑</button><button data-down="${i}" ${i===n-1?"disabled":""} aria-label="Bajar">↓</button><button data-rm="${i}" class="danger" aria-label="Quitar">✕</button></div>${body}</div>`;
+}
+function drawEditor(){
+  const d=S.draft;
+  $("#view").innerHTML=`<div class="section">
+    <button class="back" id="e-back">← Volver a la biblioteca</button>
+    <h2>${d.id?"Editar actividad":"Nueva actividad"}</h2><div class="sub">Armala con bloques. El alumno los ve en este orden, con el color de su nivel.</div>
+    <div class="field"><label class="lab" for="e-title">Título</label><input id="e-title" value="${esc(d.title)}" placeholder="Ej: Present perfect vs past simple"></div>
+    <div class="field"><label class="lab" for="e-desc">Bajada corta (opcional)</label><input id="e-desc" value="${esc(d.description)}" placeholder="Ej: Repaso de lo que vimos el martes"></div>
+    <div class="grid2">
+      <div class="field"><label class="lab" for="e-sec">Sección</label><select id="e-sec">${SECTIONS.map(s=>`<option value="${s[0]}" ${s[0]===d.section?"selected":""}>${s[1]}</option>`).join("")}</select></div>
+      <div class="field"><label class="lab" for="e-lv">Nivel</label><select id="e-lv"><option value="">Todos los niveles</option>${S.levels.map(l=>`<option value="${l.code}" ${l.code===d.level?"selected":""}>${esc(l.name)} (${esc(l.code.replace("_"," "))})</option>`).join("")}</select></div>
+    </div>
+    <div id="e-blocks">${d.blocks.length?d.blocks.map((b,i)=>blockEditor(b,i,d.blocks.length)).join(""):'<div class="empty">Todavía no hay bloques. Sumalos con los botones de abajo.</div>'}</div>
+    <div class="addbar"><span class="lab" style="margin:0 6px 0 0">Agregar:</span>${BLOCKS.map(b=>`<button class="btn-ghost btn-sm" data-add="${b[0]}">＋ ${b[1]}</button>`).join("")}</div>
+    <div class="form-actions"><button class="btn-primary" id="e-save">Guardar actividad</button><button class="btn-ghost" id="e-prev">Vista previa</button><div style="flex:1"></div>${d.id?'<button class="btn-ghost danger" id="e-del">Eliminar actividad</button>':""}<span id="e-msg"></span></div>
+    <div id="e-preview"></div>
+  </div>`;
+  const v=$("#view");
+  $("#e-back").onclick=()=>renderTeacher("biblioteca");
+  $("#e-title").oninput=e=>d.title=e.target.value;
+  $("#e-desc").oninput=e=>d.description=e.target.value;
+  $("#e-sec").onchange=e=>d.section=e.target.value;
+  $("#e-lv").onchange=e=>d.level=e.target.value;
+  v.querySelectorAll("[data-b]").forEach(el=>el.oninput=()=>{ d.blocks[+el.dataset.b][el.dataset.k]=el.value; });
+  v.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{ d.blocks.push({t:b.dataset.add,id:uid()}); drawEditor(); const bs=v.querySelectorAll(".bed"); if(bs.length) bs[bs.length-1].scrollIntoView({behavior:"smooth",block:"center"}); });
+  v.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.up; [d.blocks[i-1],d.blocks[i]]=[d.blocks[i],d.blocks[i-1]]; drawEditor(); });
+  v.querySelectorAll("[data-down]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.down; [d.blocks[i+1],d.blocks[i]]=[d.blocks[i],d.blocks[i+1]]; drawEditor(); });
+  v.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{ if(!confirm("¿Quitar este bloque?")) return; d.blocks.splice(+b.dataset.rm,1); drawEditor(); });
+  v.querySelectorAll("[data-img]").forEach(inp=>inp.onchange=async()=>{
+    const file=inp.files[0]; if(!file) return;
+    const i=+inp.dataset.img, safe=file.name.toLowerCase().replace(/[^a-z0-9.]+/g,"-");
+    const path=`items/${Date.now()}-${uid()}-${safe}`;
+    toast("Subiendo imagen…");
+    const {error}=await db.storage.from(BUCKET).upload(path,file,{upsert:false});
+    if(error){ toast("No se pudo subir: "+error.message); return; }
+    d.blocks[i].path=path; drawEditor(); toast("Imagen subida ✓");
+  });
+  fillImages(v);
+  $("#e-prev").onclick=()=>{
+    const box=$("#e-preview"); applyLevel(d.level||null);
+    box.innerHTML=`<div class="preview-wrap"><div class="lab">Así lo ve el alumno</div><div class="item-head"><h1>${esc(d.title||"Sin título")}</h1>${d.description?`<p class="sub">${esc(d.description)}</p>`:""}</div><div class="item-body">${renderBlocks(d.blocks)}</div></div>`;
+    fillImages(box); bindChoices(box); box.scrollIntoView({behavior:"smooth"});
+  };
+  $("#e-save").onclick=async()=>{
+    const msg=$("#e-msg");
+    if(!d.title.trim()){ msg.className="msg err"; msg.textContent="Poné un título."; return; }
+    const payload={title:d.title.trim(),description:d.description.trim()||null,section:d.section,level:d.level||null,format:"blocks",content:{blocks:d.blocks},needs_submission:tienePreguntas(d.blocks)};
+    const {error}=d.id?await db.from("practice_items").update(payload).eq("id",d.id):await db.from("practice_items").insert(payload);
+    if(error){ msg.className="msg err"; msg.textContent="No se pudo guardar: "+error.message; return; }
+    await loadTeacher(); toast("Actividad guardada ✓"); renderTeacher("biblioteca");
+  };
+  const del=$("#e-del");
+  if(del) del.onclick=async()=>{
+    const n=S.asg.filter(a=>a.item_id===d.id).length;
+    if(!confirm(n?`Esta actividad está asignada a ${n} alumno(s). Si la eliminás, desaparece de su Practice Corner junto con sus entregas. ¿Eliminar igual?`:"¿Eliminar esta actividad?")) return;
+    const {error}=await db.from("practice_items").delete().eq("id",d.id);
+    if(error){ toast("No se pudo eliminar"); return; }
+    await loadTeacher(); toast("Actividad eliminada"); renderTeacher("biblioteca");
+  };
+}
+
+/* ---------- Asignar ---------- */
+function viewAsignar(){
+  S.sel=S.sel||new Set();
+  const itemId=S.asgItem||"";
+  $("#view").innerHTML=`<div class="section">
+    <h2>Asignar</h2><div class="sub">Elegí una actividad y a quién se la mandás. Cada alumno la ve en su Practice Corner.</div>
+    <div class="field"><label class="lab" for="a-item">Actividad</label><select id="a-item"><option value="">— elegí —</option>${S.items.map(i=>`<option value="${i.id}" ${i.id===itemId?"selected":""}>${esc(i.title)} · ${secName(i.section)}</option>`).join("")}</select></div>
+    <div class="grid2">
+      <div class="field"><label class="lab" for="a-grupo">Un grupo entero</label><select id="a-grupo"><option value="">— elegí un grupo —</option>${S.grupos.map(g=>`<option value="${g.id}">${esc(g.nombre)}</option>`).join("")}</select></div>
+      <div class="field"><label class="lab" for="a-q">O alumnos sueltos</label><input id="a-q" placeholder="Buscá por nombre o email"></div>
+    </div>
+    <div id="a-list"></div>
+    <div class="grid2" style="margin-top:12px">
+      <div class="field"><label class="lab" for="a-due">Para cuándo (opcional)</label><input type="date" id="a-due"></div>
+      <div class="field"><label class="lab" for="a-vis">Visible desde</label><input type="date" id="a-vis" value="${hoy()}"></div>
+    </div>
+    <div class="field"><label class="lab" for="a-note">Mensaje para el alumno (opcional)</label><input id="a-note" placeholder="Ej: Do it before Thursday's class"></div>
+    <div class="form-actions"><button class="btn-primary" id="a-go">Asignar</button><span id="a-msg"></span></div>
+  </div><div id="a-current"></div>`;
+  const drawList=(cands)=>{
+    const box=$("#a-list"), sel=[...S.sel].map(e=>S.alByEmail[e]).filter(Boolean);
+    let h="";
+    if(cands&&cands.length) h+=`<div class="alist" style="margin-bottom:10px">${cands.map(a=>`<label class="check"><input type="checkbox" data-em="${esc(a.email.toLowerCase())}" ${S.sel.has(a.email.toLowerCase())?"checked":""}><span style="flex:1">${esc(a.nombre)}</span><span class="lsub">${esc(a.email)}</span></label>`).join("")}</div>`;
+    h+=`<div class="lsub">${sel.length?`Seleccionados (${sel.length}): ${sel.map(a=>esc(a.nombre)).join(", ")}`:"Todavía no elegiste a nadie."}</div>`;
+    box.innerHTML=h;
+    box.querySelectorAll("[data-em]").forEach(c=>c.onchange=()=>{ c.checked?S.sel.add(c.dataset.em):S.sel.delete(c.dataset.em); drawList(cands); });
+  };
+  const conMail=a=>a.activo&&a.email;
+  $("#a-grupo").onchange=e=>{ const mem=S.alumnos.filter(a=>a.grupo_id===e.target.value&&conMail(a)); mem.forEach(a=>S.sel.add(a.email.toLowerCase())); drawList(mem); };
+  $("#a-q").oninput=e=>{ const q=e.target.value.trim().toLowerCase(); drawList(q?S.alumnos.filter(a=>conMail(a)&&(a.nombre.toLowerCase().includes(q)||a.email.toLowerCase().includes(q))).slice(0,12):[]); };
+  $("#a-item").onchange=e=>{ S.asgItem=e.target.value; drawCurrent(); };
+  drawList([]); drawCurrent();
+  $("#a-go").onclick=async()=>{
+    const msg=$("#a-msg"), item=$("#a-item").value;
+    if(!item){ msg.className="msg err"; msg.textContent="Elegí una actividad."; return; }
+    if(!S.sel.size){ msg.className="msg err"; msg.textContent="Elegí al menos un alumno."; return; }
+    const ya=new Set(S.asg.filter(a=>a.item_id===item).map(a=>a.student_email));
+    const nuevos=[...S.sel].filter(e=>!ya.has(e));
+    if(!nuevos.length){ msg.className="msg err"; msg.textContent="Esos alumnos ya la tienen asignada."; return; }
+    const due=$("#a-due").value||null, vis=$("#a-vis").value||hoy(), note=$("#a-note").value.trim()||null;
+    const {error}=await db.from("practice_assignments").insert(nuevos.map(e=>({item_id:item,student_email:e,due_date:due,visible_from:vis,note})));
+    if(error){ msg.className="msg err"; msg.textContent="No se pudo asignar: "+error.message; return; }
+    await loadTeacher(); S.sel=new Set(); toast(`Asignada a ${nuevos.length} alumno(s) ✓`); viewAsignar();
+  };
+}
+function drawCurrent(){
+  const box=$("#a-current"), item=S.asgItem; if(!box) return;
+  if(!item){ box.innerHTML=""; return; }
+  const rows=S.asg.filter(a=>a.item_id===item);
+  box.innerHTML=`<div class="section"><h2>Quiénes la tienen</h2><div class="sub">${rows.length?`${rows.length} alumno(s).`:"Nadie todavía."}</div>
+    ${rows.length?`<div class="alist">${rows.map(a=>{ const al=S.alByEmail[a.student_email], e=estadoDe(a,S.subs,S.prog);
+      return `<div class="lrow"><div class="lmain"><b>${esc(al?al.nombre:a.student_email)}</b><span class="lsub">${a.due_date?"Para el "+fmtD(a.due_date,true):"Sin fecha"}</span></div><span class="pill st-${e}">${ST_ES[e]}</span><button class="btn-ghost btn-sm danger" data-quitar="${a.id}">Quitar</button></div>`; }).join("")}</div>`:""}</div>`;
+  box.querySelectorAll("[data-quitar]").forEach(b=>b.onclick=async()=>{
+    if(!confirm("¿Quitarle esta actividad? También se borra lo que haya entregado.")) return;
+    const {error}=await db.from("practice_assignments").delete().eq("id",b.dataset.quitar);
+    if(error){ toast("No se pudo quitar"); return; }
+    await loadTeacher(); drawCurrent(); toast("Quitada");
+  });
+}
+
+/* ---------- Correcciones ---------- */
+function viewCorrecciones(){
+  const tab=S.corrTab||"submitted";
+  const lista=S.subs.filter(s=>s.status===tab);
+  const pend=S.subs.filter(s=>s.status==="submitted").length, hechas=S.subs.length-pend;
+  $("#view").innerHTML=`<div class="section"><h2>Correcciones</h2><div class="sub">Las tareas escritas que entregaron los alumnos.</div>
+    <div class="fchips"><button class="fchip ${tab==="submitted"?"on":""}" data-c="submitted">Para corregir (${pend})</button><button class="fchip ${tab==="corrected"?"on":""}" data-c="corrected">Corregidas (${hechas})</button></div>
+    ${lista.length?`<div class="alist">${lista.map(s=>{ const a=S.asg.find(x=>x.id===s.assignment_id)||{}, it=S.itemById[a.item_id]||{}, al=S.alByEmail[s.student_email];
+      return `<div class="lrow click" data-s="${s.id}"><div class="lmain"><b>${esc(al?al.nombre:s.student_email)}</b><span class="lsub">${esc(it.title||"Actividad eliminada")}</span></div><span class="lsub">${fmtD(s.submitted_at,true)}</span></div>`; }).join("")}</div>`
+      :`<div class="empty">${tab==="submitted"?"No hay nada para corregir. 🎉":"Todavía no hay correcciones."}</div>`}</div>`;
+  document.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{ S.corrTab=b.dataset.c; viewCorrecciones(); });
+  document.querySelectorAll("[data-s]").forEach(r=>r.onclick=()=>corregir(r.dataset.s));
+}
+function corregir(sid){
+  const s=S.subs.find(x=>x.id===sid), a=S.asg.find(x=>x.id===s.assignment_id)||{}, it=S.itemById[a.item_id]||{}, al=S.alByEmail[s.student_email];
+  const qs=((it.content&&it.content.blocks)||[]).filter(b=>b.t==="question");
+  $("#view").innerHTML=`<div class="section">
+    <button class="back" id="c-back">← Volver a correcciones</button>
+    <h2>${esc(al?al.nombre:s.student_email)}</h2><div class="sub">${esc(it.title||"")} · entregada el ${fmtD(s.submitted_at,true)}</div>
+    <div class="item-body">${renderBlocks(qs,{answers:s.answers||{},readonlyAnswers:true})}</div>
+    <div class="field"><label class="lab" for="c-fb">Corrección</label><textarea id="c-fb" style="min-height:160px" placeholder="error → **corrección** (explicación breve)">${esc(s.feedback||"")}</textarea>
+      <div class="hint">Lo que escribas entre **dos asteriscos** le aparece en negrita. Ej: I have went → I have **gone** (participio de go)</div></div>
+    <div class="form-actions"><button class="btn-primary" id="c-send">${s.status==="corrected"?"Actualizar corrección":"Enviar corrección"}</button><span id="c-msg"></span></div></div>`;
+  $("#c-back").onclick=()=>viewCorrecciones();
+  $("#c-send").onclick=async()=>{
+    const fb=$("#c-fb").value.trim(), msg=$("#c-msg");
+    if(!fb){ msg.className="msg err"; msg.textContent="Escribí la corrección."; return; }
+    const {error}=await db.from("practice_submissions").update({feedback:fb,feedback_by:S.email,feedback_at:new Date().toISOString(),status:"corrected"}).eq("id",sid);
+    if(error){ msg.className="msg err"; msg.textContent="No se pudo guardar: "+error.message; return; }
+    await loadTeacher(); toast("Corrección enviada ✓"); renderTeacher("correcciones");
+  };
+}
+
+/* ---------- Estudiantes ---------- */
+function viewEstudiantes(){
+  const q=(S.estQ||"").toLowerCase();
+  const list=S.alumnos.filter(a=>a.activo&&a.email&&(!q||a.nombre.toLowerCase().includes(q)||a.email.toLowerCase().includes(q)));
+  $("#view").innerHTML=`<div class="section"><h2>Estudiantes</h2><div class="sub">Entrá al Practice Corner de cada alumno para ver lo mismo que ve él.</div>
+    <div class="field"><input id="e-q" placeholder="Buscar por nombre o email" value="${esc(S.estQ||"")}"></div>
+    <div class="alist">${list.map(a=>{ const em=a.email.toLowerCase(), mine=S.asg.filter(x=>x.student_email===em), pend=S.subs.filter(s=>s.student_email===em&&s.status==="submitted").length, lv=S.levels.find(l=>l.code===levelCode(a.nivel_sel));
+      return `<div class="lrow click" data-em="${esc(em)}"><span class="dot" style="background:${lv?lv.color:"#D8D2C2"}"></span><div class="lmain"><b>${esc(a.nombre)}</b><span class="lsub">${mine.length} actividad(es)${pend?` · ${pend} para corregir`:""}</span></div><span class="lsub">Ver →</span></div>`; }).join("")||'<div class="empty" style="padding:14px">No hay coincidencias.</div>'}</div></div>`;
+  const qi=$("#e-q"); qi.oninput=e=>{ S.estQ=e.target.value; const p=e.target.selectionStart; viewEstudiantes(); const n=$("#e-q"); n.focus(); n.setSelectionRange(p,p); };
+  document.querySelectorAll("[data-em]").forEach(r=>r.onclick=()=>renderStudent(r.dataset.em,true));
+}
+
+/* ================= VISTA DEL ALUMNO ================= */
+async function renderStudent(email,asTeacher){
+  root.innerHTML=`<div class="empty pad">Loading…</div>`;
+  let al;
+  if(asTeacher) al=S.alByEmail[email]||null;
+  else { const {data}=await db.from("alumnos").select("id, nombre, email, nivel_sel, grupo_id").eq("email",email).maybeSingle(); al=data; }
+  const lv=applyLevel(levelCode(al&&al.nivel_sel));
+  const {data:asgAll}=await db.from("practice_assignments").select("*").eq("student_email",email).order("created_at",{ascending:false});
+  const asg=(asgAll||[]).filter(a=>asTeacher||!a.visible_from||a.visible_from<=hoy());
+  const ids=[...new Set(asg.map(a=>a.item_id))], aIds=asg.map(a=>a.id);
+  const items=ids.length?((await db.from("practice_items").select("*").in("id",ids)).data||[]):[];
+  const subs=aIds.length?((await db.from("practice_submissions").select("*").in("assignment_id",aIds).order("submitted_at",{ascending:false})).data||[]):[];
+  const prog=aIds.length?((await db.from("practice_progress").select("*").in("assignment_id",aIds)).data||[]):[];
+  const prevTab=S.st&&S.st.email===email?S.st.tab:"";
+  S.st={email,al,lv,asTeacher,asg:asg.filter(a=>items.some(i=>i.id===a.item_id)),itemById:Object.fromEntries(items.map(i=>[i.id,i])),subs,prog,tab:prevTab};
+  drawStudentHome();
+}
+function studentShell(inner){
+  const st=S.st;
+  const banner=st.asTeacher?`<div class="teacher-banner"><span>Estás viendo el Practice Corner de <b>${esc(st.al?st.al.nombre:st.email)}</b>. Ves lo mismo que el alumno, pero no podés responder por él.</span><button class="btn-ghost btn-sm" id="t-back">Volver al panel</button></div>`:"";
+  root.innerHTML=navHTML()+`<div class="wrap">${banner}${inner}</div>`;
+  bindNav();
+  const tb=$("#t-back"); if(tb) tb.onclick=()=>{ history.replaceState(null,"",location.pathname); renderTeacher("estudiantes"); };
+}
+function drawStudentHome(){
+  const st=S.st, first=((st.al&&st.al.nombre)||"").split(" ")[0];
+  const est=a=>estadoDe(a,st.subs,st.prog);
+  const abiertas=a=>!["done","submitted","corrected"].includes(est(a));
+  const proximas=st.asg.filter(a=>abiertas(a)&&(a.due_date||st.itemById[a.item_id].section==="next_class"))
+    .sort((x,y)=>(x.due_date||"9999").localeCompare(y.due_date||"9999"));
+  const cuenta={}; st.asg.forEach(a=>{ const s=st.itemById[a.item_id].section; cuenta[s]=(cuenta[s]||0)+1; });
+  const secs=SECTIONS.filter(s=>cuenta[s[0]]);
+  const tab=secs.some(s=>s[0]===st.tab)?st.tab:"";
+  const lista=st.asg.filter(a=>!tab||st.itemById[a.item_id].section===tab);
+  const card=a=>{ const it=st.itemById[a.item_id], e=est(a), late=a.due_date&&a.due_date<hoy()&&abiertas(a);
+    return `<button class="card" data-a="${a.id}"><span class="csec">${secName(it.section)}</span><b>${esc(it.title)}</b>${it.description?`<span class="cdesc">${esc(it.description)}</span>`:""}<span class="cfoot"><span${late?' style="color:var(--red);font-weight:600"':""}>${a.due_date?(late?"Was due ":"Due ")+fmtD(a.due_date):""}</span><span class="pill st-${e}">${ST_EN[e]}</span></span></button>`; };
+  studentShell(`
+    <div class="pc-head"><span class="pc-corner"></span><span class="pc-level">${lv_code(st.lv)}</span>
+      <div class="pc-kicker">${st.lv?esc(st.lv.name):"Innit English Center"}</div>
+      <h1>${first?`Hi, ${esc(first)}!`:"Hi!"}</h1>
+      <p>Everything from our classes, ready for you to practise in between.</p></div>
+    <div class="section next"><h2>For next class</h2><div class="sub">${proximas.length?"What to have ready before we meet again.":""}</div>
+      ${proximas.length?`<div class="cards">${proximas.map(card).join("")}</div>`:`<div class="empty">You're all caught up. Nice work!</div>`}</div>
+    <div class="section"><h2>My practice</h2>
+      ${st.asg.length?`<div class="sectabs"><button class="sectab ${!tab?"on":""}" data-sec="">All<small>${st.asg.length}</small></button>${secs.map(s=>`<button class="sectab ${tab===s[0]?"on":""}" data-sec="${s[0]}">${s[1]}<small>${cuenta[s[0]]}</small></button>`).join("")}</div>
+        <div class="cards">${lista.map(card).join("")}</div>`
+      :`<div class="empty">Nothing here yet. Your teacher will add activities after class.</div>`}</div>`);
+  document.querySelectorAll("[data-sec]").forEach(b=>b.onclick=()=>{ st.tab=b.dataset.sec; drawStudentHome(); });
+  document.querySelectorAll("[data-a]").forEach(c=>c.onclick=()=>openAssignment(c.dataset.a));
+}
+function lv_code(lv){ return lv?esc(lv.code.replace("_"," ")):""; }
+async function marcarAbierta(a){
+  const st=S.st, p=st.prog.find(x=>x.assignment_id===a.id);
+  if(st.asTeacher||(p&&p.opened_at)) return;
+  const row={assignment_id:a.id,student_email:st.email,opened_at:new Date().toISOString()};
+  const {error}=await db.from("practice_progress").upsert(row);
+  if(!error){ if(p) p.opened_at=row.opened_at; else st.prog.push(row); }
+}
+function openAssignment(aId){
+  const st=S.st, a=st.asg.find(x=>x.id===aId), it=st.itemById[a.item_id];
+  const blocks=(it.content&&it.content.blocks)||[];
+  const sub=st.subs.find(s=>s.assignment_id===aId), p=st.prog.find(x=>x.assignment_id===aId);
+  marcarAbierta(a);
+  const conEntrega=it.needs_submission&&tienePreguntas(blocks);
+  const bloqueado=st.asTeacher||(sub&&sub.status==="submitted");
+  let entrega="";
+  if(conEntrega){
+    if(st.asTeacher) entrega=sub?`<div class="sentbox">${sub.status==="corrected"?"Corregida":"Entregada"} el ${fmtD(sub.submitted_at,true)}.</div>`:`<div class="sentbox">Todavía no la entregó.</div>`;
+    else if(sub&&sub.status==="submitted") entrega=`<div class="sentbox">Sent on ${fmtD(sub.submitted_at)}. I'll correct it soon.</div>`;
+    else entrega=`<div class="form-actions"><button class="btn-primary" id="s-send">${sub?"Send a new version":"Send my answers"}</button><span id="s-msg"></span></div>`;
+  }
+  const fb=sub&&sub.status==="corrected"&&sub.feedback?`<div class="feedback"><span class="fl">Your teacher's corrections</span>${md(sub.feedback)}</div>`:"";
+  const rating=[["got_it","Got it"],["almost","Almost"],["review","I need to review it"]];
+  studentShell(`<div class="section">
+    <button class="back" id="s-back">← Back to my corner</button>
+    <div class="item-head"><span class="pill st-${estadoDe(a,st.subs,st.prog)}">${secName(it.section)}</span><h1>${esc(it.title)}</h1>
+      ${it.description?`<p class="sub" style="font-size:15px">${esc(it.description)}</p>`:""}
+      ${a.due_date?`<p class="sub">Due ${fmtD(a.due_date)}</p>`:""}</div>
+    <div class="item-body">
+      ${a.note?`<div class="b-note"><span class="b-note-lab">From your teacher</span>${md(a.note)}</div>`:""}
+      ${fb}
+      ${renderBlocks(blocks,{answers:sub?sub.answers:{},locked:bloqueado})}
+      ${entrega}
+    </div></div>
+    ${st.asTeacher?"":`<div class="section"><h2>How did it go?</h2><div class="sub">Tell me how you feel about it. It helps me plan our next class.</div>
+      <div class="rate">${rating.map(r=>`<button data-r="${r[0]}" class="${p&&p.self_rating===r[0]?"on":""}">${r[1]}</button>`).join("")}</div></div>`}`);
+  const body=document.querySelector(".wrap");
+  fillImages(body); bindChoices(body);
+  $("#s-back").onclick=()=>drawStudentHome();
+  window.scrollTo({top:0});
+  body.querySelectorAll("[data-r]").forEach(b=>b.onclick=async()=>{
+    const ahora=new Date().toISOString(), cur=st.prog.find(x=>x.assignment_id===aId);
+    const row={assignment_id:aId,student_email:st.email,self_rating:b.dataset.r,completed_at:ahora,opened_at:(cur&&cur.opened_at)||ahora};
+    const {error}=await db.from("practice_progress").upsert(row);
+    if(error){ toast("Couldn't save. Try again."); return; }
+    if(cur) Object.assign(cur,row); else st.prog.push(row);
+    body.querySelectorAll("[data-r]").forEach(x=>x.classList.toggle("on",x===b)); toast("Saved ✓");
+  });
+  const send=$("#s-send");
+  if(send) send.onclick=async()=>{
+    const msg=$("#s-msg"), answers={};
+    body.querySelectorAll("textarea[data-q]").forEach(t=>answers[t.dataset.q]=t.value.trim());
+    if(!Object.values(answers).some(Boolean)){ msg.className="msg err"; msg.textContent="Write at least one answer before sending."; return; }
+    send.disabled=true; send.textContent="Sending…";
+    const {error}=await db.from("practice_submissions").insert({assignment_id:aId,student_email:st.email,answers});
+    if(error){ send.disabled=false; send.textContent="Send my answers"; msg.className="msg err"; msg.textContent="Couldn't send: "+error.message; return; }
+    toast("Sent ✓");
+    await renderStudent(st.email,false); openAssignment(aId);
+  };
+}
+</script>
+</body>
+</html>

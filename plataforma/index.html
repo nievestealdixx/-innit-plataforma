@@ -237,6 +237,15 @@
   .ui-danger{background:var(--red)!important; color:#fff!important; border-color:var(--red)!important}
   @keyframes uiF{from{opacity:0}} @keyframes uiU{from{opacity:0; transform:translateY(8px) scale(.98)}}
   @media (prefers-reduced-motion:reduce){ .ui-ov,.ui-dlg{animation:none} }
+
+  /* cargar asistencia */
+  .l-bulk{display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px}
+  .l-savebar{position:sticky; bottom:0; z-index:5; display:flex; align-items:center; gap:12px; justify-content:flex-end; flex-wrap:wrap;
+    background:rgba(255,255,255,.96); backdrop-filter:blur(6px); border-top:1px solid var(--line); margin:0 -4px; padding:12px 4px calc(12px + env(safe-area-inset-bottom,0px))}
+  .l-count{margin-right:auto; font-size:14px; color:var(--ink-soft)}
+  .l-count b{color:var(--ink)}
+  .l-dirty{color:var(--orange); font-weight:600}
+  @media (max-width:620px){ .l-savebar #l-save{flex:1} }
 </style>
 </head>
 <body>
@@ -342,6 +351,7 @@ RE_RULES.push([/^Nuevas \((\d+)\)$/,function(m,a){return "New ("+a+")";}]);
 RE_RULES.push([/^Atendidas \((\d+)\)$/,function(m,a){return "Handled ("+a+")";}]);
 Object.assign(DICT,{"Todavía no se les mandó el mail de consulta.":"The follow-up email hasn't been sent yet."});
 Object.assign(DICT,{"Editar":"Edit","Sin mes":"No month","Tema actualizado":"Topic updated"});
+Object.assign(DICT,{"Todos presentes":"All present","Todos ausentes":"All absent","Lista guardada ✓":"Attendance saved ✓"});
 function trStr(s){
   if(LANG!=='en'||s==null) return s;
   const k=(""+s).trim(); if(!k) return s;
@@ -581,6 +591,14 @@ const SECCIONES={
     : [["fichas","Fichas",viewFichas],["reportes","Reportes",viewReportes],["clases","Clases",viewClases],["bajas","Bajas",viewBajas],["cambios","Cambios de grupo",viewCambios]],
   gestionar:()=>[["gestion","Estudiantes",viewGestion],["grupos","Grupos y segmentos",viewGrupos],["temas","Temas",viewTemas],["obs","Observaciones",viewObs],["seguimiento","Seguimiento",viewSeguimiento],["consultas","Consultas",viewConsultas]]
 };
+document.addEventListener('click',async e=>{
+  if(!window._listaSucia) return;
+  const t=e.target.closest('#toptabs .tab, #subtabs .tab, .subtabs .tab, [data-pl]'); if(!t) return;
+  e.preventDefault(); e.stopPropagation();
+  const ok=await uiConfirm(LANG==='en'?'You have unsaved changes in this list. Leave without saving?':'Tenés cambios sin guardar en esta lista. ¿Seguir sin guardar?',{ok:LANG==='en'?'Leave without saving':'Seguir sin guardar'});
+  if(ok){ window._listaSucia=false; t.click(); }
+},true);
+window.addEventListener('beforeunload',e=>{ if(window._listaSucia){ e.preventDefault(); e.returnValue=''; } });
 function animarVista(){
   const v=document.getElementById("view"); if(!v) return;
   v.classList.remove("anim"); void v.offsetWidth; v.classList.add("anim");
@@ -1536,7 +1554,7 @@ function viewListaAsis(){
     fdSel.style.display=''; fsel.style.display='none'; otra.style.display='';
     otra.textContent=LANG==='en'?'Other date (make-up class)':'Otra fecha (clase de recuperación)';
   }
-  fdSel.onchange=()=>{ fsel.value=fdSel.value; loadList(); };
+  fdSel.onchange=async()=>{ if(window._listaSucia){ const ok=await uiConfirm(LANG==='en'?'You have unsaved changes in this list. Leave without saving?':'Tenés cambios sin guardar en esta lista. ¿Seguir sin guardar?',{ok:LANG==='en'?'Leave without saving':'Seguir sin guardar'}); if(!ok){ fdSel.value=fsel.value; return; } window._listaSucia=false; } fsel.value=fdSel.value; loadList(); };
   otra.onclick=(e)=>{ e.preventDefault(); modoLibre=!modoLibre; fdSel.style.display=modoLibre?'none':''; fsel.style.display=modoLibre?'':'none';
     otra.textContent=modoLibre?(LANG==='en'?'Back to class days':'Volver a los días de clase'):(LANG==='en'?'Other date (make-up class)':'Otra fecha (clase de recuperación)');
     if(!modoLibre){ fsel.value=fdSel.value; } loadList(); };
@@ -1552,10 +1570,21 @@ function viewListaAsis(){
     marks={}; roster.forEach(a=>{const e=exMap[a.id]; marks[a.id]={presente:e?e.presente:true, nota:e?(e.nota||""):""};});
     if(!roster.length){ listEl.innerHTML='<div class="empty">Ese grupo no tiene estudiantes activos.</div>'; return; }
     const ya=(ex&&ex.length)?'<div style="font-size:12.5px;color:var(--green);margin-bottom:10px">Ya había lista para esta fecha — la cargué para que la edites.</div>':'';
-    listEl.innerHTML=ya+'<div class="alist" style="margin-bottom:16px">'+roster.map(rowHTML).join("")+'</div>'+
-      `<div class="form-actions"><button class="btn-primary" id="l-save">Guardar lista</button><span class="msg" id="l-msg" style="margin:0"></span></div>`;
+    const en=LANG==='en';
+    listEl.innerHTML=ya+`<div class="l-bulk"><button class="btn-ghost btn-sm" id="l-allp">${en?'All present':'Todos presentes'}</button><button class="btn-ghost btn-sm" id="l-alla">${en?'All absent':'Todos ausentes'}</button></div>`+
+      '<div class="alist" style="margin-bottom:16px">'+roster.map(rowHTML).join("")+'</div>'+
+      `<div class="form-actions l-savebar"><span class="l-count" id="l-count"></span><span class="msg" id="l-msg" style="margin:0"></span><button class="btn-primary" id="l-save">${en?'Save attendance':'Guardar lista'}</button></div>`;
     roster.forEach(a=>bindRow(a.id));
+    window._listaSucia=false; contar();
     document.getElementById("l-save").onclick=()=>save(gid,fecha,roster);
+    const todos=(pres)=>{ roster.forEach(a=>{ marks[a.id].presente=pres; const row=listEl.querySelector(`.asis-row[data-row="${a.id}"]`); row.classList.toggle('is-abs',!pres); row.querySelectorAll('.seg button').forEach(b=>b.classList.toggle('active',(b.dataset.p==="1")===pres)); }); window._listaSucia=true; contar(); };
+    document.getElementById("l-allp").onclick=()=>todos(true);
+    document.getElementById("l-alla").onclick=()=>todos(false);
+  }
+  function contar(){
+    const el=document.getElementById('l-count'); if(!el) return;
+    const v=Object.values(marks), p=v.filter(m=>m.presente).length, a=v.length-p, en=LANG==='en';
+    el.innerHTML=`<b>${p}</b> ${en?'present':(p===1?'presente':'presentes')} · <b>${a}</b> ${en?'absent':(a===1?'ausente':'ausentes')}${window._listaSucia?` <span class="l-dirty">${en?'· unsaved changes':'· sin guardar'}</span>`:''}`;
   }
   function rowHTML(a){
     const m=marks[a.id];
@@ -1569,18 +1598,24 @@ function viewListaAsis(){
     seg.querySelectorAll("button").forEach(b=>b.onclick=()=>{
       seg.querySelectorAll("button").forEach(x=>x.classList.remove("active")); b.classList.add("active");
       marks[id].presente=b.dataset.p==="1"; listEl.querySelector(`.asis-row[data-row="${id}"]`).classList.toggle('is-abs',!marks[id].presente);
+      window._listaSucia=true; contar();
     });
-    causa.onchange=e=>{ marks[id].nota=e.target.value; };
+    causa.onchange=e=>{ marks[id].nota=e.target.value; window._listaSucia=true; contar(); };
   }
   async function save(gid,fecha,roster){
-    const msg=document.getElementById("l-msg"); msg.className="msg info"; msg.textContent="Guardando…";
+    const msg=document.getElementById("l-msg"), btn=document.getElementById("l-save"), en=LANG==='en';
+    msg.textContent=""; btn.disabled=true; btn.textContent=en?'Saving…':'Guardando…';
+    const listo=()=>{ btn.disabled=false; btn.textContent=en?'Save attendance':'Guardar lista'; };
     await db.from("asistencia").delete().eq("grupo_id",gid).eq("fecha",fecha);
     const rows=roster.map(a=>({alumno_id:a.id,grupo_id:gid,fecha,presente:marks[a.id].presente,nota:marks[a.id].presente?null:(marks[a.id].nota||null)}));
     const {error}=await db.from("asistencia").insert(rows);
-    if(error){ msg.className="msg err"; msg.textContent="No se pudo guardar: "+error.message; return; }
-    await loadData(); msg.className="msg ok"; msg.textContent="Lista guardada ✓"; toast("Lista guardada"); renderResumenGrupo(gid,fecha);
+    if(error){ listo(); msg.className="msg err"; msg.textContent="No se pudo guardar: "+error.message; return; }
+    await loadData(); listo(); window._listaSucia=false; contar(); toast("Lista guardada ✓"); renderResumenGrupo(gid,fecha);
   }
-  gsel.onchange=()=>{ armarFechas(); loadList(); }; fsel.onchange=loadList;
+  let gPrev=gsel.value, fPrev=fsel.value;
+  async function puedoSalir(){ if(!window._listaSucia) return true; const ok=await uiConfirm(LANG==='en'?'You have unsaved changes in this list. Leave without saving?':'Tenés cambios sin guardar en esta lista. ¿Seguir sin guardar?',{ok:LANG==='en'?'Leave without saving':'Seguir sin guardar'}); if(ok) window._listaSucia=false; return ok; }
+  gsel.onchange=async()=>{ if(!(await puedoSalir())){ gsel.value=gPrev; return; } gPrev=gsel.value; armarFechas(); fPrev=fsel.value; loadList(); };
+  fsel.onchange=async()=>{ if(!(await puedoSalir())){ fsel.value=fPrev; return; } fPrev=fsel.value; loadList(); };
   renderPendientes(document.getElementById("l-pend"),true,true);
   if(window._prefillLista){ const p=window._prefillLista; window._prefillLista=null; gsel.value=p.gid; armarFechas(p.fecha); loadList(); }
 }

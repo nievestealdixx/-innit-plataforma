@@ -634,13 +634,29 @@ function viewSection(key,sub){
   const items=SECCIONES[key](), cur=(items.find(i=>i[0]===sub)||items[0])[0];
   const st=document.getElementById("subtabs");
   st.innerHTML=`<div class="tabs subtabs">${items.map(i=>`<button class="tab ${i[0]===cur?'active':''}" data-s="${i[0]}">${i[1]}</button>`).join('')}</div>`;
-  st.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>viewSection(key,b.dataset.s));
+  st.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{ viewSection(key,b.dataset.s); history.pushState({v:key,s:b.dataset.s},''); });
   items.find(i=>i[0]===cur)[2]();
 }
-function goTo(top,sub){
-  document.querySelectorAll('#toptabs .tab').forEach(x=>x.classList.toggle('active',x.dataset.v===top));
-  if(SECCIONES[top]) viewSection(top,sub);
+function goTo(top,sub){ navTop(top,sub,true); }
+// Navegación con el botón "atrás" del navegador o del celular
+function navTop(v,s,push){
+  if(!window._go) return;
+  animarVista();
+  document.querySelectorAll('#toptabs .tab').forEach(x=>x.classList.toggle('active',x.dataset.v===v));
+  document.getElementById('subtabs').innerHTML='';
+  if(SECCIONES[v]) viewSection(v,s||undefined); else (window._go[v]||viewFichas)();
+  window._navActual={v,s:s||null};
+  if(push) history.pushState({v,s:s||null},'');
 }
+window.addEventListener('popstate',async e=>{
+  const st=e.state; if(!st||!st.v||!window._go) return;
+  if(window._listaSucia){
+    const ok=await uiConfirm(LANG==='en'?'You have unsaved changes in this list. Leave without saving?':'Tenés cambios sin guardar en esta lista. ¿Seguir sin guardar?',{ok:LANG==='en'?'Leave without saving':'Seguir sin guardar'});
+    if(!ok){ history.pushState(window._navActual||{},''); return; }
+    window._listaSucia=false;
+  }
+  navTop(st.v,st.s,false);
+});
 function renderShell(){
   const {rol,user}=ctx;
   const pill=rol==="profesora"?'<span class="rol-pill prof">Profesora</span>':rol==="rrhh"?'<span class="rol-pill rrhh">RRHH</span>':'<span class="rol-pill">Estudiante</span>';
@@ -657,12 +673,9 @@ function renderShell(){
   document.getElementById("out").onclick=async()=>{ await db.auth.signOut(); renderLogin(); };
   document.getElementById("lang-toggle").onclick=()=>toggleLang(renderShell);
   const go={home:viewHome, fichas:viewFichas, lista:viewListaAsis, consultar:()=>viewSection('consultar'), gestionar:()=>viewSection('gestionar')};
-  document.querySelectorAll("#toptabs .tab").forEach(t=>t.onclick=()=>{
-    animarVista();
-    document.querySelectorAll("#toptabs .tab").forEach(x=>x.classList.remove("active")); t.classList.add("active");
-    document.getElementById("subtabs").innerHTML='';
-    (go[t.dataset.v]||viewFichas)();
-  });
+  window._go=go;
+  document.querySelectorAll("#toptabs .tab").forEach(t=>t.onclick=()=>navTop(t.dataset.v,null,true));
+  history.replaceState({v:first,s:null},'');
   (go[first]||viewFichas)();
 }
 
@@ -751,6 +764,7 @@ function renderPendientes(box,soloMias,compacto){
     document.querySelectorAll('#toptabs .tab').forEach(x=>x.classList.toggle('active',x===t));
     document.getElementById('subtabs').innerHTML='';
     viewListaAsis();
+    history.pushState({v:'lista',s:null},'');
   });
   box.querySelectorAll('[data-nd]').forEach(b=>b.onclick=async()=>{
     const [gid,fecha]=b.dataset.nd.split('|');
@@ -816,7 +830,7 @@ function viewClases(){
       window._prefillLista={gid,fecha:f};
       const t=document.querySelector('#toptabs .tab[data-v="lista"]');
       document.querySelectorAll('#toptabs .tab').forEach(x=>x.classList.toggle('active',x===t));
-      document.getElementById('subtabs').innerHTML=''; viewListaAsis();
+      document.getElementById('subtabs').innerHTML=''; viewListaAsis(); history.pushState({v:'lista',s:null},'');
     } else if(st==='sin'){
       if(!await uiConfirm(LANG==='en'?'Undo "no class" for this date?':'¿Deshacer "no hubo clase" en esta fecha?')) return;
       const {error}=await db.from("clases_sin_dictar").delete().eq("grupo_id",gid).eq("fecha",f);

@@ -306,7 +306,7 @@ RE_RULES.push([/^Archivados \((\d+)\)$/,function(m,a){return "Archived ("+a+")";
 RE_RULES.push([/^(\d+) faltas$/,function(m,a){return a+" absences";}]);
 RE_RULES.push([/^(.+) \(hace (\d+) días\)$/,function(m,a,b){return a+" ("+b+" days ago)";}]);
 Object.assign(DICT,{"Justificar faltas":"Justify absences","Causa":"Reason","Nota (opcional)":"Note (optional)","Ej: avisó en clase":"E.g. told us in class","Faltas justificadas ✓":"Absences justified ✓"});
-Object.assign(DICT,{"¿Olvidaste tu contraseña?":"Forgot your password?","Recuperar contraseña":"Reset password","Escribí tu email y te mandamos un link para crear una contraseña nueva.":"Enter your email and we'll send you a link to create a new password.","Enviar link":"Send link","Volver":"Back","👁 Vista de estudiante":"👁 Student view","Volver a vista de profe":"Back to teacher view","La contraseña nueva tiene que ser distinta de la anterior.":"Your new password must be different from the old one.","Esa contraseña es muy débil. Probá con una más larga.":"That password is too weak. Try a longer one.","Tocá el botón para crear tu contraseña y entrar a tu espacio.":"Tap the button to create your password and enter your space.","Tocá el botón para elegir una contraseña nueva.":"Tap the button to choose a new password.","Elegir contraseña nueva":"Choose new password","Crear mi contraseña":"Create my password","Un momento…":"One moment…","Escribí tu email.":"Enter your email.","Enviando…":"Sending…","Listo. Si ese email tiene cuenta, te llega un link en unos minutos. Revisá también el spam.":"Done. If that email has an account, you'll get a link in a few minutes. Check your spam too.","Pediste varios links seguidos. Esperá unos minutos y probá de nuevo.":"You requested several links in a row. Wait a few minutes and try again.","No pudimos enviar el link. Probá de nuevo.":"We couldn't send the link. Try again.","Nueva contraseña":"New password","Elegí una contraseña nueva (mínimo 6 caracteres).":"Choose a new password (at least 6 characters).","Repetila":"Repeat it","Guardar contraseña":"Save password","La contraseña tiene que tener al menos 6 caracteres.":"The password must be at least 6 characters.","Las contraseñas no coinciden.":"The passwords don't match.","Guardando…":"Saving…","Contraseña actualizada ✓":"Password updated ✓"});
+Object.assign(DICT,{"¿Olvidaste tu contraseña?":"Forgot your password?","Recuperar contraseña":"Reset password","Escribí tu email y te mandamos un link para crear una contraseña nueva.":"Enter your email and we'll send you a link to create a new password.","Enviar link":"Send link","Volver":"Back","Email de acceso":"Access email","👁 Vista de estudiante":"👁 Student view","Volver a vista de profe":"Back to teacher view","La contraseña nueva tiene que ser distinta de la anterior.":"Your new password must be different from the old one.","Esa contraseña es muy débil. Probá con una más larga.":"That password is too weak. Try a longer one.","Tocá el botón para crear tu contraseña y entrar a tu espacio.":"Tap the button to create your password and enter your space.","Tocá el botón para elegir una contraseña nueva.":"Tap the button to choose a new password.","Elegir contraseña nueva":"Choose new password","Crear mi contraseña":"Create my password","Un momento…":"One moment…","Escribí tu email.":"Enter your email.","Enviando…":"Sending…","Listo. Si ese email tiene cuenta, te llega un link en unos minutos. Revisá también el spam.":"Done. If that email has an account, you'll get a link in a few minutes. Check your spam too.","Pediste varios links seguidos. Esperá unos minutos y probá de nuevo.":"You requested several links in a row. Wait a few minutes and try again.","No pudimos enviar el link. Probá de nuevo.":"We couldn't send the link. Try again.","Nueva contraseña":"New password","Elegí una contraseña nueva (mínimo 6 caracteres).":"Choose a new password (at least 6 characters).","Repetila":"Repeat it","Guardar contraseña":"Save password","La contraseña tiene que tener al menos 6 caracteres.":"The password must be at least 6 characters.","Las contraseñas no coinciden.":"The passwords don't match.","Guardando…":"Saving…","Contraseña actualizada ✓":"Password updated ✓"});
 Object.assign(DICT,{"Este email no está habilitado en Innit. Si creés que es un error, escribinos a innit.english@gmail.com.":"This email isn't enabled on Innit. If you think this is a mistake, write to us at innit.english@gmail.com."});
 Object.assign(DICT,{"Grupos y empresas":"Groups & companies","Empresas":"Companies","Cada empresa puede tener su contacto de HR, que va a ver solo los datos de esa empresa.":"Each company can have an HR contact, who will only see that company's data.","Nombre de la empresa nueva":"New company name","Agregar empresa":"Add company","＋ HR":"＋ HR","Todas las empresas":"All companies","＋ Nuevo grupo":"＋ New group","No hay grupos.":"No groups.","Nuevo grupo":"New group","Editar grupo":"Edit group","Nombre del grupo":"Group name","Empresa":"Company","Profesora":"Teacher","Días":"Days","— elegí —":"— choose —","— sin asignar —":"— unassigned —","Poné nombre y empresa.":"Enter a name and company.","Grupo creado":"Group created","Grupo actualizado":"Group updated","Empresa agregada":"Company added","Esa empresa ya existe":"That company already exists","Guardar HR":"Save HR","HR agregado":"HR added","Completá nombre y email":"Enter name and email","Cargar varios":"Bulk add","Cargar varios estudiantes":"Bulk add students","Pegá una lista, una persona por línea: nombre y email (podés copiar dos columnas directo desde Excel).":"Paste a list, one person per line: name and email (you can copy two columns straight from Excel).","Lista":"List","Nivel (opcional)":"Level (optional)","Cargar":"Add","Cargando…":"Adding…","Elegí un grupo.":"Choose a group.","No encontré ninguna línea con nombre y email.":"I couldn't find any line with a name and email.","Estudiantes cargados ✓":"Students added ✓"});
 RE_RULES.push([/^(\d+) estudiante\(s\) listos para cargar\.(.*)$/,function(m,a,b){return a+" student(s) ready to add."+(b?b.replace(/(\d+) línea\(s\) sin nombre o email válido\./,"$1 line(s) without a valid name or email."):"");}]);
@@ -1205,6 +1205,8 @@ async function renderFicha(alumnoId){
         <div><div class="k">Grupo</div><div class="v">${g?g.nombre:"—"}</div></div>
         <div><div class="k">Profesora</div><div class="v">${g&&g.profesora?g.profesora:"—"}</div></div>
         <div><div class="k">Horario</div><div class="v">${horario}</div></div>
+        ${al.email?`<div><div class="k">Email</div><div class="v" style="font-weight:500;font-size:14px">${al.email}</div></div>`:''}
+        ${al.email_acceso?`<div><div class="k">Email de acceso</div><div class="v" style="font-weight:500;font-size:14px">${al.email_acceso}</div></div>`:''}
         ${g&&g.fecha_inicio?`<div><div class="k">Inicio del curso</div><div class="v">${fmtFecha(g.fecha_inicio)}</div></div>`:''}
         ${(!al.activo&&(al.motivo_baja||al.fecha_baja))?`<div><div class="k">Baja</div><div class="v" style="color:var(--red)">${[al.fecha_baja?fmtFecha(al.fecha_baja):'',al.motivo_baja||''].filter(Boolean).join(' · ')}</div></div>`:''}
       </div></div></div>
@@ -1573,6 +1575,22 @@ function renderResumenGrupo(gid,fecha){
     <div class="alist">${lista||'<div class="empty" style="padding:14px">Sin estudiantes activos.</div>'}</div></div>
   </div>`;
 }
+function renderMailsGrupo(gid){
+  const box=document.getElementById('l-mails'); if(!box) return;
+  if(!gid){ box.innerHTML=''; return; }
+  const en=LANG==='en';
+  const mem=ctx.alumnos.filter(a=>a.grupo_id===gid&&a.activo).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  const mails=[...new Set(mem.map(a=>(a.email||a.email_acceso||'').trim()).filter(Boolean))];
+  if(!mails.length){ box.innerHTML=''; return; }
+  const esc=t=>String(t||'').replace(/</g,'&lt;');
+  box.innerHTML=`<details class="aus-det" style="margin:0 0 14px;border:1px solid var(--line);border-radius:10px;padding:4px 14px">
+    <summary>✉ ${en?'Group emails':'Mails del grupo'} (${mails.length})</summary>
+    <div style="padding:4px 0 10px">${mem.map(a=>`<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:5px 0;border-bottom:1px solid var(--line);font-size:13.5px"><span>${esc(a.nombre)}</span><span style="color:var(--ink-soft)">${esc(a.email||'—')}${a.email_acceso?` · <span title="${en?'Access email':'Email de acceso'}">🔑 ${esc(a.email_acceso)}</span>`:''}</span></div>`).join('')}
+    <div class="idet-acts" style="margin-top:12px"><button class="btn-primary btn-sm" id="lm-gmail">${en?'Email the group':'Escribir al grupo'}</button><button class="btn-ghost btn-sm" id="lm-copy">${en?'Copy emails':'Copiar mails'}</button></div>
+    <div style="font-size:12px;color:var(--ink-soft);margin-top:6px">${en?'Opens Gmail with the whole group as recipients, from the account you have open.':'Abre Gmail con todo el grupo como destinatarios, desde la cuenta que tengas abierta.'}</div></div></details>`;
+  document.getElementById('lm-gmail').onclick=()=>window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(mails.join(',')),'_blank');
+  document.getElementById('lm-copy').onclick=async()=>{ try{ await navigator.clipboard.writeText(mails.join(', ')); toast(en?'Emails copied ✓':'Mails copiados ✓'); }catch(e){ toast(en?"Couldn't copy":'No se pudo copiar'); } };
+}
 function viewListaAsis(){
   const {grupos}=ctx, view=document.getElementById("view");
   const hoy=new Date().toISOString().slice(0,10);
@@ -1585,7 +1603,7 @@ function viewListaAsis(){
         <div class="field"><label class="lab">Grupo</label><select id="l-grupo"><option value="">— elegí un grupo —</option>${grupos.map(g=>`<option value="${g.id}">${g.nombre}</option>`).join("")}</select></div>
         <div class="field"><label class="lab">Fecha</label><select id="l-fecha-sel"><option value="">— primero elegí un grupo —</option></select><input id="l-fecha" type="date" value="${hoy}" style="display:none">
           <a href="#" id="l-otra" style="display:none;font-size:12.5px;color:var(--ink-soft);margin-top:6px">Otra fecha (clase de recuperación)</a></div>
-      </div><div id="l-list"></div>
+      </div><div id="l-mails"></div><div id="l-list"></div>
     </div><div id="l-resumen" style="max-width:680px"></div>`;
   const gsel=document.getElementById("l-grupo"), fsel=document.getElementById("l-fecha"), listEl=document.getElementById("l-list");
   const fdSel=document.getElementById("l-fecha-sel"), otra=document.getElementById("l-otra");
@@ -1610,6 +1628,7 @@ function viewListaAsis(){
   let marks={};
   async function loadList(){
     const gid=gsel.value, fecha=fsel.value;
+    renderMailsGrupo(gid);
     if(!gid||!fecha){ listEl.innerHTML=''; document.getElementById('l-resumen').innerHTML=''; return; }
     renderResumenGrupo(gid,fecha);
     listEl.innerHTML='<div class="empty">Cargando…</div>';

@@ -1749,10 +1749,30 @@ function viewTemas(){
 
 /* ---------- OBSERVACIONES ---------- */
 function viewObs(){
-  const {alumnos}=ctx, view=document.getElementById("view");
-  const opts=alumnos.map(a=>`<option value="${a.id}">${a.nombre}${a.activo?'':' · baja'}</option>`).join("");
-  view.innerHTML=`<div class="selector"><span class="eyebrow">Estudiante</span><select id="o-al">${opts}</select></div><div id="o-body"></div>`;
-  const alSel=document.getElementById("o-al"); alSel.onchange=()=>load(alSel.value); load(alSel.value);
+  const view=document.getElementById("view"), en=LANG==='en';
+  const pruebasId=(ctx.empresas.find(e=>e.nombre.toLowerCase()==='pruebas')||{}).id;
+  const gruposConAl=ctx.grupos.filter(g=>ctx.alumnos.some(a=>a.grupo_id===g.id)).sort((x,y)=>(x.empresa_id===pruebasId)-(y.empresa_id===pruebasId)||x.nombre.localeCompare(y.nombre));
+  const sinGrupo=ctx.alumnos.some(a=>!a.grupo_id);
+  const gOpts=['<option value="">'+(en?'— choose a group —':'— elegí un grupo —')+'</option>']
+    .concat(gruposConAl.map(g=>`<option value="${g.id}">${g.nombre}${g.profesora?' · '+g.profesora:''}</option>`))
+    .concat(sinGrupo?['<option value="__sin__">'+(en?'No group':'Sin grupo')+'</option>']:[]).join('');
+  view.innerHTML=`<div class="selector"><span class="eyebrow">Grupo</span><select id="o-gr">${gOpts}</select>
+    <span class="eyebrow">Estudiante</span><select id="o-al" disabled><option>${en?'— choose a group first —':'— primero elegí un grupo —'}</option></select></div><div id="o-body"></div>`;
+  const grSel=document.getElementById("o-gr"), alSel=document.getElementById("o-al");
+  function fillAl(keep){
+    const gid=grSel.value; try{ sessionStorage.setItem('innit_obs_g',gid); }catch(e){}
+    if(!gid){ alSel.disabled=true; alSel.innerHTML=`<option>${en?'— choose a group first —':'— primero elegí un grupo —'}</option>`; document.getElementById("o-body").innerHTML=`<div class="empty">${en?'Choose a group to see its students.':'Elegí un grupo para ver sus estudiantes.'}</div>`; return; }
+    const mem=ctx.alumnos.filter(a=>gid==='__sin__'?!a.grupo_id:a.grupo_id===gid).sort((x,y)=>(y.activo-x.activo)||x.nombre.localeCompare(y.nombre));
+    alSel.disabled=false;
+    alSel.innerHTML=mem.map(a=>`<option value="${a.id}">${a.nombre}${a.activo?'':' · baja'}</option>`).join('');
+    if(keep&&mem.some(a=>a.id===keep)) alSel.value=keep;
+    try{ sessionStorage.setItem('innit_obs_a',alSel.value); }catch(e){}
+    load(alSel.value);
+  }
+  grSel.onchange=()=>fillAl();
+  alSel.onchange=()=>{ try{ sessionStorage.setItem('innit_obs_a',alSel.value); }catch(e){} load(alSel.value); };
+  const _g=sessionStorage.getItem('innit_obs_g');
+  if(_g&&[...grSel.options].some(o=>o.value===_g)){ grSel.value=_g; fillAl(sessionStorage.getItem('innit_obs_a')); } else fillAl();
   function obsItem(o){
     return `<div class="obs"><div class="obs-head"><span class="obs-date">${fmtFecha(o.fecha)}</span>${o.trimestre?`<span class="tag tri">${o.trimestre}</span>`:''}${tipoTag(o)}<span class="tag ${o.compartida?'cambio':'interna'}">${o.compartida?'compartida':'interna'}</span><div style="flex:1"></div><button class="btn-ghost btn-sm" data-edit="${o.id}">Editar</button><button class="btn-ghost btn-sm" data-del="${o.id}">Borrar</button></div><div class="obs-body">${o.texto}</div></div>`;
   }

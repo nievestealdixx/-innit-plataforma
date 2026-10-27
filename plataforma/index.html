@@ -374,6 +374,7 @@ function toggleLang(reRender){ LANG=LANG==='en'?'es':'en'; localStorage.setItem(
 
 function fmtFecha(s){ const d=new Date(s+"T00:00:00"); return d.getDate()+" "+MESES[d.getMonth()]+" "+d.getFullYear(); }
 function toast(t){ const el=document.getElementById("toast"); el.textContent=t; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),2200); }
+function causaLab(c){ return LANG==='en'?({'Trabajo':'Work','Reunión':'Meeting','Vacaciones':'Vacation','Personal':'Personal','Sin justificar':'Unjustified'})[c]||c:c; }
 function causaDe(nota){
   if(!nota) return "Sin justificar";
   const s=(""+nota).toLowerCase();
@@ -1008,7 +1009,7 @@ async function renderInasistencias(cont){
     }
     else if(act==='form-just'){
       const it=items.find(x=>x.a.id===id);
-      const opts=CAUSAS.filter(c=>c!=='Sin justificar').map(c=>`<option>${c}</option>`).join('');
+      const opts=CAUSAS.filter(c=>c!=='Sin justificar').map(c=>`<option value="${c}">${c}</option>`).join('');
       formBox.innerHTML=`<div class="grid2"><div><label class="lab">Causa</label><select class="f-causa">${opts}</select></div><div><label class="lab">Nota (opcional)</label><input class="f-nota" placeholder="Ej: avisó en clase"></div></div><div class="idet-acts"><button class="btn-primary btn-sm" data-ok>Guardar</button></div>`;
       formBox.querySelector('[data-ok]').onclick=async()=>{
         const causa=formBox.querySelector('.f-causa').value, nota=formBox.querySelector('.f-nota').value.trim();
@@ -1089,7 +1090,7 @@ async function viewHome(segArg){
     const mr=rs.filter(a=>a.fecha.slice(0,7)===ym), pm=mr.length?Math.round(mr.filter(a=>a.presente).length/mr.length*100):null;
     const ni=_flag.filter(f=>f.a.empresa_id===e.id).length;
     const by={}; rs.filter(a=>!a.presente).forEach(a=>{const c=causaDe(a.nota); by[c]=(by[c]||0)+1;});
-    const chips=Object.entries(by).sort((x,y)=>y[1]-x[1]).map(([c,n])=>`<span class="cause-chip">${c}: ${n}</span>`).join('');
+    const chips=Object.entries(by).sort((x,y)=>y[1]-x[1]).map(([c,n])=>`<span class="cause-chip">${causaLab(c)}: ${n}</span>`).join('');
     const b=aggPct(rs);
     return `<div class="section"><h2>${e.nombre}</h2>
       <div class="stat-grid" style="margin:12px 0 4px">
@@ -1184,7 +1185,7 @@ async function renderFicha(alumnoId){
   }
   const aus=rows.filter(a=>!a.presente).sort((x,y)=>y.fecha.localeCompare(x.fecha));
   const _ausBy={}; aus.forEach(a=>{const c=causaDe(a.nota); _ausBy[c]=(_ausBy[c]||0)+1;});
-  const _ausRes=Object.entries(_ausBy).sort((x,y)=>y[1]-x[1]).map(([c,n])=>`<span class="cause-chip">${c}: ${n}</span>`).join('');
+  const _ausRes=Object.entries(_ausBy).sort((x,y)=>y[1]-x[1]).map(([c,n])=>`<span class="cause-chip">${causaLab(c)}: ${n}</span>`).join('');
   const ausHTML=total===0?'<div class="empty">Sin asistencia cargada.</div>':aus.length===0?'<div class="empty">Asistencia perfecta en el período. 🎉</div>':
     `<div class="chips">${_ausRes}</div><details class="aus-det"><summary>Ver fechas</summary>`+
     aus.map(a=>`<div class="obs" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span class="obs-date">${fmtFecha(a.fecha)}</span><span class="tag ${a.nota?'examen':'general'}">${a.nota?causaDe(a.nota):'sin motivo'}</span></div>`).join("")+`</details>`;
@@ -1656,7 +1657,7 @@ function viewListaAsis(){
   }
   function rowHTML(a){
     const m=marks[a.id];
-    const copts=['<option value="">causa…</option>'].concat(CAUSAS.map(c=>`<option ${m.nota===c?'selected':''}>${c}</option>`)).join("");
+    const copts=['<option value="">causa…</option>'].concat(CAUSAS.map(c=>`<option value="${c}" ${m.nota&&causaDe(m.nota)===c?'selected':''}>${c}</option>`)).join("");
     return `<div class="lrow asis-row${m.presente?'':' is-abs'}" data-row="${a.id}"><span class="an">${a.nombre}</span>
       <div class="seg" data-al="${a.id}"><button data-p="1" class="${m.presente?'active':''}">Presente</button><button data-p="0" class="${m.presente?'':'active'}">Ausente</button></div>
       <select class="l-causa" data-al="${a.id}">${copts}</select></div>`;
@@ -1848,7 +1849,7 @@ function viewReportes(){
     </div>`;
   let mode="asis", scope="alumno";
   const targetSel=document.getElementById("target"), causaSel=document.getElementById("causa");
-  causaSel.innerHTML=['<option value="">Todas las causas</option>'].concat(CAUSAS.map(c=>`<option>${c}</option>`)).join("");
+  causaSel.innerHTML=['<option value="">Todas las causas</option>'].concat(CAUSAS.map(c=>`<option value="${c}">${c}</option>`)).join("");
   function fillTargets(){
     let opts= scope==="alumno"?alumnos.map(a=>[a.id,a.nombre]) : scope==="grupo"?grupos.map(g=>[g.id,g.nombre]) : empresas.map(e=>[e.id,e.nombre]);
     targetSel.innerHTML=opts.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("");
@@ -1866,7 +1867,7 @@ function viewReportes(){
     // bajas %
     const bl=document.getElementById("bajas");
     if(scope!=="alumno"){ const mem=membersOf(scope,id); const b=mem.filter(a=>!a.activo).length;
-      bl.innerHTML=mem.length?`Bajas: <b>${b} de ${mem.length} (${Math.round(b/mem.length*100)}%)</b>`:''; }
+      bl.innerHTML=mem.length?`${LANG==='en'?'Inactive':'Bajas'}: <b>${b} ${LANG==='en'?'of':'de'} ${mem.length} (${Math.round(b/mem.length*100)}%)</b>`:''; }
     else bl.innerHTML='';
 
     if(mode==="asis"){
@@ -1891,7 +1892,7 @@ function viewReportes(){
       // breakdown by cause
       const by={}; rows.filter(a=>!a.presente).forEach(a=>{const c=causaDe(a.nota); by[c]=(by[c]||0)+1;});
       const items=Object.entries(by).sort((a,b)=>b[1]-a[1]);
-      document.getElementById("extra").innerHTML= items.length?`<div style="margin-top:22px"><div class="eyebrow" style="margin-bottom:10px">Inasistencias por causa</div><div class="chips">${items.map(([c,n])=>`<span class="cause-chip">${c}: ${n}</span>`).join('')}</div></div>`:'';
+      document.getElementById("extra").innerHTML= items.length?`<div style="margin-top:22px"><div class="eyebrow" style="margin-bottom:10px">Inasistencias por causa</div><div class="chips">${items.map(([c,n])=>`<span class="cause-chip">${causaLab(c)}: ${n}</span>`).join('')}</div></div>`:'';
     }
   }
   document.querySelectorAll("#mode button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#mode button").forEach(x=>x.classList.remove("active"));b.classList.add("active");mode=b.dataset.m;redraw();});

@@ -1037,8 +1037,8 @@ function avisoFeriados(g){
   const MEN=["January","February","March","April","May","June","July","August","September","October","November","December"];
   const items=Object.keys(FERIADOS).filter(f=>f>=hoy&&f<=limS&&!(g.fecha_inicio&&f<g.fecha_inicio)&&ds.has(new Date(f+'T12:00:00').getDay())).sort().map(f=>{
     const d=new Date(f+'T12:00:00'), prov=/c[oó]rdoba/i.test(FERIADOS[f]);
-    return en?`No class on ${DEN[d.getDay()]}, ${MEN[d.getMonth()]} ${d.getDate()} — ${prov?'provincial':'national'} holiday.`
-             :`El ${DES[d.getDay()]} ${d.getDate()} de ${MESES_L[d.getMonth()]} no hay clase por feriado ${prov?'provincial':'nacional'}.`;
+    return en?`No class on ${DEN[d.getDay()]}, ${MEN[d.getMonth()]} ${d.getDate()} — ${prov?'public':'national'} holiday.`
+             :`El ${DES[d.getDay()]} ${d.getDate()} de ${MESES_L[d.getMonth()]} no hay clase por feriado${prov?'':' nacional'}.`;
   });
   if(!items.length) return '';
   return `<div class="asis-msg asis-msg-warn" data-noi18n="1" style="margin:0 0 18px">📅 ${items.join('<br>📅 ')}</div>`;

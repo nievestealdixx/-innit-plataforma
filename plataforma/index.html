@@ -1028,6 +1028,21 @@ async function renderInasistencias(cont){
   });
   }catch(e){ console.warn('alerta inasistencias:',e); if(cont) cont.innerHTML=''; }
 }
+function avisoFeriados(g){
+  if(!g) return '';
+  const ds=diasDeGrupo(g); if(!ds.size) return '';
+  const en=LANG==='en', hoy=_hoyLocal();
+  const lim=new Date(hoy+'T12:00:00'); lim.setDate(lim.getDate()+21); const limS=_fstr(lim);
+  const DES=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'], DEN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MEN=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const items=Object.keys(FERIADOS).filter(f=>f>=hoy&&f<=limS&&!(g.fecha_inicio&&f<g.fecha_inicio)&&ds.has(new Date(f+'T12:00:00').getDay())).sort().map(f=>{
+    const d=new Date(f+'T12:00:00'), prov=/c[oó]rdoba/i.test(FERIADOS[f]);
+    return en?`No class on ${DEN[d.getDay()]}, ${MEN[d.getMonth()]} ${d.getDate()} — ${prov?'provincial':'national'} holiday.`
+             :`El ${DES[d.getDay()]} ${d.getDate()} de ${MESES_L[d.getMonth()]} no hay clase por feriado ${prov?'provincial':'nacional'}.`;
+  });
+  if(!items.length) return '';
+  return `<div class="asis-msg asis-msg-warn" data-noi18n="1" style="margin:0 0 18px">📅 ${items.join('<br>📅 ')}</div>`;
+}
 function renderBajasHTML(){
   const bajas=ctx.alumnos.filter(a=>!a.activo);
   const rows = bajas.length ? '<div>'+bajas.map(a=>{const g=a.grupo_id?ctx.grupoById[a.grupo_id]:null; return `<div class="obs"><div style="display:flex;justify-content:space-between;gap:10px"><span>${a.nombre}</span><span style="color:var(--ink-soft);font-size:13px">${g?g.nombre.replace('Avenga ',''):'—'}</span></div>${(a.motivo_baja||a.fecha_baja)?`<div style="font-size:12.5px;color:var(--ink-soft);margin-top:3px">${a.fecha_baja?fmtFecha(a.fecha_baja)+(a.motivo_baja?' · ':''):''}${a.motivo_baja?'Motivo: '+a.motivo_baja:''}</div>`:''}</div>`;}).join('')+'</div>' : '<div class="empty">No hay bajas registradas.</div>';
@@ -1211,6 +1226,7 @@ async function renderFicha(alumnoId){
         ${g&&g.fecha_inicio?`<div><div class="k">Inicio del curso</div><div class="v">${fmtFecha(g.fecha_inicio)}</div></div>`:''}
         ${(!al.activo&&(al.motivo_baja||al.fecha_baja))?`<div><div class="k">Baja</div><div class="v" style="color:var(--red)">${[al.fecha_baja?fmtFecha(al.fecha_baja):'',al.motivo_baja||''].filter(Boolean).join(' · ')}</div></div>`:''}
       </div></div></div>
+    ${avisoFeriados(g)}
     <div class="tile"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div><div class="big">${pct}<small>%</small></div><div class="lab">Asistencia · ${pres} de ${total} clases</div></div>${_mesPct===null?'':`<div style="text-align:right"><span class="state ${_mesPct>=ASIS_VERDE?'on':'off'}" style="font-size:13px;padding:5px 12px">${_mesPct}% ${_mesNom}</span></div>`}</div>
     ${_msgAsis}<div class="asis-min">📌 Asistencia mínima requerida: <b>${ASIS_MIN}% mensual</b></div>${bars}</div>
     <div class="section"><h2>Ausencias${aus.length?` <span style="font-family:Inter;font-weight:600;font-size:13px;color:var(--ink-soft)">(${aus.length})</span>`:''}</h2><div class="sub">Días que faltó, con el motivo si quedó registrado.</div>${ausHTML}</div>

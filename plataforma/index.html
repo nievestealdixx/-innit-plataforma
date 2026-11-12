@@ -135,6 +135,7 @@
   .grow .an{font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .grow .ag{font-size:13px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .grow .anv{font-size:12px; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .amail{display:block; font-weight:400; font-size:12px; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .state{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:3px 9px; border-radius:20px; justify-self:end; white-space:nowrap}
   .state.on{background:var(--green-bg); color:var(--green)} .state.off{background:var(--red-bg); color:var(--red)}
   .gh{padding:14px 18px; background:var(--ink); color:#fff; display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap}
@@ -1300,6 +1301,16 @@ function dhRead(p){
   const de=(document.getElementById(p+'-desde')||{}).value||'', ha=(document.getElementById(p+'-hasta')||{}).value||'';
   return {dias, horario:(de&&ha)?de+' a '+ha:(de||null)};
 }
+function mailDe(a){
+  const m=a.email_acceso||a.email;
+  if(!m) return '';
+  return `<span class="amail">${a.email_acceso?'🔑 ':''}${String(m).replace(/</g,'&lt;')}</span>`;
+}
+function listaEstudiantes(lista){
+  const en=LANG==='en';
+  if(!lista.length) return `<div class="empty" style="padding:10px 0">${en?'No students.':'Sin estudiantes.'}</div>`;
+  return lista.slice().sort((x,y)=>(y.activo-x.activo)||x.nombre.localeCompare(y.nombre)).map(a=>`<div class="lrow" style="grid-template-columns:minmax(0,1fr) auto"><span class="an" style="min-width:0">${a.nombre}${mailDe(a)}</span><span class="state ${a.activo?'on':'off'}">${a.activo?'activo':'baja'}</span></div>`).join('');
+}
 function viewGrupos(){
   const view=document.getElementById("view");
   let filtro="";
@@ -1317,6 +1328,7 @@ function viewGrupos(){
           const nG=ctx.grupos.filter(g=>g.empresa_id===e.id).length;
           return `<div class="lrow" style="grid-template-columns:1fr auto"><span class="an">${e.nombre} <span style="font-weight:400;color:var(--ink-soft);font-size:12.5px">· ${nG} grupo(s)</span></span><button class="btn-ghost btn-sm" data-hr="${e.id}">＋ HR</button></div>`+
             hr.map(h=>`<div class="lrow" style="grid-template-columns:1fr auto auto;padding-left:34px;background:#FBF9F2"><span style="font-size:13px"><span class="tag tri">HR</span> ${h.nombre} · <span style="color:var(--ink-soft)">${h.email}</span></span><button class="btn-ghost btn-sm" data-hredit="${h.id}">Editar</button><button class="btn-ghost btn-sm" data-hrdel="${h.id}" style="color:var(--red)">Quitar</button></div>`).join('')+
+            `<details class="aus-det" style="padding:0 18px 8px;margin:0;border-bottom:1px solid var(--line)"><summary>${LANG==='en'?'See students':'Ver estudiantes'} (${ctx.alumnos.filter(a=>a.empresa_id===e.id).length})</summary>${listaEstudiantes(ctx.alumnos.filter(a=>a.empresa_id===e.id))}</details>`+
             `<div data-hrform="${e.id}"></div>`;
         }).join('')}</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap"><input id="emp-nueva" placeholder="Nombre del segmento nuevo" style="flex:1;min-width:200px"><button class="btn-primary" id="emp-add">Agregar segmento</button></div>
@@ -1383,6 +1395,7 @@ function viewGrupos(){
       </div>
       ${dhHTML('gf',g.dias,g.horario)}
       <div class="field" style="max-width:240px"><label class="lab">Fecha de inicio</label><input id="gf-fi" type="date" value="${g.fecha_inicio||''}"></div>
+      ${id?`<div class="eyebrow" style="margin:6px 0 8px">${LANG==='en'?'Students in this group':'Estudiantes del grupo'}</div><div class="alist" style="margin-bottom:14px">${listaEstudiantes(ctx.alumnos.filter(a=>a.grupo_id===id))}</div>`:''}
       <div class="form-actions"><button class="btn-primary" id="gf-save">Guardar</button><button class="btn-ghost" id="gf-cancel">Cancelar</button><div style="flex:1"></div>${id?'<button class="btn-ghost" id="gf-del" style="color:var(--red);border-color:var(--red-bg)">Eliminar grupo</button>':''}</div><span class="msg" id="gf-msg"></span>
     </div>`;
     document.getElementById("gf-cancel").onclick=render;
@@ -1447,7 +1460,7 @@ function viewGestion(){
   function matchQ(a){ return !q || a.nombre.toLowerCase().includes(q.toLowerCase()) || (a.email||"").toLowerCase().includes(q.toLowerCase()) || (a.email_acceso||"").toLowerCase().includes(q.toLowerCase()); }
   function rowHTML(a){
     const g=a.grupo_id?ctx.grupoById[a.grupo_id]:null;
-    return `<div class="grow" data-id="${a.id}"><span class="an">${a.nombre}</span><span class="ag" title="${g?g.nombre:''}">${grupoLabel(g)}</span><span class="anv">${a.nivel_sel||'—'}</span><span class="state ${a.activo?'on':'off'}">${a.activo?'activo':'baja'}</span></div>`;
+    return `<div class="grow" data-id="${a.id}"><span class="an">${a.nombre}${mailDe(a)}</span><span class="ag" title="${g?g.nombre:''}">${grupoLabel(g)}</span><span class="anv">${a.nivel_sel||'—'}</span><span class="state ${a.activo?'on':'off'}">${a.activo?'activo':'baja'}</span></div>`;
   }
   function form(id){
     const a=id?ctx.alumnoById[id]:{nombre:"",email:"",nivel_sel:"",grupo_id:"",activo:true};

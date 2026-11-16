@@ -148,11 +148,22 @@
   .step .stxt{display:flex; flex-direction:column; min-width:0} .step b{font-size:14.5px} .step small{font-size:12px; color:var(--ink-soft)}
   .step.locked{background:#F3EFE4; cursor:default; opacity:.75}
   .citem{padding:6px 0 14px; border-bottom:1px solid var(--line); margin-bottom:14px} .citem:last-child{border-bottom:none; margin-bottom:0}
-  .ci-t{font-family:"Bricolage Grotesque"; font-size:18px; margin:4px 0 4px}
+  .ci-t{font-family:"Bricolage Grotesque"; font-size:18px; margin:4px 0 8px}
   .why{font-size:14px; padding:8px 12px; border-radius:8px; margin-top:4px} .why.ok{background:var(--green-bg)} .why.no{background:var(--red-bg)}
   .opt:disabled{cursor:default}
   .recbar{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
   .rtab{border-collapse:collapse; font-size:13.5px} .rtab th,.rtab td{padding:7px 10px; border-bottom:1px solid var(--line); text-align:left; white-space:nowrap}
+  .howto{background:var(--yellow-bg); border-radius:14px; padding:14px 18px; margin-bottom:16px; font-size:14px} .howto ol{margin:6px 0 0; padding-left:20px}
+  .gchecks{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:8px}
+  .gchk{display:flex; gap:10px; align-items:flex-start; border:1px solid var(--line); border-radius:12px; padding:10px 12px; cursor:pointer; font-size:14px; background:#fff}
+  .gchk input{width:auto; margin-top:3px} .gchk span{display:flex; flex-direction:column} .gchk small{color:var(--ink-soft); font-size:12px}
+  .gchk:has(input:checked){border-color:var(--yellow); background:var(--yellow-bg)}
+  details.mas{margin-top:14px} details.mas summary{cursor:pointer; font-size:13.5px; font-weight:600; color:var(--ink-soft)}
+  .steps-ed{display:flex; gap:8px; margin:6px 0 14px} .steps-ed span{font-size:12.5px; font-weight:600; color:var(--ink-soft); background:#F3EFE4; padding:4px 10px; border-radius:20px} .steps-ed span.on{background:var(--ink); color:#fff}
+  .kgrp{margin-bottom:12px} .kgrp .lrow{border:1px solid var(--line); border-radius:12px; margin-bottom:6px}
+  .addcards{display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:10px; margin-top:8px}
+  .addcard{text-align:left; background:#fff; border:1px dashed #D4CCB8; border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:4px; font-weight:400; color:var(--ink)}
+  .addcard:hover{border-color:var(--yellow); border-style:solid} .addcard b{font-size:15px} .addcard small{font-size:12.5px; color:var(--ink-soft)}
   @media (max-width:640px){
     .grid2{grid-template-columns:1fr}
     .wrap{padding:14px 12px 70px}
@@ -305,12 +316,12 @@ async function loadTeacher(){
     traerTodo("practice_assignments","*",["created_at desc","id"]),
     traerTodo("practice_submissions","*",["submitted_at desc","id"]),
     traerTodo("practice_progress","*",["assignment_id","student_email"]),
-    traerTodo("alumnos","id, nombre, email, nivel_sel, grupo_id, empresa_id, activo",["nombre","id"]),
-    traerTodo("grupos","id, nombre, profesora, empresa_id",["nombre","id"])
+    traerTodo("alumnos","id, nombre, email, email_acceso, nivel_sel, grupo_id, empresa_id, activo",["nombre","id"]),
+    traerTodo("grupos","id, nombre, profesora, empresa_id, dias, horario",["nombre","id"])
   ]);
   Object.assign(S,{items,asg,subs,prog,alumnos,grupos});
   S.itemById=Object.fromEntries(items.map(i=>[i.id,i]));
-  S.alByEmail=Object.fromEntries(alumnos.filter(a=>a.email).map(a=>[a.email.toLowerCase(),a]));
+  S.alByEmail={}; alumnos.forEach(a=>{ if(a.email) S.alByEmail[a.email.toLowerCase()]=a; if(a.email_acceso) S.alByEmail[a.email_acceso.toLowerCase()]=a; });
 }
 function estadoDe(a,subs,prog){
   const sub=subs.find(s=>s.assignment_id===a.id), p=prog.find(x=>x.assignment_id===a.id);
@@ -540,7 +551,7 @@ async function renderStudent(email,asTeacher){
   root.innerHTML=`<div class="empty pad">Loading…</div>`;
   let al;
   if(asTeacher) al=S.alByEmail[email]||null;
-  else { const {data}=await db.from("alumnos").select("id, nombre, email, nivel_sel, grupo_id").eq("email",email).maybeSingle(); al=data; }
+  else { const {data}=await db.from("alumnos").select("id, nombre, email, nivel_sel, grupo_id").or(`email.eq.${email},email_acceso.eq.${email}`).limit(1); al=data&&data[0]; }
   const lv=applyLevel(levelCode(al&&al.nivel_sel));
   const {data:asgAll}=await db.from("practice_assignments").select("*").eq("student_email",email).order("created_at",{ascending:false});
   const asg=(asgAll||[]).filter(a=>asTeacher||!a.visible_from||a.visible_from<=hoy());
@@ -549,7 +560,7 @@ async function renderStudent(email,asTeacher){
   const subs=aIds.length?((await db.from("practice_submissions").select("*").in("assignment_id",aIds).order("submitted_at",{ascending:false})).data||[]):[];
   const prog=aIds.length?((await db.from("practice_progress").select("*").in("assignment_id",aIds)).data||[]):[];
   const prevTab=S.st&&S.st.email===email?S.st.tab:"";
-  const C=await loadCourseData(email);
+  const C=await loadCourseData(email,asTeacher,al);
   S.st={C,email,al,lv,asTeacher,asg:asg.filter(a=>items.some(i=>i.id===a.item_id)),itemById:Object.fromEntries(items.map(i=>[i.id,i])),subs,prog,tab:prevTab};
   drawStudentHome();
 }
@@ -558,7 +569,7 @@ function studentShell(inner){
   const banner=st.asTeacher?`<div class="teacher-banner"><span>Estás viendo el Practice Corner de <b>${esc(st.al?st.al.nombre:st.email)}</b>. Ves lo mismo que el alumno, pero no podés responder por él.</span><button class="btn-ghost btn-sm" id="t-back">Volver al panel</button></div>`:"";
   root.innerHTML=navHTML()+`<div class="wrap">${banner}${inner}</div>`;
   bindNav();
-  const tb=$("#t-back"); if(tb) tb.onclick=()=>{ history.replaceState(null,"",location.pathname); renderTeacher(S.cur?"cursos":"estudiantes"); };
+  const tb=$("#t-back"); if(tb) tb.onclick=()=>{ history.replaceState(null,"",location.pathname); if(S.cur) { renderTeacher("cursos"); viewCurso(S.cur.c.id,"grupos"); } else renderTeacher("estudiantes"); };
 }
 function drawStudentHome(){
   const st=S.st, first=((st.al&&st.al.nombre)||"").split(" ")[0];
@@ -648,20 +659,52 @@ function openAssignment(aId){
   };
 }
 
-/* ================= CURSOS (camino por semanas) ================= */
+/* ================= CURSOS ================= */
 const KIND_ES={antes:"Antes de clase",practica:"Práctica",despues:"Después de clase"};
 const KIND_EN={antes:"Before class",practica:"Practice",despues:"After class"};
 const STEP_EN={new:"Not started",started:"In progress",done:"Done"};
+const FERIADOS_C=["2027-01-01","2027-02-08","2027-02-09","2027-03-24","2027-04-02","2027-05-01","2027-05-25","2027-06-20","2027-07-09","2027-12-08","2027-12-25"];
+const DIA_N={domingo:0,lunes:1,martes:2,miercoles:3,jueves:4,viernes:5,sabado:6};
 function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function ckind(it){ return it&&it.content&&it.content.kind; }
 async function signed(path){ if(!path) return null; const {data}=await db.storage.from(BUCKET).createSignedUrl(path,3600); return data&&data.signedUrl; }
+const sinT=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const loginEmail=a=>String(a.email_acceso||a.email||"").toLowerCase();
+function openAt(l){ return new Date(l.unlock_at||(l.unlock_on+"T00:00:00-03:00")); }
+const isOpen=l=>openAt(l)<=new Date();
+function fmtDT(l,es){ const d=openAt(l); const dias=es?["dom","lun","mar","mié","jue","vie","sáb"]:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const loc=new Date(d.getTime()-3*3600e3); const h=loc.getUTCHours(), m=String(loc.getUTCMinutes()).padStart(2,"0");
+  return dias[loc.getUTCDay()]+" "+loc.getUTCDate()+" "+(es?MES_ES:MES_EN)[loc.getUTCMonth()]+(h||m!=="00"?", "+String(h).padStart(2,"0")+":"+m:""); }
+function toLocalInput(l){ const loc=new Date(openAt(l).getTime()-3*3600e3); return loc.toISOString().slice(0,16); }
+const fromLocalInput=v=>v?new Date(v+":00-03:00").toISOString():null;
 
-async function loadCourseData(email){
-  const {data:en}=await db.from("practice_course_students").select("course_id").eq("student_email",email);
-  const cids=(en||[]).map(r=>r.course_id); if(!cids.length) return null;
-  const [{data:cs},{data:ls}]=await Promise.all([
-    db.from("practice_courses").select("*").in("id",cids).eq("active",true),
-    db.from("practice_lessons").select("*").in("course_id",cids).order("number")]);
+/* calendario: fecha/hora de fin de cada clase en vivo, para cada grupo */
+function finesDeClases(c,grupos,n){
+  return grupos.map(g=>{
+    const ds=Object.keys(DIA_N).filter(k=>sinT(g.dias).includes(k)).map(k=>DIA_N[k]);
+    const hs=[...String(g.horario||"").matchAll(/(\d{1,2})[:.](\d{2})/g)].map(x=>x[1].padStart(2,"0")+":"+x[2]);
+    const fin=hs[1]||hs[0]||"21:00"; if(!ds.length||!c.starts_on) return null;
+    const out=[]; const d=new Date(c.starts_on+"T12:00:00Z");
+    for(let i=0;i<400&&out.length<n;i++){ const f=d.toISOString().slice(0,10); if(ds.includes(d.getUTCDay())&&!FERIADOS_C.includes(f)) out.push(new Date(f+"T"+fin+":00-03:00")); d.setUTCDate(d.getUTCDate()+1); }
+    return out;
+  }).filter(Boolean);
+}
+function aperturaAuto(c,grupos,num){
+  if(num<=1){ if(!c.starts_on) return null; const d=new Date(c.starts_on+"T09:00:00-03:00"); d.setUTCDate(d.getUTCDate()-3); return d.toISOString(); }
+  const cal=finesDeClases(c,grupos,num-1).filter(x=>x.length>=num-1); if(!cal.length) return null;
+  return new Date(Math.max(...cal.map(x=>x[num-2].getTime()))).toISOString();
+}
+
+/* ---------- vista del alumno ---------- */
+async function loadCourseData(email,asTeacher,al){
+  let cids;
+  if(asTeacher){
+    const [{data:en},{data:cg}]=await Promise.all([db.from("practice_course_students").select("course_id").eq("student_email",email),db.from("practice_course_groups").select("course_id").eq("grupo_id",(al&&al.grupo_id)||"00000000-0000-0000-0000-000000000000")]);
+    cids=[...new Set([...(en||[]),...(cg||[])].map(r=>r.course_id))]; if(!cids.length) return null;
+  }
+  let q=db.from("practice_courses").select("*").eq("active",true); if(cids) q=q.in("id",cids);
+  const {data:cs}=await q; if(!cs||!cs.length) return null;
+  const {data:ls}=await db.from("practice_lessons").select("*").in("course_id",cs.map(c=>c.id)).order("number");
   const lids=(ls||[]).map(l=>l.id); let li=[],its=[],att=[],subs=[];
   if(lids.length){
     li=(await db.from("practice_lesson_items").select("*").in("lesson_id",lids).order("position")).data||[];
@@ -670,93 +713,78 @@ async function loadCourseData(email){
     att=(await db.from("practice_attempts").select("*").in("lesson_id",lids).eq("student_email",email).order("created_at",{ascending:false})).data||[];
     subs=(await db.from("practice_lesson_submissions").select("*").in("lesson_id",lids).eq("student_email",email).order("submitted_at",{ascending:false})).data||[];
   }
-  return {courses:cs||[],lessons:ls||[],li,items:Object.fromEntries(its.map(i=>[i.id,i])),att,subs};
+  return {courses:cs,lessons:ls||[],li,items:Object.fromEntries(its.map(i=>[i.id,i])),att,subs};
 }
 function lessonStatus(C,l){
-  const li=C.li.filter(x=>x.lesson_id===l.id&&C.items[x.item_id]);
-  const req=li.filter(x=>x.kind!=="antes"); if(!li.length) return "new";
+  const li=C.li.filter(x=>x.lesson_id===l.id&&C.items[x.item_id]), req=li.filter(x=>x.kind!=="antes"); if(!li.length) return "new";
   const hecho=x=>{ const it=C.items[x.item_id]; if(ckind(it)==="quiz") return C.att.some(a=>a.item_id===x.item_id&&a.lesson_id===l.id); if(ckind(it)==="tarea") return C.subs.some(s=>s.item_id===x.item_id&&s.lesson_id===l.id&&s.status!=="rehacer"); return true; };
-  const n=req.filter(hecho).length;
-  if(req.length&&n===req.length) return "done";
+  const n=req.filter(hecho).length; if(req.length&&n===req.length) return "done";
   return (n||C.att.some(a=>a.lesson_id===l.id))?"started":"new";
 }
 function courseSectionHTML(){
   const C=S.st.C; if(!C||!C.courses.length) return "";
-  return C.courses.map(c=>{ const ls=C.lessons.filter(l=>l.course_id===c.id);
-    const hechas=ls.filter(l=>lessonStatus(C,l)==="done").length;
-    return `<div class="section next"><div class="row-between"><div><h2>${esc(c.title)}</h2><div class="sub">${esc(c.description||"")}</div></div><span class="pill st-done">${hechas}/${ls.length} done</span></div>
-      <div class="path">${ls.map(l=>{ const open=S.st.asTeacher||l.unlock_on<=hoy(), st=lessonStatus(C,l);
-        return `<button class="step ${open?"":"locked"} sp-${st}" ${open?`data-l="${l.id}"`:"disabled"}><span class="num">${open?(st==="done"?"✓":l.number):"🔒"}</span><span class="stxt"><b>${esc(l.title)}</b><small>${open?STEP_EN[st]:"Opens "+fmtD(l.unlock_on)}</small></span></button>`; }).join("")}</div></div>`; }).join("");
+  return C.courses.map(c=>{ const ls=C.lessons.filter(l=>l.course_id===c.id), hechas=ls.filter(l=>lessonStatus(C,l)==="done").length;
+    return `<div class="section next"><div class="row-between"><div><h2>${esc(c.title)}</h2><div class="sub">${esc(c.description||"Each class opens as soon as the previous live class ends.")}</div></div><span class="pill st-done">${hechas}/${ls.length} done</span></div>
+      <div class="path">${ls.map(l=>{ const open=S.st.asTeacher||isOpen(l), st=lessonStatus(C,l);
+        return `<button class="step ${open?"":"locked"} sp-${st}" ${open?`data-l="${l.id}"`:"disabled"}><span class="num">${open?(st==="done"?"✓":l.number):"🔒"}</span><span class="stxt"><b>${esc(l.title)}</b><small>${open?STEP_EN[st]:"Opens "+fmtDT(l)}</small></span></button>`; }).join("")}</div></div>`; }).join("");
 }
 function bindCourseHome(){ document.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>openLesson(b.dataset.l)); }
-
 function openLesson(lid){
   const st=S.st, C=st.C, l=C.lessons.find(x=>x.id===lid), th=l.theory||{};
   const li=C.li.filter(x=>x.lesson_id===lid&&C.items[x.item_id]);
   const grupos=["antes","practica","despues"].map(k=>{ const xs=li.filter(x=>x.kind===k); if(!xs.length) return "";
-    return `<div class="section"><h2>${KIND_EN[k]}</h2>${xs.map(x=>`<div class="citem" data-ci="${x.item_id}">${courseItemHTML(C.items[x.item_id],l)}</div>`).join("")}</div>`; }).join("");
+    return `<div class="section"><h2>${KIND_EN[k]}</h2>${xs.map(x=>`<div class="citem" data-ci="${x.item_id}">${courseItemHTML(C.items[x.item_id])}</div>`).join("")}</div>`; }).join("");
   const embed=embedUrl(l.video_url);
-  studentShell(`<div class="section">
-    <button class="back" id="s-back">← Back to my corner</button>
+  studentShell(`<div class="section"><button class="back" id="s-back">← Back to my corner</button>
     <div class="item-head"><span class="pill st-opened">Class ${l.number}</span><h1>${esc(l.title)}</h1>${l.goal?`<p class="sub" style="font-size:15px">${esc(l.goal)}</p>`:""}</div>
-    <div class="item-body">
-      ${th.intro?`<div class="b-text">${md(th.intro)}</div>`:""}
+    <div class="item-body">${th.intro?`<div class="b-text">${md(th.intro)}</div>`:""}
       ${(th.chunks||[]).length?`<div class="b-vocab">${th.chunks.map(c=>`<div class="vcard"><b>${esc(c.en)}</b>${c.es?`<i>${esc(c.es)}</i>`:""}</div>`).join("")}</div>`:""}
       ${th.tip?`<div class="b-note"><span class="b-note-lab">Tip</span>${md(th.tip)}</div>`:""}
-      ${embed?`<div class="b-video"><iframe src="${esc(embed)}" allowfullscreen loading="lazy" title="Video"></iframe></div>`:""}
-    </div></div>${grupos||'<div class="section"><div class="empty">Activities for this class are coming soon.</div></div>'}`);
-  $("#s-back").onclick=()=>drawStudentHome();
-  window.scrollTo({top:0});
-  const body=document.querySelector(".wrap");
-  fillImages(body); bindChoices(body);
+      ${embed?`<div class="b-video"><iframe src="${esc(embed)}" allowfullscreen loading="lazy" title="Video"></iframe></div>`:""}</div></div>
+    ${grupos||'<div class="section"><div class="empty">Activities for this class are coming soon.</div></div>'}`);
+  $("#s-back").onclick=()=>drawStudentHome(); window.scrollTo({top:0});
+  const body=document.querySelector(".wrap"); fillImages(body); bindChoices(body);
   body.querySelectorAll(".citem").forEach(box=>{ const it=C.items[box.dataset.ci]; if(ckind(it)==="quiz") bindQuiz(box,it,l); if(ckind(it)==="tarea") bindTarea(box,it,l); });
 }
-function courseItemHTML(it,l){
-  const k=ckind(it), C=S.st.C;
-  const head=`<h3 class="ci-t">${esc(it.title)}</h3>${it.description?`<p class="sub" style="margin-bottom:12px">${esc(it.description)}</p>`:""}`;
+function courseItemHTML(it){
+  const k=ckind(it), head=`<h3 class="ci-t">${esc(it.title)}</h3>${it.description?`<p class="sub" style="margin-bottom:12px">${md(it.description)}</p>`:""}`;
   if(k==="quiz") return head+`<div class="quiz"></div>`;
   if(k==="tarea") return head+`<div class="tarea"></div>`;
   if(it.format==="video"){ const e=embedUrl(it.content&&it.content.video_url); return head+(e?`<div class="b-video"><iframe src="${esc(e)}" allowfullscreen loading="lazy" title="Video"></iframe></div>`:`<div class="empty">Video coming soon.</div>`); }
   return head+renderBlocks((it.content&&it.content.blocks)||[]);
 }
 function bindQuiz(box,it,l){
-  const st=S.st, C=st.C, qs=(it.content.questions||[]);
-  const prev=C.att.filter(a=>a.item_id===it.id&&a.lesson_id===l.id);
-  const best=prev.reduce((m,a)=>Math.max(m,a.score||0),-1);
-  const q=box.querySelector(".quiz"); const res={};
+  const st=S.st, C=st.C, qs=(it.content.questions||[]), q=box.querySelector(".quiz"), res={};
+  const best=C.att.filter(a=>a.item_id===it.id&&a.lesson_id===l.id).reduce((m,a)=>Math.max(m,a.score||0),-1);
   q.innerHTML=(best>=0?`<div class="lsub" style="margin-bottom:10px">Your best so far: <b>${best}/${qs.length}</b></div>`:"")+
     qs.map((x,i)=>`<div class="b-choice" data-qi="${i}"><div class="b-choice-q">${i+1}. ${esc(x.q)}</div>${shuffle(x.options).map(o=>`<button type="button" class="opt" data-o="${esc(o)}">${esc(o)}</button>`).join("")}<div class="why" hidden></div></div>`).join("")+`<div class="qres"></div>`;
   q.querySelectorAll(".b-choice").forEach(c=>c.querySelectorAll(".opt").forEach(o=>o.onclick=async()=>{
-    const i=+c.dataset.qi, x=qs[i]; if(i in res) return;
-    const ok=o.dataset.o===x.answer; res[i]={a:o.dataset.o,ok};
-    c.querySelectorAll(".opt").forEach(b=>{ b.disabled=true; if(b.dataset.o===x.answer) b.classList.add("right"); });
-    if(!ok) o.classList.add("wrong");
+    const i=+c.dataset.qi, x=qs[i]; if(i in res) return; const ok=o.dataset.o===x.answer; res[i]={a:o.dataset.o,ok};
+    c.querySelectorAll(".opt").forEach(b=>{ b.disabled=true; if(b.dataset.o===x.answer) b.classList.add("right"); }); if(!ok) o.classList.add("wrong");
     const w=c.querySelector(".why"); w.hidden=false; w.className="why "+(ok?"ok":"no"); w.innerHTML=`<b>${ok?"Nice!":"Not quite."}</b> ${esc(x.why||"")}`;
-    if(Object.keys(res).length===qs.length) await finQuiz();
+    if(Object.keys(res).length===qs.length) await fin();
   }));
-  async function finQuiz(){
+  async function fin(){
     const score=Object.values(res).filter(r=>r.ok).length, mal=qs.map((x,i)=>({x,i})).filter(o=>!res[o.i].ok);
     const msg=score===qs.length?"Perfect! You've got it.":score>=qs.length*0.6?"Good job! Have a look at the ones you missed.":"Worth another go. Read the tip above and try again.";
     q.querySelector(".qres").innerHTML=`<div class="feedback"><span class="fl">${score}/${qs.length}</span>${msg}${mal.length?`<div style="margin-top:8px">${mal.map(o=>`• ${esc(o.x.q)} → <b>${esc(o.x.answer)}</b>`).join("<br>")}</div>`:""}</div><button class="btn-ghost btn-sm" data-retry>Try again</button>`;
     q.querySelector("[data-retry]").onclick=()=>bindQuiz(box,it,l);
     if(st.asTeacher) return;
-    const row={lesson_id:l.id,item_id:it.id,student_email:st.email,score,total:qs.length,answers:res,mistakes:mal.map(o=>o.x.q)};
-    const {data,error}=await db.from("practice_attempts").insert(row).select().single();
+    const {data,error}=await db.from("practice_attempts").insert({lesson_id:l.id,item_id:it.id,student_email:st.email,score,total:qs.length,answers:res,mistakes:mal.map(o=>o.x.q)}).select().single();
     if(!error&&data) C.att.unshift(data);
   }
 }
 function bindTarea(box,it,l){
-  const st=S.st, C=st.C, t=box.querySelector(".tarea"), c=it.content||{}, max=c.max_seconds||90;
+  const st=S.st, C=st.C, t=box.querySelector(".tarea"), max=(it.content||{}).max_seconds||90;
   const sub=C.subs.find(s=>s.item_id===it.id&&s.lesson_id===l.id);
-  const player=async(el,path)=>{ const u=await signed(path); if(u) el.innerHTML=`<audio controls src="${u}" style="width:100%"></audio>`; };
   if(sub&&sub.status!=="rehacer"){
-    t.innerHTML=`${sub.status==="corregido"&&sub.feedback?`<div class="feedback"><span class="fl">Your teacher's feedback</span>${md(sub.feedback)}</div>`:`<div class="sentbox">${st.asTeacher?"Entregada":"Sent"} ${fmtD(sub.submitted_at,st.asTeacher)}. ${st.asTeacher?"":"I'll give you feedback soon."}</div>`}
+    t.innerHTML=`${sub.status==="corregido"&&sub.feedback?`<div class="feedback"><span class="fl">Your teacher's feedback</span>${md(sub.feedback)}</div>`:`<div class="sentbox">${st.asTeacher?"Entregada el "+fmtD(sub.submitted_at,true)+".":"Sent "+fmtD(sub.submitted_at)+". I'll give you feedback soon."}</div>`}
       <div class="ap" style="margin-top:10px"></div>${sub.answers&&sub.answers.text?`<div class="answer" style="margin-top:8px">${esc(sub.answers.text)}</div>`:""}`;
-    if(sub.file_url) player(t.querySelector(".ap"),sub.file_url); return;
+    if(sub.file_url) signed(sub.file_url).then(u=>{ if(u) t.querySelector(".ap").innerHTML=`<audio controls src="${u}" style="width:100%"></audio>`; }); return;
   }
   if(st.asTeacher){ t.innerHTML=`<div class="sentbox">Todavía no la entregó.</div>`; return; }
   let rec=null, chunks=[], blob=null, timer=null;
-  t.innerHTML=`${sub&&sub.status==="rehacer"?`<div class="feedback" style="background:var(--yellow-bg);border-color:var(--yellow)"><span class="fl" style="color:var(--orange)">Please record it again</span>${md(sub.feedback||"")}</div>`:""}
+  t.innerHTML=`${sub?`<div class="feedback" style="background:var(--yellow-bg);border-color:var(--yellow)"><span class="fl" style="color:var(--orange)">Please record it again</span>${md(sub.feedback||"")}</div>`:""}
     <div class="recbar"><button class="btn-primary" data-rec>● Record</button><span class="lsub" data-time>Up to ${max} seconds</span></div>
     <div data-prev style="margin:10px 0"></div>
     <div class="field"><label class="lab">A note for your teacher (optional)</label><textarea data-txt style="min-height:60px"></textarea></div>
@@ -765,17 +793,15 @@ function bindTarea(box,it,l){
   const parar=()=>{ if(rec&&rec.state!=="inactive") rec.stop(); clearInterval(timer); };
   bRec.onclick=async()=>{
     if(rec&&rec.state==="recording"){ parar(); return; }
-    try{ const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-      chunks=[]; rec=new MediaRecorder(stream);
+    try{ const stream=await navigator.mediaDevices.getUserMedia({audio:true}); chunks=[]; rec=new MediaRecorder(stream);
       rec.ondataavailable=e=>chunks.push(e.data);
       rec.onstop=()=>{ stream.getTracks().forEach(x=>x.stop()); blob=new Blob(chunks,{type:rec.mimeType||"audio/webm"}); prevEl.innerHTML=`<audio controls src="${URL.createObjectURL(blob)}" style="width:100%"></audio>`; bRec.textContent="● Record again"; bSend.disabled=false; tm.textContent="Listen and send it when you're happy."; };
-      rec.start(); bRec.textContent="■ Stop"; let s=0; tm.textContent="0s";
-      timer=setInterval(()=>{ s++; tm.textContent=s+"s / "+max+"s"; if(s>=max) parar(); },1000);
+      rec.start(); bRec.textContent="■ Stop"; let s=0; tm.textContent="0s"; timer=setInterval(()=>{ s++; tm.textContent=s+"s / "+max+"s"; if(s>=max) parar(); },1000);
     }catch(e){ msg.className="msg err"; msg.textContent="I couldn't access your microphone. Check your browser's permissions."; }
   };
   bSend.onclick=async()=>{
     if(!blob) return; bSend.disabled=true; bSend.textContent="Sending…";
-    const ext=(blob.type.includes("mp4")?"m4a":"webm"), path=`course/${st.email}/${l.id}/${Date.now()}.${ext}`;
+    const path=`course/${st.email}/${l.id}/${Date.now()}.${blob.type.includes("mp4")?"m4a":"webm"}`;
     const up=await db.storage.from(BUCKET).upload(path,blob,{contentType:blob.type});
     if(up.error){ bSend.disabled=false; bSend.textContent="Send"; msg.className="msg err"; msg.textContent="Couldn't upload the audio: "+up.error.message; return; }
     const txt=t.querySelector("[data-txt]").value.trim();
@@ -785,146 +811,203 @@ function bindTarea(box,it,l){
   };
 }
 
-/* ---------- Panel de profes: Cursos ---------- */
+/* ---------- panel de profes: Cursos ---------- */
+const grupoById=id=>S.grupos.find(g=>g.id===id);
+function grupoChecks(sel){ return `<div class="gchecks">${S.grupos.map(g=>`<label class="gchk"><input type="checkbox" value="${g.id}" ${sel.includes(g.id)?"checked":""}><span><b>${esc(g.nombre)}</b><small>${esc([g.dias,g.horario].filter(Boolean).join(" · ")||"sin horario")}</small></span></label>`).join("")}</div>`; }
 async function viewCursos(){
   const v=$("#view"); v.innerHTML='<div class="empty">Cargando…</div>';
-  const cs=await traerTodo("practice_courses","*",["created_at desc","id"]);
-  v.innerHTML=`<div class="section"><div class="row-between"><div><h2>Cursos</h2><div class="sub">Cursos con clases que se abren por fecha. Cada alumno inscripto ve el camino completo, con candado en lo que todavía no se abrió.</div></div><button class="btn-primary" id="c-new">＋ Nuevo curso</button></div>
-    <div id="c-form"></div>
-    ${cs.length?`<div class="alist">${cs.map(c=>`<div class="lrow click" data-c="${c.id}"><div class="lmain"><b>${esc(c.title)}</b><span class="lsub">${c.level||"Todos los niveles"}${c.starts_on?" · "+fmtD(c.starts_on,true)+" al "+fmtD(c.ends_on,true):""}${c.active?"":" · inactivo"}</span></div><span class="lsub">Abrir →</span></div>`).join("")}</div>`:'<div class="empty">Todavía no hay cursos.</div>'}</div>`;
+  const [cs,cg,ls]=await Promise.all([traerTodo("practice_courses","*",["created_at desc","id"]),traerTodo("practice_course_groups","*",["course_id","grupo_id"]),traerTodo("practice_lessons","id, course_id",["id"])]);
+  v.innerHTML=`<div class="howto"><b>¿Cómo funciona?</b><ol><li>Creás el curso, elegís sus grupos y pegás los temas de las clases.</li><li>Entrás a cada clase y le cargás la teoría y las actividades.</li><li>Cada clase se le abre sola a los alumnos cuando termina la clase en vivo anterior.</li></ol></div>
+    <div class="section"><div class="row-between"><div><h2>Cursos</h2><div class="sub">El contenido que acompaña las clases en vivo.</div></div><button class="btn-primary" id="c-new">＋ Nuevo curso</button></div>
+    ${cs.length?`<div class="alist">${cs.map(c=>{ const gs=cg.filter(x=>x.course_id===c.id).map(x=>grupoById(x.grupo_id)).filter(Boolean), n=ls.filter(l=>l.course_id===c.id).length;
+      return `<div class="lrow click" data-c="${c.id}"><div class="lmain"><b>${esc(c.title)}</b><span class="lsub">${n} clase(s) · ${gs.length?gs.map(g=>esc(g.nombre)).join(", "):"sin grupos"}${c.active?"":" · archivado"}</span></div><span class="lsub">Abrir →</span></div>`; }).join("")}</div>`:'<div class="empty">Todavía no hay cursos. Creá el primero.</div>'}</div>`;
   v.querySelectorAll("[data-c]").forEach(r=>r.onclick=()=>viewCurso(r.dataset.c));
-  $("#c-new").onclick=()=>{ $("#c-form").innerHTML=`<div class="bed"><div class="field"><label class="lab">Nombre</label><input id="cn-t" placeholder="Summer Club 2027 · Inicial"></div>
-    <div class="grid2"><div class="field"><label class="lab">Nivel</label><select id="cn-l"><option value="">Todos</option>${S.levels.map(x=>`<option value="${x.code}">${esc(x.name)}</option>`).join("")}</select></div><div class="field"><label class="lab">Descripción</label><input id="cn-d"></div></div>
-    <div class="grid2"><div class="field"><label class="lab">Empieza</label><input type="date" id="cn-s"></div><div class="field"><label class="lab">Termina</label><input type="date" id="cn-e"></div></div>
-    <button class="btn-primary" id="cn-ok">Crear curso</button></div>`;
-    $("#cn-ok").onclick=async()=>{ const title=$("#cn-t").value.trim(); if(!title){ toast("Poné un nombre"); return; }
-      const {data,error}=await db.from("practice_courses").insert({title,level:$("#cn-l").value||null,description:$("#cn-d").value.trim()||null,starts_on:$("#cn-s").value||null,ends_on:$("#cn-e").value||null}).select().single();
-      if(error){ toast("No se pudo crear: "+error.message); return; } viewCurso(data.id); }; };
+  $("#c-new").onclick=nuevoCurso;
+}
+function nuevoCurso(){
+  $("#view").innerHTML=`<div class="section"><button class="back" id="n-back">← Volver</button><h2>Nuevo curso</h2><div class="sub">Con esto ya queda armado el esqueleto. Después completás cada clase cuando quieras.</div>
+    <div class="field"><label class="lab">Nombre</label><input id="n-t" placeholder="Summer Club 2027 · Intermedio"></div>
+    <div class="grid2"><div class="field"><label class="lab">Nivel</label><select id="n-l"><option value="">Todos</option>${S.levels.map(x=>`<option value="${x.code}">${esc(x.name)}</option>`).join("")}</select></div>
+      <div class="field"><label class="lab">Primera clase en vivo</label><input type="date" id="n-s"></div></div>
+    <div class="field"><label class="lab">¿Qué grupos lo cursan?</label>${grupoChecks([])}<div class="hint">Todos los alumnos activos de esos grupos lo ven. Si sumás o das de baja a alguien en la plataforma, se actualiza solo.</div></div>
+    <div class="field"><label class="lab">Temas de las clases (uno por línea)</label><textarea id="n-x" style="min-height:180px" placeholder="My English story | Contar tu historia con el inglés\nMusic & memories | Asociar canciones con recuerdos\nArgentina explained"></textarea><div class="hint">Podés pegarlos directo del plan. Lo que va después de la | es el objetivo (opcional).</div></div>
+    <div class="form-actions"><button class="btn-primary" id="n-ok">Crear curso</button><span id="n-msg"></span></div></div>`;
+  $("#n-back").onclick=viewCursos;
+  $("#n-ok").onclick=async()=>{
+    const title=$("#n-t").value.trim(), starts=$("#n-s").value, gids=[...document.querySelectorAll(".gchk input:checked")].map(i=>i.value);
+    const temas=$("#n-x").value.split("\n").map(s=>s.trim()).filter(Boolean).map(s=>{ const p=s.split("|"); return {t:p[0].trim(),g:(p[1]||"").trim()}; });
+    const msg=$("#n-msg"); if(!title||!starts){ msg.className="msg err"; msg.textContent="Poné nombre y fecha de la primera clase."; return; }
+    const {data:c,error}=await db.from("practice_courses").insert({title,level:$("#n-l").value||null,starts_on:starts}).select().single();
+    if(error){ msg.className="msg err"; msg.textContent=error.message; return; }
+    if(gids.length) await db.from("practice_course_groups").insert(gids.map(g=>({course_id:c.id,grupo_id:g})));
+    const gs=gids.map(grupoById).filter(Boolean);
+    if(temas.length){ const rows=temas.map((x,i)=>{ const ua=aperturaAuto(c,gs,i+1)||new Date(starts+"T09:00:00-03:00").toISOString(); return {course_id:c.id,number:i+1,title:x.t,goal:x.g||null,unlock_at:ua,unlock_on:ua.slice(0,10),theory:{}}; });
+      const r=await db.from("practice_lessons").insert(rows); if(r.error){ toast(r.error.message); } }
+    toast("Curso creado ✓"); viewCurso(c.id);
+  };
 }
 async function cargaCurso(cid){
-  const [{data:c},{data:ls},{data:en}]=await Promise.all([db.from("practice_courses").select("*").eq("id",cid).single(),db.from("practice_lessons").select("*").eq("course_id",cid).order("number"),db.from("practice_course_students").select("*").eq("course_id",cid)]);
+  const [{data:c},{data:ls},{data:en},{data:cg}]=await Promise.all([db.from("practice_courses").select("*").eq("id",cid).single(),db.from("practice_lessons").select("*").eq("course_id",cid).order("number"),db.from("practice_course_students").select("*").eq("course_id",cid),db.from("practice_course_groups").select("*").eq("course_id",cid)]);
   const lids=(ls||[]).map(l=>l.id);
-  const [li,att,subs]=lids.length?await Promise.all([db.from("practice_lesson_items").select("*").in("lesson_id",lids).order("position"),db.from("practice_attempts").select("*").in("lesson_id",lids),db.from("practice_lesson_submissions").select("*").in("lesson_id",lids).order("submitted_at",{ascending:false})]).then(r=>r.map(x=>x.data||[])):[[],[],[]];
-  S.cur={c,ls:ls||[],en:en||[],li,att,subs};
+  const [li,att,subs]=lids.length?(await Promise.all([db.from("practice_lesson_items").select("*").in("lesson_id",lids).order("position"),db.from("practice_attempts").select("*").in("lesson_id",lids),db.from("practice_lesson_submissions").select("*").in("lesson_id",lids).order("submitted_at",{ascending:false})])).map(x=>x.data||[]):[[],[],[]];
+  const gids=(cg||[]).map(x=>x.grupo_id), gs=gids.map(grupoById).filter(Boolean);
+  const alumnos=new Map(); S.alumnos.filter(a=>a.activo&&gids.includes(a.grupo_id)&&loginEmail(a)).forEach(a=>alumnos.set(loginEmail(a),a));
+  (en||[]).forEach(e=>{ if(!alumnos.has(e.student_email)) alumnos.set(e.student_email,S.alByEmail[e.student_email]||{nombre:e.student_email,extra:true}); });
+  S.cur={c,ls:ls||[],en:en||[],gids,gs,alumnos,li,att,subs};
+}
+const nombreDe=em=>{ const a=S.cur&&S.cur.alumnos.get(em)||S.alByEmail[em]; return a?a.nombre:em; };
+async function recalcular(soloVacias){
+  const K=S.cur; if(!K.gs.length){ toast("El curso no tiene grupos con horario"); return 0; }
+  let n=0; for(const l of K.ls){ const ua=aperturaAuto(K.c,K.gs,l.number); if(!ua) continue; await db.from("practice_lessons").update({unlock_at:ua,unlock_on:ua.slice(0,10)}).eq("id",l.id); n++; }
+  return n;
 }
 async function viewCurso(cid,tab){
   await cargaCurso(cid); const K=S.cur, v=$("#view"); tab=tab||"clases";
-  const nombre=em=>{ const a=S.alByEmail[em]; return a?a.nombre:em; };
   const pend=K.subs.filter(s=>s.status==="entregado");
-  const tabs=[["clases","Clases"],["alumnos",`Alumnos (${K.en.length})`],["entregas",`Entregas${pend.length?` (${pend.length})`:""}`],["resultados","Resultados"]];
+  const tabs=[["clases","Clases"],["grupos",`Grupos y alumnos (${K.alumnos.size})`],["entregas",`Entregas${pend.length?` (${pend.length})`:""}`],["resultados","Resultados"],["ajustes","Ajustes"]];
   let inner="";
-  if(tab==="clases") inner=`<div class="alist">${K.ls.map(l=>{ const n=K.li.filter(x=>x.lesson_id===l.id).length, open=l.unlock_on<=hoy();
-      return `<div class="lrow click" data-l="${l.id}"><span class="dot" style="background:${open?"var(--green)":"#D8D2C2"}"></span><div class="lmain"><b>${l.number}. ${esc(l.title)}</b><span class="lsub">${open?"Abierta":"Se abre el "+fmtD(l.unlock_on,true)} · ${n} actividad(es)</span></div><span class="lsub">Editar →</span></div>`; }).join("")||'<div class="empty" style="padding:14px">Sin clases.</div>'}</div>
-      <div class="form-actions"><button class="btn-primary" id="l-new">＋ Nueva clase</button></div>`;
-  if(tab==="alumnos") inner=`<div class="grid2"><div class="field"><label class="lab">Inscribir un grupo entero</label><select id="en-g"><option value="">— elegí —</option>${S.grupos.map(g=>`<option value="${g.id}">${esc(g.nombre)}</option>`).join("")}</select></div>
-      <div class="field"><label class="lab">O mails sueltos (uno por línea)</label><textarea id="en-m" style="min-height:44px"></textarea></div></div><button class="btn-primary btn-sm" id="en-ok">Inscribir</button>
-      <div class="alist" style="margin-top:14px">${K.en.map(e=>`<div class="lrow"><div class="lmain"><b>${esc(nombre(e.student_email))}</b><span class="lsub">${esc(e.student_email)}</span></div><button class="btn-ghost btn-sm" data-ver="${esc(e.student_email)}">Ver su curso</button><button class="btn-ghost btn-sm danger" data-q="${esc(e.student_email)}">Quitar</button></div>`).join("")||'<div class="empty" style="padding:14px">Nadie inscripto.</div>'}</div>`;
+  if(tab==="clases") inner=`<div class="alist">${K.ls.map(l=>{ const n=K.li.filter(x=>x.lesson_id===l.id).length, open=isOpen(l), vacia=!n&&!((l.theory||{}).intro);
+      return `<div class="lrow click" data-l="${l.id}"><span class="dot" style="background:${open?"var(--green)":"#D8D2C2"}"></span><div class="lmain"><b>${l.number}. ${esc(l.title)}</b><span class="lsub">${open?"Abierta":"Se abre "+fmtDT(l,true)} · ${n?n+" actividad(es)":"sin actividades"}</span></div>${vacia?'<span class="pill st-submitted">Por completar</span>':""}<span class="lsub">Editar →</span></div>`; }).join("")||'<div class="empty" style="padding:14px">Sin clases.</div>'}</div>
+      <div class="form-actions"><button class="btn-primary" id="l-new">＋ Agregar clase</button>${K.gs.length?'<button class="btn-ghost" id="l-rec">↻ Recalcular fechas de apertura</button>':""}</div>
+      <div class="hint">Las fechas salen de los días y horarios de los grupos: cada clase se abre cuando termina la clase en vivo anterior. Si hay varios grupos, se toma el último en terminar, así nadie la ve antes de tiempo.</div>`;
+  if(tab==="grupos") inner=`<div class="field"><label class="lab">Grupos que cursan este curso</label>${grupoChecks(K.gids)}</div><button class="btn-primary btn-sm" id="g-save">Guardar grupos</button>
+      <h3 class="ci-t" style="margin-top:22px">Alumnos que lo ven (${K.alumnos.size})</h3>
+      <div class="alist">${[...K.alumnos].map(([em,a])=>{ const g=grupoById(a.grupo_id); return `<div class="lrow"><div class="lmain"><b>${esc(a.nombre)}</b><span class="lsub">${a.extra||!g?"agregado a mano":esc(g.nombre)} · ${esc(em)}</span></div><button class="btn-ghost btn-sm" data-ver="${esc(em)}">Ver como alumno</button>${K.en.some(e=>e.student_email===em)?`<button class="btn-ghost btn-sm danger" data-q="${esc(em)}">Quitar</button>`:""}</div>`; }).join("")||'<div class="empty" style="padding:14px">Elegí al menos un grupo.</div>'}</div>
+      <details class="mas"><summary>Sumar a alguien que no está en esos grupos</summary><div class="field" style="margin-top:8px"><textarea id="en-m" style="min-height:50px" placeholder="mail@ejemplo.com (uno por línea)"></textarea></div><button class="btn-ghost btn-sm" id="en-ok">Sumar</button></details>`;
   if(tab==="entregas") inner=`<div class="fchips"><button class="fchip ${S.entTab!=="hechas"?"on":""}" data-et="p">Para corregir (${pend.length})</button><button class="fchip ${S.entTab==="hechas"?"on":""}" data-et="hechas">Corregidas</button></div>
       <div class="alist">${(S.entTab==="hechas"?K.subs.filter(s=>s.status!=="entregado"):pend).map(s=>{ const l=K.ls.find(x=>x.id===s.lesson_id)||{};
-        return `<div class="lrow click" data-s="${s.id}"><div class="lmain"><b>${esc(nombre(s.student_email))}</b><span class="lsub">Clase ${l.number}: ${esc(l.title||"")} · ${s.status}</span></div><span class="lsub">${fmtD(s.submitted_at,true)}</span></div>`; }).join("")||'<div class="empty" style="padding:14px">Nada por acá. 🎉</div>'}</div>`;
-  if(tab==="resultados"){ const ab=K.ls.filter(l=>l.unlock_on<=hoy());
-    inner=K.en.length?`<div style="overflow-x:auto"><table class="rtab"><tr><th>Alumno</th>${ab.map(l=>`<th title="${esc(l.title)}">C${l.number}</th>`).join("")}</tr>${K.en.map(e=>`<tr><td>${esc(nombre(e.student_email))}</td>${ab.map(l=>{ const a=K.att.filter(x=>x.lesson_id===l.id&&x.student_email===e.student_email); if(!a.length) return '<td class="lsub">—</td>'; const b=a.reduce((m,x)=>x.score/x.total>m.score/m.total?x:m); const p=b.score/b.total;
-      return `<td><span class="pill ${p>=.8?"st-done":p>=.6?"st-submitted":"st-new"}" title="Errores: ${esc((b.mistakes||[]).join(" / "))}">${b.score}/${b.total}</span></td>`; }).join("")}</tr>`).join("")}</table></div><div class="hint">Mejor intento de cada quiz. Pasá el mouse por encima para ver en qué se equivocó.</div>`:'<div class="empty">Todavía no hay alumnos.</div>'; }
-  v.innerHTML=`<div class="section"><button class="back" id="k-back">← Volver a cursos</button>
-    <div class="row-between"><div><h2>${esc(K.c.title)}</h2><div class="sub">${K.c.level||"Todos los niveles"}${K.c.starts_on?" · "+fmtD(K.c.starts_on,true)+" al "+fmtD(K.c.ends_on,true):""}</div></div></div>
+        return `<div class="lrow click" data-s="${s.id}"><div class="lmain"><b>${esc(nombreDe(s.student_email))}</b><span class="lsub">Clase ${l.number}: ${esc(l.title||"")}${s.status==="rehacer"?" · le pediste que la regrabe":""}</span></div><span class="lsub">${fmtD(s.submitted_at,true)}</span></div>`; }).join("")||'<div class="empty" style="padding:14px">Nada para corregir. 🎉</div>'}</div>`;
+  if(tab==="resultados"){ const ab=K.ls.filter(isOpen);
+    inner=K.alumnos.size&&ab.length?`<div style="overflow-x:auto"><table class="rtab"><tr><th>Alumno</th>${ab.map(l=>`<th title="${esc(l.title)}">C${l.number}</th>`).join("")}</tr>${[...K.alumnos].map(([em,a])=>`<tr><td>${esc(a.nombre)}</td>${ab.map(l=>{ const at=K.att.filter(x=>x.lesson_id===l.id&&x.student_email===em), sb=K.subs.some(x=>x.lesson_id===l.id&&x.student_email===em);
+      if(!at.length) return `<td>${sb?'<span class="pill st-opened">🎙</span>':'<span class="lsub">—</span>'}</td>`; const b=at.reduce((m,x)=>x.score/x.total>m.score/m.total?x:m), p=b.score/b.total;
+      return `<td><span class="pill ${p>=.8?"st-done":p>=.6?"st-submitted":"st-new"}" title="${esc((b.mistakes||[]).join(" / ")||"Sin errores")}">${b.score}/${b.total}</span>${sb?" 🎙":""}</td>`; }).join("")}</tr>`).join("")}</table></div><div class="hint">Mejor puntaje del quiz de cada clase (pasá el mouse para ver los errores). 🎙 = mandó el audio.</div>`:'<div class="empty">Todavía no hay resultados.</div>'; }
+  if(tab==="ajustes") inner=`<div class="field"><label class="lab">Nombre</label><input id="a-t" value="${esc(K.c.title)}"></div>
+      <div class="grid2"><div class="field"><label class="lab">Nivel</label><select id="a-l"><option value="">Todos</option>${S.levels.map(x=>`<option value="${x.code}" ${x.code===K.c.level?"selected":""}>${esc(x.name)}</option>`).join("")}</select></div>
+      <div class="field"><label class="lab">Primera clase en vivo</label><input type="date" id="a-s" value="${K.c.starts_on||""}"></div></div>
+      <div class="field"><label class="lab">Mensaje de bienvenida para los alumnos (opcional)</label><input id="a-d" value="${esc(K.c.description||"")}"></div>
+      <label class="gchk" style="border:none;padding:0"><input type="checkbox" id="a-act" ${K.c.active?"checked":""}><span>Curso activo (destildalo para archivarlo y que los alumnos dejen de verlo)</span></label>
+      <div class="form-actions"><button class="btn-primary" id="a-ok">Guardar</button><div style="flex:1"></div><button class="btn-ghost danger" id="a-del">Eliminar curso</button></div>`;
+  v.innerHTML=`<div class="section"><button class="back" id="k-back">← Volver a cursos</button><h2>${esc(K.c.title)}</h2>
+    <div class="sub">${K.gs.length?K.gs.map(g=>esc(g.nombre)).join(", "):"Sin grupos todavía"} · ${K.ls.length} clases</div>
     <div class="fchips">${tabs.map(t=>`<button class="fchip ${t[0]===tab?"on":""}" data-kt="${t[0]}">${t[1]}</button>`).join("")}</div>${inner}</div>`;
-  $("#k-back").onclick=()=>viewCursos();
+  $("#k-back").onclick=viewCursos;
   v.querySelectorAll("[data-kt]").forEach(b=>b.onclick=()=>viewCurso(cid,b.dataset.kt));
   v.querySelectorAll("[data-l]").forEach(r=>r.onclick=()=>editLesson(r.dataset.l));
   const ln=$("#l-new"); if(ln) ln.onclick=()=>editLesson(null);
+  const lr=$("#l-rec"); if(lr) lr.onclick=async()=>{ if(!confirm("Esto vuelve a calcular la apertura de todas las clases según los horarios de los grupos. Si cambiaste alguna a mano, se pisa. ¿Seguir?")) return; const n=await recalcular(); toast(`${n} fechas actualizadas ✓`); viewCurso(cid); };
   v.querySelectorAll("[data-et]").forEach(b=>b.onclick=()=>{ S.entTab=b.dataset.et; viewCurso(cid,"entregas"); });
   v.querySelectorAll("[data-s]").forEach(r=>r.onclick=()=>corregirEntrega(r.dataset.s));
   v.querySelectorAll("[data-ver]").forEach(b=>b.onclick=()=>renderStudent(b.dataset.ver,true));
-  v.querySelectorAll("[data-q]").forEach(b=>b.onclick=async()=>{ if(!confirm("¿Sacarlo del curso?")) return; await db.from("practice_course_students").delete().eq("course_id",cid).eq("student_email",b.dataset.q); viewCurso(cid,"alumnos"); });
+  v.querySelectorAll("[data-q]").forEach(b=>b.onclick=async()=>{ await db.from("practice_course_students").delete().eq("course_id",cid).eq("student_email",b.dataset.q); viewCurso(cid,"grupos"); });
+  const gsv=$("#g-save"); if(gsv) gsv.onclick=async()=>{
+    const sel=[...document.querySelectorAll(".gchk input:checked")].map(i=>i.value);
+    await db.from("practice_course_groups").delete().eq("course_id",cid);
+    if(sel.length){ const {error}=await db.from("practice_course_groups").insert(sel.map(g=>({course_id:cid,grupo_id:g}))); if(error){ toast(error.message); return; } }
+    await cargaCurso(cid);
+    if(K.ls.length&&S.cur.gs.length&&confirm("¿Recalculo las fechas de apertura de las clases con los horarios de estos grupos?")) await recalcular();
+    toast("Grupos guardados ✓"); viewCurso(cid,"grupos"); };
   const eo=$("#en-ok"); if(eo) eo.onclick=async()=>{
-    const ems=new Set($("#en-m").value.split(/[\s,;]+/).map(x=>x.trim().toLowerCase()).filter(x=>x.includes("@")));
-    const g=$("#en-g").value; if(g) S.alumnos.filter(a=>a.grupo_id===g&&a.activo&&a.email).forEach(a=>ems.add(a.email.toLowerCase()));
-    const ya=new Set(K.en.map(e=>e.student_email)), rows=[...ems].filter(e=>!ya.has(e)).map(e=>({course_id:cid,student_email:e}));
-    if(!rows.length){ toast("No hay nadie nuevo para inscribir"); return; }
-    const {error}=await db.from("practice_course_students").insert(rows); if(error){ toast("No se pudo: "+error.message); return; }
-    toast(`Inscriptos: ${rows.length} ✓`); viewCurso(cid,"alumnos"); };
+    const rows=[...new Set($("#en-m").value.split(/[\s,;]+/).map(x=>x.trim().toLowerCase()).filter(x=>x.includes("@")))].filter(e=>!K.alumnos.has(e)).map(e=>({course_id:cid,student_email:e}));
+    if(!rows.length){ toast("No hay nadie nuevo"); return; } const {error}=await db.from("practice_course_students").insert(rows); if(error){ toast(error.message); return; } viewCurso(cid,"grupos"); };
+  const ao=$("#a-ok"); if(ao) ao.onclick=async()=>{ const {error}=await db.from("practice_courses").update({title:$("#a-t").value.trim(),level:$("#a-l").value||null,starts_on:$("#a-s").value||null,description:$("#a-d").value.trim()||null,active:$("#a-act").checked}).eq("id",cid); if(error){ toast(error.message); return; } toast("Guardado ✓"); viewCurso(cid,"ajustes"); };
+  const ad=$("#a-del"); if(ad) ad.onclick=async()=>{ if(!confirm("¿Eliminar el curso entero, con sus clases y todo lo que hicieron los alumnos? Si solo querés que deje de verse, mejor destildá \"Curso activo\".")) return; await db.from("practice_courses").delete().eq("id",cid); toast("Curso eliminado"); viewCursos(); };
 }
 function quizATexto(qs){ return (qs||[]).map(x=>[x.q].concat(x.options.map(o=>(o===x.answer?"*":"")+o)).concat(x.why?["Why: "+x.why]:[]).join("\n")).join("\n\n"); }
-function textoAQuiz(t){ return t.split(/\n\s*\n/).map(b=>b.split("\n").map(s=>s.trim()).filter(Boolean)).filter(b=>b.length>2).map(b=>{ const why=(b.find(s=>/^why:/i.test(s))||"").replace(/^why:\s*/i,""); const ops=b.slice(1).filter(s=>!/^why:/i.test(s)); const ok=ops.find(s=>s.startsWith("*")); return {q:b[0],options:ops.map(s=>s.replace(/^\*\s*/,"")),answer:ok?ok.replace(/^\*\s*/,""):"",why}; }); }
+function textoAQuiz(t){ return t.split(/\n\s*\n/).map(b=>b.split("\n").map(s=>s.trim()).filter(Boolean)).filter(b=>b.length>2).map(b=>{ const why=(b.find(s=>/^why:/i.test(s))||"").replace(/^why:\s*/i,""), ops=b.slice(1).filter(s=>!/^why:/i.test(s)), ok=ops.find(s=>s.startsWith("*")); return {q:b[0],options:ops.map(s=>s.replace(/^\*\s*/,"")),answer:ok?ok.replace(/^\*\s*/,""):"",why}; }); }
 function editLesson(lid){
-  const K=S.cur, l=lid?K.ls.find(x=>x.id===lid):{number:(K.ls.reduce((m,x)=>Math.max(m,x.number),0)+1),title:"",goal:"",unlock_on:hoy(),video_url:"",theory:{}}, th=l.theory||{};
-  const mine=K.li.filter(x=>x.lesson_id===lid);
-  const v=$("#view");
-  v.innerHTML=`<div class="section"><button class="back" id="el-back">← Volver al curso</button><h2>${lid?"Editar clase":"Nueva clase"}</h2>
-    <div class="grid2"><div class="field"><label class="lab">Número</label><input type="number" id="el-n" value="${l.number}"></div><div class="field"><label class="lab">Se abre el</label><input type="date" id="el-u" value="${l.unlock_on}"></div></div>
+  const K=S.cur, num=lid?null:(K.ls.reduce((m,x)=>Math.max(m,x.number),0)+1);
+  const auto=lid?null:aperturaAuto(K.c,K.gs,num);
+  const l=lid?K.ls.find(x=>x.id===lid):{number:num,title:"",goal:"",unlock_at:auto||new Date().toISOString(),video_url:"",theory:{}}, th=l.theory||{};
+  const mine=K.li.filter(x=>x.lesson_id===lid), v=$("#view");
+  const autoL=aperturaAuto(K.c,K.gs,l.number);
+  v.innerHTML=`<div class="section"><button class="back" id="el-back">← Volver al curso</button>
+    <div class="row-between"><h2>${lid?`Clase ${l.number}: ${esc(l.title)}`:"Nueva clase"}</h2>${lid?`<span class="pill ${isOpen(l)?"st-done":"st-new"}">${isOpen(l)?"Abierta":"Se abre "+fmtDT(l,true)}</span>`:""}</div>
+    <div class="steps-ed"><span class="on">1. La clase</span><span>2. Actividades</span></div>
     <div class="field"><label class="lab">Título</label><input id="el-t" value="${esc(l.title)}"></div>
-    <div class="field"><label class="lab">Objetivo</label><input id="el-g" value="${esc(l.goal||"")}"></div>
-    <div class="field"><label class="lab">Teoría: explicación corta</label><textarea id="el-i">${esc(th.intro||"")}</textarea></div>
-    <div class="field"><label class="lab">Chunks (uno por línea: inglés | castellano)</label><textarea id="el-c">${esc((th.chunks||[]).map(c=>c.en+(c.es?" | "+c.es:"")).join("\n"))}</textarea></div>
-    <div class="field"><label class="lab">Tip</label><input id="el-p" value="${esc(th.tip||"")}"></div>
-    <div class="field"><label class="lab">Video de la teoría (opcional)</label><input id="el-v" value="${esc(l.video_url||"")}" placeholder="Link de YouTube, Vimeo o Drive"></div>
-    <div class="form-actions"><button class="btn-primary" id="el-save">Guardar clase</button>${lid?'<div style="flex:1"></div><button class="btn-ghost danger" id="el-del">Eliminar clase</button>':""}</div></div>
-    ${lid?`<div class="section"><h2>Actividades de la clase</h2><div class="sub">El alumno las ve agrupadas en Antes de clase, Práctica y Después de clase.</div>
-      <div class="alist">${mine.map(x=>{ const it=S.itemById[x.item_id]||{title:"(actividad borrada)"};
-        return `<div class="lrow"><div class="lmain"><b>${esc(it.title)}</b><span class="lsub">${KIND_ES[x.kind]} · ${ckind(it)==="quiz"?"quiz autocorregible":ckind(it)==="tarea"?"audio para corregir":"actividad de la biblioteca"}</span></div>${ckind(it)==="quiz"?`<button class="btn-ghost btn-sm" data-eq="${x.item_id}">Editar quiz</button>`:""}<button class="btn-ghost btn-sm danger" data-rm="${x.item_id}">Quitar</button></div>`; }).join("")||'<div class="empty" style="padding:14px">Todavía no hay actividades.</div>'}</div>
-      <div class="addbar" style="margin-top:12px"><select id="ai-i" style="flex:1;min-width:200px"><option value="">— de la biblioteca —</option>${S.items.filter(i=>!ckind(i)).map(i=>`<option value="${i.id}">${esc(i.title)}</option>`).join("")}</select>
-        <select id="ai-k" style="width:auto">${Object.entries(KIND_ES).map(([k,n])=>`<option value="${k}">${n}</option>`).join("")}</select><button class="btn-ghost btn-sm" id="ai-ok">Agregar</button></div>
-      <div class="form-actions"><button class="btn-ghost" id="nq">＋ Crear quiz</button><button class="btn-ghost" id="nt">＋ Crear tarea de audio</button></div><div id="mk"></div></div>`:""}`;
+    <div class="field"><label class="lab">Objetivo (lo ve el alumno arriba)</label><input id="el-g" value="${esc(l.goal||"")}" placeholder="Ej: Contar tu historia con el inglés"></div>
+    <div class="field"><label class="lab">Teoría</label><textarea id="el-i" placeholder="Una explicación corta, como se la dirías en clase.">${esc(th.intro||"")}</textarea></div>
+    <div class="field"><label class="lab">Chunks (uno por línea: inglés | castellano)</label><textarea id="el-c" placeholder="I've worked here since 2022. | Trabajo acá desde 2022.">${esc((th.chunks||[]).map(c=>c.en+(c.es?" | "+c.es:"")).join("\n"))}</textarea></div>
+    <div class="grid2"><div class="field"><label class="lab">Tip (opcional)</label><input id="el-p" value="${esc(th.tip||"")}"></div><div class="field"><label class="lab">Video (opcional)</label><input id="el-v" value="${esc(l.video_url||"")}" placeholder="YouTube, Vimeo o Drive"></div></div>
+    <details class="mas"><summary>Cambiar cuándo se abre${autoL?" (ahora: automático)":""}</summary>
+      <div class="grid2" style="margin-top:8px"><div class="field"><label class="lab">Se abre</label><input type="datetime-local" id="el-u" value="${toLocalInput(l)}"></div><div class="field"><label class="lab">Número de clase</label><input type="number" id="el-n" value="${l.number}"></div></div>
+      ${autoL?`<div class="hint">Según el horario de los grupos correspondería: ${fmtDT({unlock_at:autoL},true)}.</div>`:""}</details>
+    <div class="form-actions"><button class="btn-primary" id="el-save">${lid?"Guardar":"Crear clase"}</button>${lid?'<div style="flex:1"></div><button class="btn-ghost danger btn-sm" id="el-del">Eliminar clase</button>':""}</div></div>
+    ${lid?`<div class="section"><div class="steps-ed"><span>1. La clase</span><span class="on">2. Actividades</span></div><div class="sub">El alumno las ve agrupadas en Antes de clase, Práctica y Después de clase.</div>
+      ${["antes","practica","despues"].map(k=>{ const xs=mine.filter(x=>x.kind===k); return `<div class="kgrp"><div class="lab">${KIND_ES[k]}</div>${xs.map(x=>{ const it=S.itemById[x.item_id]||{title:"(borrada)"};
+        return `<div class="lrow"><div class="lmain"><b>${esc(it.title)}</b><span class="lsub">${ckind(it)==="quiz"?`Quiz de ${(it.content.questions||[]).length} preguntas`:ckind(it)==="tarea"?"Audio para corregir":"De la biblioteca"}</span></div>${ckind(it)==="quiz"?`<button class="btn-ghost btn-sm" data-eq="${x.item_id}">Editar</button>`:ckind(it)==="tarea"?`<button class="btn-ghost btn-sm" data-et2="${x.item_id}">Editar</button>`:""}<button class="btn-ghost btn-sm danger" data-rm="${x.item_id}">✕</button></div>`; }).join("")||'<div class="lsub" style="padding:4px 0 8px">Nada todavía.</div>'}</div>`; }).join("")}
+      <div class="addcards">
+        <button class="addcard" id="nq"><b>✓ Quiz</b><small>Se corrige solo y le explica cada respuesta</small></button>
+        <button class="addcard" id="nt"><b>🎙 Audio</b><small>Lo graba desde la compu o el celu y vos lo corregís</small></button>
+        <button class="addcard" id="nv"><b>▶ Video</b><small>Un link de YouTube, Vimeo o Drive</small></button>
+        <button class="addcard" id="nb"><b>📚 De la biblioteca</b><small>Cualquier actividad que ya tengas armada</small></button>
+      </div><div id="mk"></div></div>`:""}`;
   $("#el-back").onclick=()=>viewCurso(K.c.id);
   $("#el-save").onclick=async()=>{
     const chunks=$("#el-c").value.split("\n").map(s=>s.trim()).filter(Boolean).map(s=>{ const p=s.split("|"); return {en:p[0].trim(),es:(p[1]||"").trim()}; });
-    const row={course_id:K.c.id,number:+$("#el-n").value,title:$("#el-t").value.trim(),goal:$("#el-g").value.trim()||null,unlock_on:$("#el-u").value,video_url:$("#el-v").value.trim()||null,theory:{intro:$("#el-i").value.trim(),chunks,tip:$("#el-p").value.trim()}};
-    if(!row.title||!row.unlock_on){ toast("Poné título y fecha"); return; }
+    const ua=fromLocalInput($("#el-u").value)||l.unlock_at;
+    const row={course_id:K.c.id,number:+$("#el-n").value,title:$("#el-t").value.trim(),goal:$("#el-g").value.trim()||null,unlock_at:ua,unlock_on:ua.slice(0,10),video_url:$("#el-v").value.trim()||null,theory:{intro:$("#el-i").value.trim(),chunks,tip:$("#el-p").value.trim()}};
+    if(!row.title){ toast("Poné un título"); return; }
     const r=lid?await db.from("practice_lessons").update(row).eq("id",lid).select().single():await db.from("practice_lessons").insert(row).select().single();
     if(r.error){ toast("No se pudo guardar: "+r.error.message); return; }
-    toast("Clase guardada ✓"); await cargaCurso(K.c.id); editLesson(r.data.id);
+    toast("Guardado ✓"); await cargaCurso(K.c.id); editLesson(r.data.id);
   };
-  const del=$("#el-del"); if(del) del.onclick=async()=>{ if(!confirm("¿Eliminar esta clase? Se borran también los intentos y entregas de los alumnos.")) return; await db.from("practice_lessons").delete().eq("id",lid); viewCurso(K.c.id); };
+  const del=$("#el-del"); if(del) del.onclick=async()=>{ if(!confirm("¿Eliminar esta clase? Se borra también lo que hayan hecho los alumnos en ella.")) return; await db.from("practice_lessons").delete().eq("id",lid); viewCurso(K.c.id); };
   if(!lid) return;
   const recargar=async()=>{ await loadTeacher(); await cargaCurso(K.c.id); editLesson(lid); };
   const pos=()=>mine.reduce((m,x)=>Math.max(m,x.position||0),0)+1;
+  const kindSel=d=>`<div class="field"><label class="lab">¿Cuándo lo hace el alumno?</label><select id="mk-k">${Object.entries(KIND_ES).map(([k,n])=>`<option value="${k}" ${k===d?"selected":""}>${n}</option>`).join("")}</select></div>`;
+  const nuevoItem=async(p,kind)=>{ const {data,error}=await db.from("practice_items").insert({level:K.c.level||null,format:"blocks",...p}).select().single(); if(error){ toast(error.message); return; } await db.from("practice_lesson_items").insert({lesson_id:lid,item_id:data.id,kind,position:pos()}); toast("Agregado ✓"); recargar(); };
   v.querySelectorAll("[data-rm]").forEach(b=>b.onclick=async()=>{ if(!confirm("¿Quitar esta actividad de la clase?")) return; await db.from("practice_lesson_items").delete().eq("lesson_id",lid).eq("item_id",b.dataset.rm); recargar(); });
-  $("#ai-ok").onclick=async()=>{ const i=$("#ai-i").value; if(!i) return; const {error}=await db.from("practice_lesson_items").insert({lesson_id:lid,item_id:i,kind:$("#ai-k").value,position:pos()}); if(error){ toast("No se pudo: "+error.message); return; } recargar(); };
-  const quizForm=(it)=>{
-    $("#mk").innerHTML=`<div class="bed" style="margin-top:12px"><div class="field"><label class="lab">Título</label><input id="q-t" value="${esc(it?it.title:"")}" placeholder="Since or for?"></div>
-      <div class="field"><label class="lab">Preguntas</label><textarea id="q-x" style="min-height:220px" placeholder="I've lived here ___ ten years.\n*for\nsince\nduring\nWhy: Diez años es un período.\n\n(línea en blanco entre preguntas)">${esc(it?quizATexto(it.content.questions):"")}</textarea>
-      <div class="hint">Pregunta en la primera línea, una opción por línea con * en la correcta, y "Why:" con la explicación que ve el alumno. Las opciones se mezclan solas cada vez. Tratá de que tengan largo parecido.</div></div>
-      ${it?"":`<div class="field"><label class="lab">Va en</label><select id="q-k">${Object.entries(KIND_ES).map(([k,n])=>`<option value="${k}" ${k==="practica"?"selected":""}>${n}</option>`).join("")}</select></div>`}
-      <button class="btn-primary" id="q-ok">Guardar quiz</button></div>`;
-    $("#q-ok").onclick=async()=>{ const qs=textoAQuiz($("#q-x").value), mal=qs.filter(q=>!q.answer);
+  const abrir=h=>{ $("#mk").innerHTML=`<div class="bed" style="margin-top:12px">${h}</div>`; $("#mk").scrollIntoView({behavior:"smooth",block:"center"}); };
+  const quizForm=it=>{
+    abrir(`<b>${it?"Editar quiz":"Nuevo quiz"}</b><div class="field" style="margin-top:8px"><label class="lab">Título</label><input id="q-t" value="${esc(it?it.title:"")}" placeholder="Since or for?"></div>
+      <div class="field"><label class="lab">Preguntas</label><textarea id="q-x" style="min-height:220px" placeholder="I've lived here ___ ten years.\n*for\nsince\nduring\nWhy: Diez años es un período, entonces va for.\n\nShe's worked at Avenga ___ 2021.\n*since\nfor\nfrom\nWhy: 2021 es el punto de inicio.">${esc(it?quizATexto(it.content.questions):"")}</textarea>
+      <div class="hint"><b>Cómo se escribe:</b> la pregunta, abajo una opción por línea con <b>*</b> en la correcta, y "Why:" con la explicación. Dejá una línea en blanco entre preguntas. Las opciones se mezclan solas cada vez; tratá de que tengan largo parecido.</div></div>
+      <div id="q-prev"></div>${it?"":kindSel("practica")}<div class="form-actions"><button class="btn-primary" id="q-ok">Guardar quiz</button><button class="btn-ghost" id="q-pv">Ver cómo queda</button></div>`);
+    const leer=()=>textoAQuiz($("#q-x").value);
+    $("#q-pv").onclick=()=>{ const qs=leer(); $("#q-prev").innerHTML=qs.length?`<div class="lab">${qs.length} pregunta(s)</div>`+qs.map((x,i)=>`<div class="lsub" style="margin-bottom:6px">${i+1}. ${esc(x.q)} → ${x.answer?`<b>${esc(x.answer)}</b>`:'<span style="color:var(--red)">falta marcar la correcta con *</span>'}</div>`).join(""):'<div class="msg err">No encontré preguntas. Revisá el formato.</div>'; };
+    $("#q-ok").onclick=async()=>{ const qs=leer(), mal=qs.filter(q=>!q.answer||!q.options.includes(q.answer));
       if(!qs.length||!$("#q-t").value.trim()){ toast("Poné título y al menos una pregunta"); return; }
       if(mal.length){ toast("Falta marcar con * la correcta en: "+mal[0].q); return; }
       const p={title:$("#q-t").value.trim(),content:{kind:"quiz",questions:qs}};
-      if(it){ const {error}=await db.from("practice_items").update(p).eq("id",it.id); if(error){ toast(error.message); return; } }
-      else { const {data,error}=await db.from("practice_items").insert({...p,section:"grammar",format:"blocks",level:K.c.level||null,needs_submission:false}).select().single(); if(error){ toast(error.message); return; }
-        await db.from("practice_lesson_items").insert({lesson_id:lid,item_id:data.id,kind:$("#q-k").value,position:pos()}); }
-      toast("Quiz guardado ✓"); recargar(); };
+      if(it){ const {error}=await db.from("practice_items").update(p).eq("id",it.id); if(error){ toast(error.message); return; } toast("Quiz guardado ✓"); recargar(); }
+      else nuevoItem({...p,section:"grammar",needs_submission:false},$("#mk-k").value); };
   };
-  $("#nq").onclick=()=>quizForm(null);
-  v.querySelectorAll("[data-eq]").forEach(b=>b.onclick=()=>quizForm(S.itemById[b.dataset.eq]));
-  $("#nt").onclick=()=>{
-    $("#mk").innerHTML=`<div class="bed" style="margin-top:12px"><div class="field"><label class="lab">Título</label><input id="t-t" placeholder="My English story (audio)"></div>
-      <div class="field"><label class="lab">Consigna</label><textarea id="t-d" placeholder="Grabá 1 minuto contando…"></textarea></div>
-      <div class="grid2"><div class="field"><label class="lab">Máximo de segundos</label><input type="number" id="t-s" value="90"></div><div class="field"><label class="lab">Va en</label><select id="t-k">${Object.entries(KIND_ES).map(([k,n])=>`<option value="${k}" ${k==="despues"?"selected":""}>${n}</option>`).join("")}</select></div></div>
-      <button class="btn-primary" id="t-ok">Guardar tarea</button></div>`;
+  const tareaForm=it=>{
+    abrir(`<b>${it?"Editar audio":"Nueva tarea de audio"}</b><div class="field" style="margin-top:8px"><label class="lab">Título</label><input id="t-t" value="${esc(it?it.title:"")}" placeholder="My English story"></div>
+      <div class="field"><label class="lab">Consigna</label><textarea id="t-d" placeholder="Record 1 minute telling me…">${esc(it?it.description||"":"")}</textarea></div>
+      <div class="field"><label class="lab">Duración máxima</label><select id="t-s">${[30,60,90,120,180].map(s=>`<option value="${s}" ${s===((it&&it.content.max_seconds)||90)?"selected":""}>${s<60?s+" segundos":(s/60)+" min"}</option>`).join("")}</select></div>
+      ${it?"":kindSel("despues")}<button class="btn-primary" id="t-ok">Guardar</button>`);
     $("#t-ok").onclick=async()=>{ const t=$("#t-t").value.trim(); if(!t){ toast("Poné un título"); return; }
-      const {data,error}=await db.from("practice_items").insert({title:t,description:$("#t-d").value.trim()||null,section:"speaking",format:"blocks",level:K.c.level||null,needs_submission:true,content:{kind:"tarea",type:"audio",max_seconds:+$("#t-s").value||90}}).select().single();
-      if(error){ toast(error.message); return; }
-      await db.from("practice_lesson_items").insert({lesson_id:lid,item_id:data.id,kind:$("#t-k").value,position:pos()});
-      toast("Tarea guardada ✓"); recargar(); };
+      const p={title:t,description:$("#t-d").value.trim()||null,content:{kind:"tarea",type:"audio",max_seconds:+$("#t-s").value}};
+      if(it){ await db.from("practice_items").update(p).eq("id",it.id); toast("Guardado ✓"); recargar(); }
+      else nuevoItem({...p,section:"speaking",needs_submission:true},$("#mk-k").value); };
   };
+  $("#nq").onclick=()=>quizForm(null); $("#nt").onclick=()=>tareaForm(null);
+  v.querySelectorAll("[data-eq]").forEach(b=>b.onclick=()=>quizForm(S.itemById[b.dataset.eq]));
+  v.querySelectorAll("[data-et2]").forEach(b=>b.onclick=()=>tareaForm(S.itemById[b.dataset.et2]));
+  $("#nv").onclick=()=>{ abrir(`<b>Video</b><div class="field" style="margin-top:8px"><label class="lab">Título</label><input id="v-t" placeholder="Warm-up: how people learn languages"></div>
+      <div class="field"><label class="lab">Link</label><input id="v-u" placeholder="https://youtu.be/…"></div><div class="field"><label class="lab">Consigna (opcional)</label><input id="v-d" placeholder="Watch it and note down one useful phrase."></div>${kindSel("antes")}<button class="btn-primary" id="v-ok">Agregar</button>`);
+    $("#v-ok").onclick=()=>{ const t=$("#v-t").value.trim(), u=$("#v-u").value.trim(); if(!t||!u){ toast("Poné título y link"); return; } if(!embedUrl(u)&&!confirm("No reconozco ese link como YouTube, Vimeo o Drive. Se va a mostrar como botón. ¿Seguir?")) return;
+      nuevoItem({title:t,description:$("#v-d").value.trim()||null,section:"vocabulary",format:"video",needs_submission:false,content:{video_url:u}},$("#mk-k").value); }; };
+  $("#nb").onclick=()=>{ const lib=S.items.filter(i=>!ckind(i)&&i.format!=="video");
+    abrir(`<b>De la biblioteca</b>${lib.length?`<div class="field" style="margin-top:8px"><select id="b-i">${lib.map(i=>`<option value="${i.id}">${esc(i.title)} · ${secName(i.section)}</option>`).join("")}</select></div>${kindSel("practica")}<button class="btn-primary" id="b-ok">Agregar</button>`:'<div class="empty">Todavía no hay actividades en la biblioteca. Se arman en la pestaña Biblioteca.</div>'}`);
+    const bo=$("#b-ok"); if(bo) bo.onclick=async()=>{ const {error}=await db.from("practice_lesson_items").insert({lesson_id:lid,item_id:$("#b-i").value,kind:$("#mk-k").value,position:pos()}); if(error){ toast(error.message); return; } recargar(); }; };
 }
 async function corregirEntrega(sid){
-  const K=S.cur, s=K.subs.find(x=>x.id===sid), l=K.ls.find(x=>x.id===s.lesson_id)||{}, it=S.itemById[s.item_id]||{}, a=S.alByEmail[s.student_email];
+  const K=S.cur, s=K.subs.find(x=>x.id===sid), l=K.ls.find(x=>x.id===s.lesson_id)||{}, it=S.itemById[s.item_id]||{};
   const v=$("#view");
   v.innerHTML=`<div class="section"><button class="back" id="ce-back">← Volver a entregas</button>
-    <h2>${esc(a?a.nombre:s.student_email)}</h2><div class="sub">Clase ${l.number}: ${esc(l.title||"")} · ${esc(it.title||"")} · ${fmtD(s.submitted_at,true)}</div>
+    <h2>${esc(nombreDe(s.student_email))}</h2><div class="sub">Clase ${l.number}: ${esc(l.title||"")} · ${esc(it.title||"")} · ${fmtD(s.submitted_at,true)}</div>
     ${it.description?`<div class="b-note"><span class="b-note-lab">Consigna</span>${md(it.description)}</div>`:""}
-    <div id="ce-a" class="empty">Cargando audio…</div>
-    ${s.answers&&s.answers.text?`<div class="answer" style="margin:10px 0">${esc(s.answers.text)}</div>`:""}
-    <div class="field" style="margin-top:12px"><label class="lab">Feedback</label><textarea id="ce-f" style="min-height:160px" placeholder="error → **corrección** (explicación breve)">${esc(s.feedback||"")}</textarea>
-      <div class="hint">Entre **dos asteriscos** le aparece en negrita.</div></div>
+    <div id="ce-a" class="empty">Cargando audio…</div>${s.answers&&s.answers.text?`<div class="answer" style="margin:10px 0">${esc(s.answers.text)}</div>`:""}
+    <div class="field" style="margin-top:12px"><label class="lab">Feedback</label><textarea id="ce-f" style="min-height:160px" placeholder="Great job! A couple of things:\nI have went → I have **gone** (participio de go)">${esc(s.feedback||"")}</textarea><div class="hint">Lo que pongas entre **dos asteriscos** le aparece en negrita.</div></div>
     <div class="form-actions"><button class="btn-primary" id="ce-ok">Enviar feedback</button><button class="btn-ghost" id="ce-re">Pedir que la grabe de nuevo</button></div></div>`;
-  const u=await signed(s.file_url); $("#ce-a").outerHTML=u?`<audio controls src="${u}" style="width:100%"></audio>`:'<div class="empty">Sin audio.</div>';
+  signed(s.file_url).then(u=>{ $("#ce-a").outerHTML=u?`<audio controls src="${u}" style="width:100%"></audio>`:'<div class="empty">Sin audio.</div>'; });
   $("#ce-back").onclick=()=>viewCurso(K.c.id,"entregas");
-  const guardar=async(status)=>{ const fb=$("#ce-f").value.trim(); if(!fb){ toast("Escribí el feedback"); return; }
+  const guardar=async status=>{ const fb=$("#ce-f").value.trim(); if(!fb){ toast("Escribí el feedback"); return; }
     const {error}=await db.from("practice_lesson_submissions").update({feedback:fb,status,feedback_by:S.email,feedback_at:new Date().toISOString()}).eq("id",sid);
-    if(error){ toast(error.message); return; } toast("Guardado ✓"); viewCurso(K.c.id,"entregas"); };
+    if(error){ toast(error.message); return; } toast("Listo ✓"); viewCurso(K.c.id,"entregas"); };
   $("#ce-ok").onclick=()=>guardar("corregido"); $("#ce-re").onclick=()=>guardar("rehacer");
 }
 </script>

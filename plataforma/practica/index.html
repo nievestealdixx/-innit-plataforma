@@ -311,15 +311,16 @@ function bindNav(){ const o=$("#out"); if(o) o.onclick=async()=>{ await db.auth.
 
 /* ================= PANEL DE PROFES ================= */
 async function loadTeacher(){
-  const [items,asg,subs,prog,alumnos,grupos]=await Promise.all([
+  const [items,asg,subs,prog,alumnos,grupos,empresas]=await Promise.all([
     traerTodo("practice_items","*",["created_at desc","id"]),
     traerTodo("practice_assignments","*",["created_at desc","id"]),
     traerTodo("practice_submissions","*",["submitted_at desc","id"]),
     traerTodo("practice_progress","*",["assignment_id","student_email"]),
     traerTodo("alumnos","id, nombre, email, email_acceso, nivel_sel, grupo_id, empresa_id, activo",["nombre","id"]),
-    traerTodo("grupos","id, nombre, profesora, empresa_id, dias, horario",["nombre","id"])
+    traerTodo("grupos","id, nombre, profesora, empresa_id, dias, horario, fecha_inicio",["nombre","id"]),
+    traerTodo("empresas","id, nombre",["nombre","id"])
   ]);
-  Object.assign(S,{items,asg,subs,prog,alumnos,grupos});
+  Object.assign(S,{items,asg,subs,prog,alumnos,grupos,empresas});
   S.itemById=Object.fromEntries(items.map(i=>[i.id,i]));
   S.alByEmail={}; alumnos.forEach(a=>{ if(a.email) S.alByEmail[a.email.toLowerCase()]=a; if(a.email_acceso) S.alByEmail[a.email_acceso.toLowerCase()]=a; });
 }
@@ -816,33 +817,58 @@ const grupoById=id=>S.grupos.find(g=>g.id===id);
 function grupoChecks(sel){ return `<div class="gchecks">${S.grupos.map(g=>`<label class="gchk"><input type="checkbox" value="${g.id}" ${sel.includes(g.id)?"checked":""}><span><b>${esc(g.nombre)}</b><small>${esc([g.dias,g.horario].filter(Boolean).join(" · ")||"sin horario")}</small></span></label>`).join("")}</div>`; }
 async function viewCursos(){
   const v=$("#view"); v.innerHTML='<div class="empty">Cargando…</div>';
-  const [cs,cg,ls]=await Promise.all([traerTodo("practice_courses","*",["created_at desc","id"]),traerTodo("practice_course_groups","*",["course_id","grupo_id"]),traerTodo("practice_lessons","id, course_id",["id"])]);
-  v.innerHTML=`<div class="howto"><b>¿Cómo funciona?</b><ol><li>Creás el curso, elegís sus grupos y pegás los temas de las clases.</li><li>Entrás a cada clase y le cargás la teoría y las actividades.</li><li>Cada clase se le abre sola a los alumnos cuando termina la clase en vivo anterior.</li></ol></div>
-    <div class="section"><div class="row-between"><div><h2>Cursos</h2><div class="sub">El contenido que acompaña las clases en vivo.</div></div><button class="btn-primary" id="c-new">＋ Nuevo curso</button></div>
-    ${cs.length?`<div class="alist">${cs.map(c=>{ const gs=cg.filter(x=>x.course_id===c.id).map(x=>grupoById(x.grupo_id)).filter(Boolean), n=ls.filter(l=>l.course_id===c.id).length;
-      return `<div class="lrow click" data-c="${c.id}"><div class="lmain"><b>${esc(c.title)}</b><span class="lsub">${n} clase(s) · ${gs.length?gs.map(g=>esc(g.nombre)).join(", "):"sin grupos"}${c.active?"":" · archivado"}</span></div><span class="lsub">Abrir →</span></div>`; }).join("")}</div>`:'<div class="empty">Todavía no hay cursos. Creá el primero.</div>'}</div>`;
+  const [cs,cg,ls]=await Promise.all([traerTodo("practice_courses","*",["created_at desc","id"]),traerTodo("practice_course_groups","*",["course_id","grupo_id"]),traerTodo("practice_lessons","id, course_id, unlock_at, unlock_on, theory",["id"])]);
+  const li=await traerTodo("practice_lesson_items","lesson_id, item_id",["lesson_id","item_id"]);
+  const cursoDe=gid=>{ const r=cg.find(x=>x.grupo_id===gid); return r&&cs.find(c=>c.id===r.course_id); };
+  const f=S.segFiltro||"";
+  const segs=(S.empresas||[]).filter(e=>S.grupos.some(g=>g.empresa_id===e.id));
+  const gs=S.grupos.filter(g=>!f||g.empresa_id===f).sort((a,b)=>(!!cursoDe(b.id))-(!!cursoDe(a.id))||a.nombre.localeCompare(b.nombre));
+  const fila=g=>{ const c=cursoDe(g.id), n=c?S.alumnos.filter(a=>a.grupo_id===g.id&&a.activo).length:0;
+    if(!c) return `<div class="lrow"><span class="dot" style="background:#D8D2C2"></span><div class="lmain"><b>${esc(g.nombre)}</b><span class="lsub">${esc([g.dias,g.horario].filter(Boolean).join(" · ")||"sin horario")} · sin curso</span></div><button class="btn-ghost btn-sm" data-armar="${g.id}">Armar curso</button></div>`;
+    const cl=ls.filter(l=>l.course_id===c.id), vacias=cl.filter(l=>!li.some(x=>x.lesson_id===l.id)&&!((l.theory||{}).intro)).length, abiertas=cl.filter(isOpen).length;
+    return `<div class="lrow click" data-c="${c.id}"><span class="dot" style="background:${c.active?"var(--green)":"#D8D2C2"}"></span><div class="lmain"><b>${esc(g.nombre)}</b><span class="lsub">${cl.length} clases · ${abiertas} abiertas · ${n} alumnos${vacias?` · <span style="color:var(--orange)">${vacias} por completar</span>`:""}</span></div><span class="lsub">Abrir →</span></div>`; };
+  v.innerHTML=`<div class="howto"><b>¿Cómo funciona?</b><ol><li>Cada grupo tiene su curso. Tocá <b>Armar curso</b> en el grupo.</li><li>Pegás los temas del plan, o copiás el contenido de otro grupo del mismo nivel.</li><li>Completás cada clase con teoría y actividades. Se le abren solas a los alumnos cuando termina la clase en vivo anterior.</li></ol></div>
+    <div class="section"><h2>Grupos y sus cursos</h2><div class="sub">Los grupos son los mismos que cargás en la plataforma.</div>
+    ${segs.length>1?`<div class="fchips"><button class="fchip ${!f?"on":""}" data-sf="">Todos</button>${segs.map(e=>`<button class="fchip ${f===e.id?"on":""}" data-sf="${e.id}">${esc(e.nombre)}</button>`).join("")}</div>`:""}
+    <div class="alist">${gs.map(fila).join("")||'<div class="empty" style="padding:14px">No hay grupos.</div>'}</div></div>`;
+  v.querySelectorAll("[data-sf]").forEach(b=>b.onclick=()=>{ S.segFiltro=b.dataset.sf; viewCursos(); });
   v.querySelectorAll("[data-c]").forEach(r=>r.onclick=()=>viewCurso(r.dataset.c));
-  $("#c-new").onclick=nuevoCurso;
+  v.querySelectorAll("[data-armar]").forEach(b=>b.onclick=()=>nuevoCurso(b.dataset.armar,cs,cg));
 }
-function nuevoCurso(){
-  $("#view").innerHTML=`<div class="section"><button class="back" id="n-back">← Volver</button><h2>Nuevo curso</h2><div class="sub">Con esto ya queda armado el esqueleto. Después completás cada clase cuando quieras.</div>
-    <div class="field"><label class="lab">Nombre</label><input id="n-t" placeholder="Summer Club 2027 · Intermedio"></div>
-    <div class="grid2"><div class="field"><label class="lab">Nivel</label><select id="n-l"><option value="">Todos</option>${S.levels.map(x=>`<option value="${x.code}">${esc(x.name)}</option>`).join("")}</select></div>
-      <div class="field"><label class="lab">Primera clase en vivo</label><input type="date" id="n-s"></div></div>
-    <div class="field"><label class="lab">¿Qué grupos lo cursan?</label>${grupoChecks([])}<div class="hint">Todos los alumnos activos de esos grupos lo ven. Si sumás o das de baja a alguien en la plataforma, se actualiza solo.</div></div>
-    <div class="field"><label class="lab">Temas de las clases (uno por línea)</label><textarea id="n-x" style="min-height:180px" placeholder="My English story | Contar tu historia con el inglés\nMusic & memories | Asociar canciones con recuerdos\nArgentina explained"></textarea><div class="hint">Podés pegarlos directo del plan. Lo que va después de la | es el objetivo (opcional).</div></div>
+function nuevoCurso(gid,cs,cg){
+  const g=grupoById(gid), otros=cs.filter(c=>cg.some(x=>x.course_id===c.id));
+  const nomG=c=>{ const r=cg.find(x=>x.course_id===c.id); const gg=r&&grupoById(r.grupo_id); return gg?gg.nombre:c.title; };
+  $("#view").innerHTML=`<div class="section"><button class="back" id="n-back">← Volver</button><h2>Curso de ${esc(g.nombre)}</h2>
+    <div class="sub">${esc([g.dias,g.horario].filter(Boolean).join(" · ")||"Este grupo no tiene días ni horario cargados en la plataforma: las clases no se van a poder abrir solas hasta que los cargues.")}</div>
+    <div class="grid2"><div class="field"><label class="lab">Nivel</label><select id="n-l"><option value="">—</option>${S.levels.map(x=>`<option value="${x.code}">${esc(x.name)}</option>`).join("")}</select></div>
+      <div class="field"><label class="lab">Primera clase en vivo</label><input type="date" id="n-s" value="${g.fecha_inicio||""}"></div></div>
+    <div class="field"><label class="lab">¿Con qué contenido arranca?</label>
+      <label class="gchk" style="margin-bottom:8px"><input type="radio" name="n-m" value="nuevo" checked><span><b>Nuevo</b><small>Pegás los temas y después completás cada clase</small></span></label>
+      ${otros.length?`<label class="gchk"><input type="radio" name="n-m" value="copia"><span><b>Copiar el de otro grupo</b><small>Mismas clases, teoría y actividades. Las fechas se calculan con el horario de este grupo.</small></span></label>`:""}</div>
+    <div id="n-nuevo" class="field"><label class="lab">Temas de las clases (uno por línea)</label><textarea id="n-x" style="min-height:180px" placeholder="My English story | Contar tu historia con el inglés\nMusic & memories\nArgentina explained"></textarea><div class="hint">Podés pegarlos directo del plan. Lo que va después de la | es el objetivo (opcional).</div></div>
+    <div id="n-copia" class="field" hidden><label class="lab">Copiar de</label><select id="n-o">${otros.map(c=>`<option value="${c.id}">${esc(nomG(c))}</option>`).join("")}</select><div class="hint">Las actividades quedan compartidas: si corregís un quiz, se corrige en los dos cursos. Lo que hacen los alumnos sí queda separado.</div></div>
     <div class="form-actions"><button class="btn-primary" id="n-ok">Crear curso</button><span id="n-msg"></span></div></div>`;
   $("#n-back").onclick=viewCursos;
+  document.querySelectorAll('[name="n-m"]').forEach(r=>r.onchange=()=>{ const c=document.querySelector('[name="n-m"]:checked').value==="copia"; $("#n-nuevo").hidden=c; $("#n-copia").hidden=!c; });
   $("#n-ok").onclick=async()=>{
-    const title=$("#n-t").value.trim(), starts=$("#n-s").value, gids=[...document.querySelectorAll(".gchk input:checked")].map(i=>i.value);
-    const temas=$("#n-x").value.split("\n").map(s=>s.trim()).filter(Boolean).map(s=>{ const p=s.split("|"); return {t:p[0].trim(),g:(p[1]||"").trim()}; });
-    const msg=$("#n-msg"); if(!title||!starts){ msg.className="msg err"; msg.textContent="Poné nombre y fecha de la primera clase."; return; }
-    const {data:c,error}=await db.from("practice_courses").insert({title,level:$("#n-l").value||null,starts_on:starts}).select().single();
+    const msg=$("#n-msg"), starts=$("#n-s").value, modo=document.querySelector('[name="n-m"]:checked').value;
+    if(!starts){ msg.className="msg err"; msg.textContent="Poné la fecha de la primera clase."; return; }
+    let src=null, temas=[];
+    if(modo==="copia"){ const sid=$("#n-o").value; src={c:cs.find(c=>c.id===sid),ls:(await db.from("practice_lessons").select("*").eq("course_id",sid).order("number")).data||[]};
+      src.li=src.ls.length?(await db.from("practice_lesson_items").select("*").in("lesson_id",src.ls.map(l=>l.id))).data||[]:[]; }
+    else temas=$("#n-x").value.split("\n").map(x=>x.trim()).filter(Boolean).map(x=>{ const p=x.split("|"); return {title:p[0].trim(),goal:(p[1]||"").trim()||null,theory:{}}; });
+    const nivel=$("#n-l").value||(src&&src.c.level)||null;
+    const {data:c,error}=await db.from("practice_courses").insert({title:g.nombre,level:nivel,starts_on:starts,description:src?src.c.description:null}).select().single();
     if(error){ msg.className="msg err"; msg.textContent=error.message; return; }
-    if(gids.length) await db.from("practice_course_groups").insert(gids.map(g=>({course_id:c.id,grupo_id:g})));
-    const gs=gids.map(grupoById).filter(Boolean);
-    if(temas.length){ const rows=temas.map((x,i)=>{ const ua=aperturaAuto(c,gs,i+1)||new Date(starts+"T09:00:00-03:00").toISOString(); return {course_id:c.id,number:i+1,title:x.t,goal:x.g||null,unlock_at:ua,unlock_on:ua.slice(0,10),theory:{}}; });
-      const r=await db.from("practice_lessons").insert(rows); if(r.error){ toast(r.error.message); } }
+    await db.from("practice_course_groups").insert({course_id:c.id,grupo_id:gid});
+    const base=src?src.ls:temas;
+    if(base.length){
+      const rows=base.map((x,i)=>{ const ua=aperturaAuto(c,[g],i+1)||new Date(starts+"T09:00:00-03:00").toISOString(); return {course_id:c.id,number:i+1,title:x.title,goal:x.goal||null,theory:x.theory||{},video_url:x.video_url||null,unlock_at:ua,unlock_on:ua.slice(0,10)}; });
+      const {data:nuevas,error:e2}=await db.from("practice_lessons").insert(rows).select();
+      if(e2){ toast(e2.message); }
+      else if(src&&src.li.length){ const map={}; src.ls.forEach((l,i)=>{ const n=nuevas.find(x=>x.number===i+1); if(n) map[l.id]=n.id; });
+        await db.from("practice_lesson_items").insert(src.li.filter(x=>map[x.lesson_id]).map(x=>({lesson_id:map[x.lesson_id],item_id:x.item_id,kind:x.kind,position:x.position}))); }
+    }
     toast("Curso creado ✓"); viewCurso(c.id);
   };
 }
@@ -864,16 +890,15 @@ async function recalcular(soloVacias){
 async function viewCurso(cid,tab){
   await cargaCurso(cid); const K=S.cur, v=$("#view"); tab=tab||"clases";
   const pend=K.subs.filter(s=>s.status==="entregado");
-  const tabs=[["clases","Clases"],["grupos",`Grupos y alumnos (${K.alumnos.size})`],["entregas",`Entregas${pend.length?` (${pend.length})`:""}`],["resultados","Resultados"],["ajustes","Ajustes"]];
+  const tabs=[["clases","Clases"],["grupos",`Alumnos (${K.alumnos.size})`],["entregas",`Entregas${pend.length?` (${pend.length})`:""}`],["resultados","Resultados"],["ajustes","Ajustes"]];
   let inner="";
   if(tab==="clases") inner=`<div class="alist">${K.ls.map(l=>{ const n=K.li.filter(x=>x.lesson_id===l.id).length, open=isOpen(l), vacia=!n&&!((l.theory||{}).intro);
       return `<div class="lrow click" data-l="${l.id}"><span class="dot" style="background:${open?"var(--green)":"#D8D2C2"}"></span><div class="lmain"><b>${l.number}. ${esc(l.title)}</b><span class="lsub">${open?"Abierta":"Se abre "+fmtDT(l,true)} · ${n?n+" actividad(es)":"sin actividades"}</span></div>${vacia?'<span class="pill st-submitted">Por completar</span>':""}<span class="lsub">Editar →</span></div>`; }).join("")||'<div class="empty" style="padding:14px">Sin clases.</div>'}</div>
-      <div class="form-actions"><button class="btn-primary" id="l-new">＋ Agregar clase</button>${K.gs.length?'<button class="btn-ghost" id="l-rec">↻ Recalcular fechas de apertura</button>':""}</div>
-      <div class="hint">Las fechas salen de los días y horarios de los grupos: cada clase se abre cuando termina la clase en vivo anterior. Si hay varios grupos, se toma el último en terminar, así nadie la ve antes de tiempo.</div>`;
-  if(tab==="grupos") inner=`<div class="field"><label class="lab">Grupos que cursan este curso</label>${grupoChecks(K.gids)}</div><button class="btn-primary btn-sm" id="g-save">Guardar grupos</button>
-      <h3 class="ci-t" style="margin-top:22px">Alumnos que lo ven (${K.alumnos.size})</h3>
-      <div class="alist">${[...K.alumnos].map(([em,a])=>{ const g=grupoById(a.grupo_id); return `<div class="lrow"><div class="lmain"><b>${esc(a.nombre)}</b><span class="lsub">${a.extra||!g?"agregado a mano":esc(g.nombre)} · ${esc(em)}</span></div><button class="btn-ghost btn-sm" data-ver="${esc(em)}">Ver como alumno</button>${K.en.some(e=>e.student_email===em)?`<button class="btn-ghost btn-sm danger" data-q="${esc(em)}">Quitar</button>`:""}</div>`; }).join("")||'<div class="empty" style="padding:14px">Elegí al menos un grupo.</div>'}</div>
-      <details class="mas"><summary>Sumar a alguien que no está en esos grupos</summary><div class="field" style="margin-top:8px"><textarea id="en-m" style="min-height:50px" placeholder="mail@ejemplo.com (uno por línea)"></textarea></div><button class="btn-ghost btn-sm" id="en-ok">Sumar</button></details>`;
+      <div class="form-actions"><button class="btn-primary" id="l-new">＋ Agregar clase</button>${K.gs.length?'<button class="btn-ghost" id="l-rec">↻ Recalcular fechas</button>':""}</div>
+      <div class="hint">Las fechas salen de los días y el horario del grupo: cada clase se abre cuando termina la clase en vivo anterior.</div>`;
+  if(tab==="grupos") inner=`<div class="sub">Son los alumnos activos del grupo en la plataforma. Si das de alta o de baja a alguien allá, se actualiza acá.</div>
+      <div class="alist">${[...K.alumnos].map(([em,a])=>`<div class="lrow"><div class="lmain"><b>${esc(a.nombre)}</b><span class="lsub">${a.extra?"agregado a mano · ":""}${esc(em)}</span></div><button class="btn-ghost btn-sm" data-ver="${esc(em)}">Ver como alumno</button>${K.en.some(e=>e.student_email===em)?`<button class="btn-ghost btn-sm danger" data-q="${esc(em)}">Quitar</button>`:""}</div>`).join("")||'<div class="empty" style="padding:14px">El grupo no tiene alumnos activos con mail.</div>'}</div>
+      <details class="mas"><summary>Sumar a alguien que no está en el grupo</summary><div class="field" style="margin-top:8px"><textarea id="en-m" style="min-height:50px" placeholder="mail@ejemplo.com (uno por línea)"></textarea></div><button class="btn-ghost btn-sm" id="en-ok">Sumar</button></details>`;
   if(tab==="entregas") inner=`<div class="fchips"><button class="fchip ${S.entTab!=="hechas"?"on":""}" data-et="p">Para corregir (${pend.length})</button><button class="fchip ${S.entTab==="hechas"?"on":""}" data-et="hechas">Corregidas</button></div>
       <div class="alist">${(S.entTab==="hechas"?K.subs.filter(s=>s.status!=="entregado"):pend).map(s=>{ const l=K.ls.find(x=>x.id===s.lesson_id)||{};
         return `<div class="lrow click" data-s="${s.id}"><div class="lmain"><b>${esc(nombreDe(s.student_email))}</b><span class="lsub">Clase ${l.number}: ${esc(l.title||"")}${s.status==="rehacer"?" · le pediste que la regrabe":""}</span></div><span class="lsub">${fmtD(s.submitted_at,true)}</span></div>`; }).join("")||'<div class="empty" style="padding:14px">Nada para corregir. 🎉</div>'}</div>`;
@@ -888,13 +913,13 @@ async function viewCurso(cid,tab){
       <label class="gchk" style="border:none;padding:0"><input type="checkbox" id="a-act" ${K.c.active?"checked":""}><span>Curso activo (destildalo para archivarlo y que los alumnos dejen de verlo)</span></label>
       <div class="form-actions"><button class="btn-primary" id="a-ok">Guardar</button><div style="flex:1"></div><button class="btn-ghost danger" id="a-del">Eliminar curso</button></div>`;
   v.innerHTML=`<div class="section"><button class="back" id="k-back">← Volver a cursos</button><h2>${esc(K.c.title)}</h2>
-    <div class="sub">${K.gs.length?K.gs.map(g=>esc(g.nombre)).join(", "):"Sin grupos todavía"} · ${K.ls.length} clases</div>
+    <div class="sub">${esc(K.gs.map(g=>[g.dias,g.horario].filter(Boolean).join(" · ")).join(" / "))} · ${K.ls.length} clases</div>
     <div class="fchips">${tabs.map(t=>`<button class="fchip ${t[0]===tab?"on":""}" data-kt="${t[0]}">${t[1]}</button>`).join("")}</div>${inner}</div>`;
   $("#k-back").onclick=viewCursos;
   v.querySelectorAll("[data-kt]").forEach(b=>b.onclick=()=>viewCurso(cid,b.dataset.kt));
   v.querySelectorAll("[data-l]").forEach(r=>r.onclick=()=>editLesson(r.dataset.l));
   const ln=$("#l-new"); if(ln) ln.onclick=()=>editLesson(null);
-  const lr=$("#l-rec"); if(lr) lr.onclick=async()=>{ if(!confirm("Esto vuelve a calcular la apertura de todas las clases según los horarios de los grupos. Si cambiaste alguna a mano, se pisa. ¿Seguir?")) return; const n=await recalcular(); toast(`${n} fechas actualizadas ✓`); viewCurso(cid); };
+  const lr=$("#l-rec"); if(lr) lr.onclick=async()=>{ if(!confirm("Esto vuelve a calcular la apertura de todas las clases con el horario del grupo. Si cambiaste alguna a mano, se pisa. ¿Seguir?")) return; const n=await recalcular(); toast(`${n} fechas actualizadas ✓`); viewCurso(cid); };
   v.querySelectorAll("[data-et]").forEach(b=>b.onclick=()=>{ S.entTab=b.dataset.et; viewCurso(cid,"entregas"); });
   v.querySelectorAll("[data-s]").forEach(r=>r.onclick=()=>corregirEntrega(r.dataset.s));
   v.querySelectorAll("[data-ver]").forEach(b=>b.onclick=()=>renderStudent(b.dataset.ver,true));
@@ -930,7 +955,7 @@ function editLesson(lid){
     <div class="grid2"><div class="field"><label class="lab">Tip (opcional)</label><input id="el-p" value="${esc(th.tip||"")}"></div><div class="field"><label class="lab">Video (opcional)</label><input id="el-v" value="${esc(l.video_url||"")}" placeholder="YouTube, Vimeo o Drive"></div></div>
     <details class="mas"><summary>Cambiar cuándo se abre${autoL?" (ahora: automático)":""}</summary>
       <div class="grid2" style="margin-top:8px"><div class="field"><label class="lab">Se abre</label><input type="datetime-local" id="el-u" value="${toLocalInput(l)}"></div><div class="field"><label class="lab">Número de clase</label><input type="number" id="el-n" value="${l.number}"></div></div>
-      ${autoL?`<div class="hint">Según el horario de los grupos correspondería: ${fmtDT({unlock_at:autoL},true)}.</div>`:""}</details>
+      ${autoL?`<div class="hint">Según el horario del grupo correspondería: ${fmtDT({unlock_at:autoL},true)}.</div>`:""}</details>
     <div class="form-actions"><button class="btn-primary" id="el-save">${lid?"Guardar":"Crear clase"}</button>${lid?'<div style="flex:1"></div><button class="btn-ghost danger btn-sm" id="el-del">Eliminar clase</button>':""}</div></div>
     ${lid?`<div class="section"><div class="steps-ed"><span>1. La clase</span><span class="on">2. Actividades</span></div><div class="sub">El alumno las ve agrupadas en Antes de clase, Práctica y Después de clase.</div>
       ${["antes","practica","despues"].map(k=>{ const xs=mine.filter(x=>x.kind===k); return `<div class="kgrp"><div class="lab">${KIND_ES[k]}</div>${xs.map(x=>{ const it=S.itemById[x.item_id]||{title:"(borrada)"};

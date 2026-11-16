@@ -221,7 +221,7 @@ function applyLevel(code){
   st.setProperty("--lv",c); st.setProperty("--lv-ink",inkFor(c)); st.setProperty("--lv-soft","color-mix(in srgb, "+c+" 14%, #fff)");
   return lv||null;
 }
-function parseVocab(raw){ return String(raw||"").split(/\n/).map(l=>l.trim()).filter(Boolean).map(l=>{ const p=l.split("|").map(x=>x.trim()); return {w:p[0]||"",m:p[1]||"",e:p[2]||""}; }); }
+function parseVocab(raw){ return String(raw||"").split(/\n/).map(l=>l.trim()).filter(Boolean).map(l=>{ const p=l.split(/[=|]/).map(x=>x.trim()); return {w:p[0]||"",m:p[1]||"",e:p[2]||""}; }); }
 function parseOpts(raw){ return String(raw||"").split(/\n/).map(l=>l.trim()).filter(Boolean).map(l=>({ok:l.startsWith("*"), t:l.replace(/^\*\s*/,"")})); }
 function embedUrl(u){
   if(!u) return null; let m=u.match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/);
@@ -374,7 +374,7 @@ function blockEditor(b,i,n){
   if(b.t==="text") body=ta("v","Explicación, consigna o lectura. Usá **así** para resaltar en negrita.",120);
   if(b.t==="note") body=ta("v","Un tip, una aclaración o un \"ojo con esto\".");
   if(b.t==="image") body=`${b.path?`<img data-path="${esc(b.path)}" alt="">`:""}<input type="file" accept="image/*" data-img="${i}" style="padding:8px"><div class="hint">${b.path?"Subí otra para reemplazarla.":"Captura del libro, foto o esquema."}</div><div style="margin-top:8px">${inp("caption","Epígrafe (opcional)")}</div>`;
-  if(b.t==="vocab") body=ta("raw","Una palabra por línea: palabra | significado | ejemplo\nfigure out | entender, resolver | I can't figure out this bug.",120)+`<div class="hint">El significado y el ejemplo son opcionales.</div>`;
+  if(b.t==="vocab") body=ta("raw","Una palabra por línea: palabra = significado = ejemplo\nfigure out = entender, resolver = I can't figure out this bug.",120)+`<div class="hint">El significado y el ejemplo son opcionales.</div>`;
   if(b.t==="question") body=ta("q","La pregunta o consigna que el alumno responde por escrito.",70)+`<div class="hint">Con al menos una pregunta, la actividad pasa a ser "con entrega" y la corrigen desde Correcciones.</div>`;
   if(b.t==="choice") body=inp("q","La pregunta")+`<div style="margin-top:8px">${ta("raw","Una opción por línea. Marcá la correcta con * al principio.\n*has lived\nlives\nis living",100)}</div><div class="hint">Se corrige solo, en el momento. No hace falta entregarlo.</div>`;
   if(b.t==="video") body=inp("url","Link de YouTube, Vimeo o Google Drive");
@@ -845,7 +845,7 @@ function nuevoCurso(gid,cs,cg){
     <div class="field"><label class="lab">¿Con qué contenido arranca?</label>
       <label class="gchk" style="margin-bottom:8px"><input type="radio" name="n-m" value="nuevo" checked><span><b>Nuevo</b><small>Pegás los temas y después completás cada clase</small></span></label>
       ${otros.length?`<label class="gchk"><input type="radio" name="n-m" value="copia"><span><b>Copiar el de otro grupo</b><small>Mismas clases, teoría y actividades. Las fechas se calculan con el horario de este grupo.</small></span></label>`:""}</div>
-    <div id="n-nuevo" class="field"><label class="lab">Temas de las clases (uno por línea)</label><textarea id="n-x" style="min-height:180px" placeholder="My English story | Contar tu historia con el inglés\nMusic & memories\nArgentina explained"></textarea><div class="hint">Podés pegarlos directo del plan. Lo que va después de la | es el objetivo (opcional).</div></div>
+    <div id="n-nuevo" class="field"><label class="lab">Temas de las clases (uno por línea)</label><textarea id="n-x" style="min-height:180px" placeholder="My English story = Contar tu historia con el inglés\nMusic & memories\nArgentina explained"></textarea><div class="hint">Podés pegarlos directo del plan. Lo que va después del = es el objetivo (opcional).</div></div>
     <div id="n-copia" class="field" hidden><label class="lab">Copiar de</label><select id="n-o">${otros.map(c=>`<option value="${c.id}">${esc(nomG(c))}</option>`).join("")}</select><div class="hint">Las actividades quedan compartidas: si corregís un quiz, se corrige en los dos cursos. Lo que hacen los alumnos sí queda separado.</div></div>
     <div class="form-actions"><button class="btn-primary" id="n-ok">Crear curso</button><span id="n-msg"></span></div></div>`;
   $("#n-back").onclick=viewCursos;
@@ -856,7 +856,7 @@ function nuevoCurso(gid,cs,cg){
     let src=null, temas=[];
     if(modo==="copia"){ const sid=$("#n-o").value; src={c:cs.find(c=>c.id===sid),ls:(await db.from("practice_lessons").select("*").eq("course_id",sid).order("number")).data||[]};
       src.li=src.ls.length?(await db.from("practice_lesson_items").select("*").in("lesson_id",src.ls.map(l=>l.id))).data||[]:[]; }
-    else temas=$("#n-x").value.split("\n").map(x=>x.trim()).filter(Boolean).map(x=>{ const p=x.split("|"); return {title:p[0].trim(),goal:(p[1]||"").trim()||null,theory:{}}; });
+    else temas=$("#n-x").value.split("\n").map(x=>x.trim()).filter(Boolean).map(x=>{ const p=x.split(/[=|]/); return {title:p[0].trim(),goal:(p[1]||"").trim()||null,theory:{}}; });
     const nivel=$("#n-l").value||(src&&src.c.level)||null;
     const {data:c,error}=await db.from("practice_courses").insert({title:g.nombre,level:nivel,starts_on:starts,description:src?src.c.description:null}).select().single();
     if(error){ msg.className="msg err"; msg.textContent=error.message; return; }
@@ -951,7 +951,8 @@ function editLesson(lid){
     <div class="field"><label class="lab">Título</label><input id="el-t" value="${esc(l.title)}"></div>
     <div class="field"><label class="lab">Objetivo (lo ve el alumno arriba)</label><input id="el-g" value="${esc(l.goal||"")}" placeholder="Ej: Contar tu historia con el inglés"></div>
     <div class="field"><label class="lab">Teoría</label><textarea id="el-i" placeholder="Una explicación corta, como se la dirías en clase.">${esc(th.intro||"")}</textarea></div>
-    <div class="field"><label class="lab">Chunks (uno por línea: inglés | castellano)</label><textarea id="el-c" placeholder="I've worked here since 2022. | Trabajo acá desde 2022.">${esc((th.chunks||[]).map(c=>c.en+(c.es?" | "+c.es:"")).join("\n"))}</textarea></div>
+    <div class="field"><label class="lab">Chunks: frases clave de la clase (una por línea: inglés = castellano)</label><textarea id="el-c" placeholder="I've worked here since 2022. = Trabajo acá desde 2022.
+What I find hardest is… = Lo que más me cuesta es…">${esc((th.chunks||[]).map(c=>c.en+(c.es?" = "+c.es:"")).join("\n"))}</textarea></div>
     <div class="grid2"><div class="field"><label class="lab">Tip (opcional)</label><input id="el-p" value="${esc(th.tip||"")}"></div><div class="field"><label class="lab">Video (opcional)</label><input id="el-v" value="${esc(l.video_url||"")}" placeholder="YouTube, Vimeo o Drive"></div></div>
     <details class="mas"><summary>Cambiar cuándo se abre${autoL?" (ahora: automático)":""}</summary>
       <div class="grid2" style="margin-top:8px"><div class="field"><label class="lab">Se abre</label><input type="datetime-local" id="el-u" value="${toLocalInput(l)}"></div><div class="field"><label class="lab">Número de clase</label><input type="number" id="el-n" value="${l.number}"></div></div>
@@ -968,7 +969,7 @@ function editLesson(lid){
       </div><div id="mk"></div></div>`:""}`;
   $("#el-back").onclick=()=>viewCurso(K.c.id);
   $("#el-save").onclick=async()=>{
-    const chunks=$("#el-c").value.split("\n").map(s=>s.trim()).filter(Boolean).map(s=>{ const p=s.split("|"); return {en:p[0].trim(),es:(p[1]||"").trim()}; });
+    const chunks=$("#el-c").value.split("\n").map(s=>s.trim()).filter(Boolean).map(s=>{ const p=s.split(/[=|]/); return {en:p[0].trim(),es:(p[1]||"").trim()}; });
     const ua=fromLocalInput($("#el-u").value)||l.unlock_at;
     const row={course_id:K.c.id,number:+$("#el-n").value,title:$("#el-t").value.trim(),goal:$("#el-g").value.trim()||null,unlock_at:ua,unlock_on:ua.slice(0,10),video_url:$("#el-v").value.trim()||null,theory:{intro:$("#el-i").value.trim(),chunks,tip:$("#el-p").value.trim()}};
     if(!row.title){ toast("Poné un título"); return; }

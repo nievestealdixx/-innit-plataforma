@@ -896,6 +896,13 @@ function gmailCompose(o){
   if(o.subject)p.set('su',o.subject); if(o.body)p.set('body',o.body);
   return 'https://mail.google.com/mail/?authuser=innit.english%40gmail.com&'+p.toString();
 }
+function segEfectivo(s,r){
+  // Si después del mail (o del cierre del caso) el alumno sigue faltando sin justificar, vuelve a Pendiente
+  if(!s||s.estado==='pendiente'||!r) return s;
+  const corte=s.fecha_envio||(s.actualizado||'').slice(0,10);
+  if(corte && r.fechas[r.fechas.length-1]>corte) return {alumno_id:s.alumno_id,estado:'pendiente',respuesta:null,nota:null,fecha_envio:null,_previo:s};
+  return s;
+}
 function flaggedInasistencias(){
   const out=[];
   ctx.alumnos.forEach(a=>{ if(!a.activo) return; const r=rachaSinJustificar(a.id); if(r) out.push({a,r}); });
@@ -909,7 +916,7 @@ async function renderInasistencias(cont){
   if(!flagged.length){ cont.innerHTML=`<div class="section"><h2>Consulta de inasistencias</h2><div class="sub">Estudiantes con 3 faltas sin justificar seguidas.</div><div class="empty">Sin casos por ahora. 🎉</div></div>`; return; }
   const ids=flagged.map(f=>f.a.id);
   const {data:seg}=await db.from("seguimiento_inasistencias").select("*").in("alumno_id",ids);
-  const segMap=Object.fromEntries((seg||[]).map(s=>[s.alumno_id,s]));
+  const segMap=Object.fromEntries((seg||[]).map(s=>[s.alumno_id,segEfectivo(s,(flagged.find(f=>f.a.id===s.alumno_id)||{}).r)]));
   const EST={pendiente:["Pendiente","est-pend"],enviado:["Mail enviado","est-env"],sin_respuesta:["Sin respuesta","est-sin"],respondio:["Respondió","est-ok"],desestimado:["Desestimado","est-des"]};
   const grupoDe=s=>['respondio','desestimado'].includes(s)?'arch':(['enviado','sin_respuesta'].includes(s)?'env':'pend');
   const fmtD=s=>{const d=new Date(s+"T00:00:00");return d.getDate()+" "+MESES[d.getMonth()];};
@@ -927,6 +934,7 @@ async function renderInasistencias(cont){
     if(i.s.fecha_envio) h+=`<div class="idet-line"><b>Mail enviado:</b> ${fmtD(i.s.fecha_envio)} (hace ${dias(i.s.fecha_envio)} días)</div>`;
     if(i.s.respuesta) h+=`<div class="idet-line"><b>Respuesta:</b> ${esc(i.s.respuesta)}</div>`;
     if(i.s.nota) h+=`<div class="idet-line"><b>Motivo:</b> ${esc(i.s.nota)}</div>`;
+    if(i.s._previo){ const pv=i.s._previo; h+=`<div class="idet-line" style="color:var(--ink-soft)"><b>Caso anterior:</b> ${EST[pv.estado]?EST[pv.estado][0]:pv.estado}${pv.fecha_envio?' · mail del '+fmtD(pv.fecha_envio):''}${pv.respuesta?' · respuesta: '+esc(pv.respuesta):''}${pv.nota?' · '+esc(pv.nota):''}</div>`; }
     if(!esProf) return h;
     const st=i.s.estado, id=i.a.id; let acts='';
     if(st==='pendiente') acts=`<button class="btn-primary btn-sm" data-act="mail" data-id="${id}">Enviar mail</button><button class="btn-ghost btn-sm" data-act="enviado" data-id="${id}">Marcar como enviado</button><button class="btn-ghost btn-sm" data-act="form-des" data-id="${id}">Desestimar</button>`;
@@ -951,10 +959,16 @@ async function renderInasistencias(cont){
 
   async function upd(id,patch){
     const p=segMap[id]||{};
+    await guardarPrevio(p);
     const payload=Object.assign({alumno_id:id,estado:p.estado||'pendiente',respuesta:p.respuesta||null,nota:p.nota||null,fecha_envio:p.fecha_envio||null},patch,{actualizado:new Date().toISOString()});
     const {error}=await db.from("seguimiento_inasistencias").upsert(payload);
     if(error){ toast("No se pudo guardar"); return; }
     toast("Guardado"); renderInasistencias(cont);
+  }
+  async function guardarPrevio(p){
+    if(!p||!p._previo) return; const pv=p._previo;
+    await db.from("observaciones").insert({alumno_id:pv.alumno_id,fecha:hoyStr,tipo:'general',compartida:false,texto:`Seguimiento de inasistencias anterior: ${EST[pv.estado]?EST[pv.estado][0]:pv.estado}${pv.fecha_envio?' (mail del '+pv.fecha_envio.split('-').reverse().join('/')+')':''}${pv.respuesta?'. Respuesta: '+pv.respuesta:''}${pv.nota?'. '+pv.nota:''}`});
+    delete p._previo;
   }
   function datosMail(id){
     const a=ctx.alumnoById[id], g=a.grupo_id?ctx.grupoById[a.grupo_id]:null;
@@ -1017,7 +1031,7 @@ async function renderInasistencias(cont){
         const {error}=await db.from("asistencia").update({nota:causa}).eq("alumno_id",id).eq("presente",false).in("fecha",it.r.fechas);
         if(error){ toast("No se pudo guardar"); return; }
         await db.from("observaciones").insert({alumno_id:id,fecha:hoyStr,tipo:'general',compartida:false,texto:`Faltas justificadas (${it.r.fechas.map(f=>{const d=new Date(f+"T00:00:00");return d.getDate()+" "+MESES_ES[d.getMonth()];}).join(', ')}): ${causa}${nota?'. '+nota:''}`});
-        const p=segMap[id]||{};
+        const p=segMap[id]||{}; await guardarPrevio(p);
         await db.from("seguimiento_inasistencias").upsert({alumno_id:id,estado:'desestimado',respuesta:p.respuesta||null,fecha_envio:p.fecha_envio||null,nota:`Justificadas: ${causa}${nota?' — '+nota:''}`,actualizado:new Date().toISOString()});
         await loadData(); toast("Faltas justificadas ✓"); cont.dataset.open=''; renderInasistencias(cont);
       };
@@ -1081,7 +1095,7 @@ async function viewHome(segArg){
     const fl=flaggedInasistencias();
     if(fl.length){
       const {data:segs}=await db.from("seguimiento_inasistencias").select("alumno_id, estado").in("alumno_id",fl.map(f=>f.a.id));
-      const est=Object.fromEntries((segs||[]).map(s=>[s.alumno_id,s.estado]));
+      const est=Object.fromEntries((segs||[]).map(s=>[s.alumno_id,(segEfectivo(s,(fl.find(f=>f.a.id===s.alumno_id)||{}).r)||{}).estado]));
       _pend=fl.filter(f=>!est[f.a.id]||est[f.a.id]==='pendiente');
     }
   }
